@@ -216,7 +216,18 @@ function ExpandedItem({ item, userId, showTags = true }: ListItemProps) {
         {/* End Description */}
       </div>
 
-      <ItemImages folder={imageFolder} />
+      {/* <ItemImages folder={imageFolder} /> */}
+      {imageFolder && (
+        <details className="collapse collapse-arrow bg-base-100 rounded">
+          <summary className="collapse-title text-sm font-medium cursor-pointer">
+            Images
+          </summary>
+
+          <div className="collapse-content">
+            <ItemImages folder={imageFolder} />
+          </div>
+        </details>
+      )}
 
       {/* Visibility, dates, and actions row */}
       <div className="flex flex-row gap-4 items-center text-xs text-base-content/60 justify-between w-full mt-1">

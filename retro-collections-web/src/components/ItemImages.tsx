@@ -50,7 +50,7 @@ const ItemImages = ({ folder }: ItemImagesProps) => {
 
   return (
     <div className="mt-4">
-      <h4 className="font-semibold text-sm mb-2">Images</h4>
+      {/* <h4 className="font-semibold text-sm mb-2">Images</h4> */}
 
       {/* LOADING */}
       {isLoading && (
