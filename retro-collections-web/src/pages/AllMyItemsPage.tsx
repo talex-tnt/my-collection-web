@@ -5,8 +5,8 @@ import {
   useLocation,
   Navigate,
 } from 'react-router-dom';
-import MySpareItems from './MySpareItems';
-import MyCollections from './MyCollections';
+import MySpareItems from '../components/MySpareItems';
+import MyCollections from '../components/MyCollections';
 import { useCurrentUser } from '../utils/hooks';
 
 function AllMyItemsPage() {

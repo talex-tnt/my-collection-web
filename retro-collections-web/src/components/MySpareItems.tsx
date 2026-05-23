@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import ItemsList from '../components/ItemsList';
-import NewItem from '../components/NewItem';
-import ItemsFilters from '../components/ItemsFilters';
+import ItemsList from './ItemsList';
+import NewItem from './NewItem';
+import ItemsFilters from './ItemsFilters';
 import type { User } from 'firebase/auth/web-extension';
 
 function MySpareItems({ user }: { user: User }) {

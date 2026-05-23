@@ -7,8 +7,8 @@ import {
   Navigate,
 } from 'react-router-dom';
 import { useGetUserByIdQuery } from '../api/firestore/firestoreApi';
-import CollectorSpareItems from './CollectorSpareItems';
-import CollectorCollections from './CollectorCollections';
+import CollectorSpareItems from '../components/CollectorSpareItems';
+import CollectorCollections from '../components/CollectorCollections';
 
 function CollectorPage() {
   const { userId } = useParams();

@@ -1,13 +1,13 @@
 import { HashRouter, Routes, Route } from 'react-router-dom';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
+import Header from './Header';
+import Footer from './Footer';
 import HomePage from '../pages/HomePage';
 import AdminPage from '../pages/AdminPage';
 import SettingsPage from '../pages/SettingsPage';
 import CollectorPage from '../pages/CollectorPage';
 import CollectorsPage from '../pages/CollectorsPage';
 import UsersPage from '../pages/UsersPage';
-import AllMyItemsPage from './AllMyItemsPage';
+import AllMyItemsPage from '../pages/AllMyItemsPage';
 import ProfilePage from '../pages/ProfilePage';
 import TagsPage from '../pages/TagsPage';
 import { onAuthStateChanged, type User } from 'firebase/auth';

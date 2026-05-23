@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useGetPublicUserItemsQuery } from '../api/firestore/firestoreApi';
-import Tags from '../components/Tags';
+import Tags from './Tags';
 import { type ImagePreview } from '../api/firestore/types/shared';
 interface ItemRecord {
   id: string;
