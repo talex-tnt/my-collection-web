@@ -4,32 +4,30 @@ import {
   useGetPublicUserItemsCountQuery,
 } from '../api/firestore/firestoreApi';
 
-import ListItem from './ListItem';
+import CollectorListItem from './CollectorListItem';
 import { ExpandableMotion } from './ExpandableMotion';
-import ExpandedItem from './ExpandedItem';
+import CollectorExpandedItem from './CollectorxpandedItem';
 
 interface Cursor {
   createdAt: string;
   id: string;
 }
 
-interface ItemsListProps {
-  user: { uid: string } | null;
+interface CollectorItemsListProps {
+  userId?: string;
   itemNameClientFilter: string;
   selectedTags: string[];
-  isPublic?: boolean;
   startWithNameFilter: string;
   nameContainsTokens: string;
 }
 
-function ItemsList({
-  user,
+function CollectorItemsList({
+  userId,
   itemNameClientFilter,
   selectedTags,
-  isPublic,
   startWithNameFilter,
   nameContainsTokens,
-}: ItemsListProps) {
+}: CollectorItemsListProps) {
   const [showTags, setShowTags] = useState(true);
 
   const [pageIndex, setPageIndex] = useState(0);
@@ -42,9 +40,15 @@ function ItemsList({
 
   // Total count (optional UI use)
   const { data: totalCount = 0 } = useGetPublicUserItemsCountQuery(
-    user?.uid || '',
     {
-      skip: !user?.uid,
+      userId: userId || '',
+      tags: selectedTags.length ? selectedTags : undefined,
+      startWithNameFilter: startWithNameFilter || undefined,
+      nameContainsTokens: nameContainsTokens || undefined,
+      isPublic: true,
+    },
+    {
+      skip: !userId,
     }
   );
 
@@ -54,15 +58,15 @@ function ItemsList({
     error,
   } = useGetPublicUserItemsQuery(
     {
-      userId: user?.uid || '',
+      userId: userId || '',
       tags: selectedTags.length ? selectedTags : undefined,
-      isPublic,
+      isPublic: true,
       limit: isAll ? undefined : pageSize,
       startAfter: currentCursor,
       startWithNameFilter: startWithNameFilter || undefined,
       nameContainsTokens: nameContainsTokens || undefined,
     },
-    { skip: !user?.uid }
+    { skip: !userId }
   );
 
   const items = (itemsData?.items || []).filter((item) =>
@@ -112,14 +116,16 @@ function ItemsList({
               <ExpandableMotion
                 key={item.id}
                 renderExpanded={(props) => (
-                  <ExpandedItem {...props} key={`expanded-${item.id}`} />
+                  <CollectorExpandedItem
+                    {...props}
+                    key={`expanded-${item.id}`}
+                  />
                 )}
               >
-                <ListItem
+                <CollectorListItem
                   key={item.id}
                   item={item}
-                  userId={user?.uid || ''}
-                  showTags={true}
+                  showTags={showTags}
                 />
               </ExpandableMotion>
             ))
@@ -178,4 +184,4 @@ function ItemsList({
   );
 }
 
-export default ItemsList;
+export default CollectorItemsList;

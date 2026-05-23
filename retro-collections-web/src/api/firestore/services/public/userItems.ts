@@ -243,26 +243,79 @@ const getPublicUserItemsEndpoints = (builder: FirestoreBuilder) => ({
           ],
   }),
 
-  getPublicUserItemsCount: builder.query<number, string>({
-    async queryFn(userId) {
+  getPublicUserItemsCount: builder.query<
+    number,
+    {
+      userId: string;
+      tags?: string[];
+      startWithNameFilter?: string;
+      nameContainsTokens?: string;
+      isPublic?: boolean;
+    }
+  >({
+    async queryFn({
+      userId,
+      tags,
+      startWithNameFilter,
+      nameContainsTokens,
+      isPublic,
+    }) {
       const path = await getUserCollectionPath({
         visibility,
         resourceType: 'items',
         userId,
       });
 
-      const q = query(collection(db, path));
+      const baseConstraints: QueryConstraint[] = [];
+
+      if (tags?.length) {
+        baseConstraints.push(where('tags', 'array-contains-any', tags));
+      }
+
+      if (isPublic !== undefined) {
+        baseConstraints.push(where('visibility.public', '==', isPublic));
+      }
+
+      const prefix = startWithNameFilter?.trim().toLowerCase();
+
+      // Apply the same token / prefix filtering constraints
+      if (prefix || nameContainsTokens) {
+        if (nameContainsTokens) {
+          const tokens = tokenizeName(nameContainsTokens);
+
+          if (tokens.length) {
+            baseConstraints.push(
+              where('nameTokens', 'array-contains', tokens[0])
+            );
+          }
+        }
+
+        if (prefix) {
+          baseConstraints.push(
+            where('nameLowercase', '>=', prefix),
+            where('nameLowercase', '<=', `${prefix}\uf8ff`)
+          );
+        }
+      }
+
+      const countQuery = query(collection(db, path), ...baseConstraints);
 
       const context = {
         apiEndpoint: 'getPublicUserItemsCount',
         operation: 'QUERY' as const,
         firebaseFunc: 'getCountFromServer',
         path,
-        requestPayload: { userId },
+        requestPayload: {
+          userId,
+          tags,
+          startWithNameFilter,
+          nameContainsTokens,
+          isPublic,
+        },
       };
 
       try {
-        const snapshot = await getCountFromServer(q);
+        const snapshot = await getCountFromServer(countQuery);
 
         return {
           data: snapshot.data().count,
@@ -274,12 +327,12 @@ const getPublicUserItemsEndpoints = (builder: FirestoreBuilder) => ({
       }
     },
 
-    providesTags: (result, _error, userId) =>
-      result
+    providesTags: (result, _error, request) =>
+      result !== undefined
         ? [
             {
               type: 'PublicUserItems' as const,
-              id: `${userId}_LIST`,
+              id: `${request.userId}_LIST`,
             },
           ]
         : [],

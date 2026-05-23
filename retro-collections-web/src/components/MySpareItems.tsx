@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import ItemsList from './ItemsList';
+import MyItemsList from './MyItemsList';
 import NewItem from './NewItem';
 import ItemsFilters from './ItemsFilters';
 import type { User } from 'firebase/auth/web-extension';
@@ -34,7 +34,7 @@ function MySpareItems({ user }: { user: User }) {
       </div>
       {/* Center column: ItemsList */}
       <div className="md:col-span-4">
-        <ItemsList
+        <MyItemsList
           user={user}
           itemNameClientFilter={itemNameClientFilter}
           selectedTags={selectedTags}

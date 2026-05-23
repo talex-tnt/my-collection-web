@@ -80,22 +80,24 @@ export default function ItemsFilters({
               </button>
             )}
           </div>
-          <div className="flex gap-2 items-center mt-2">
-            <span className="text-xs opacity-70">Visibility:</span>
-            <select
-              className="select select-xs min-w-[100px]"
-              value={visibilityFilter}
-              onChange={(e) =>
-                onVisibilityFilterChange?.(
-                  e.target.value as 'public' | 'private' | ''
-                )
-              }
-            >
-              <option value="">All</option>
-              <option value="public">Public</option>
-              <option value="private">Private</option>
-            </select>
-          </div>
+          {onVisibilityFilterChange && (
+            <div className="flex gap-2 items-center mt-2">
+              <span className="text-xs opacity-70">Visibility:</span>
+              <select
+                className="select select-xs min-w-[100px]"
+                value={visibilityFilter}
+                onChange={(e) =>
+                  onVisibilityFilterChange?.(
+                    e.target.value as 'public' | 'private' | ''
+                  )
+                }
+              >
+                <option value="">All</option>
+                <option value="public">Public</option>
+                <option value="private">Private</option>
+              </select>
+            </div>
+          )}
           {/* --- SERVER NAME FILTERS --- */}
           <div className="flex flex-col gap-2 mt-4">
             <label className="text-xs opacity-70 font-medium">

@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import type { Item } from '../api/firestore/services/public/userItems';
 import ItemActions from './ItemActions';
 import { useState } from 'react';
@@ -9,15 +8,20 @@ import {
 import Tags from './Tags';
 import { findPreviewImage } from '../utils/findPreviewImage';
 import type { FolderType, FileType } from '../api/firestore/types/shared';
-import { FiMaximize2 as Maximaze } from 'react-icons/fi';
-interface ListItemProps {
+import ItemImages from './ItemImages';
+
+interface MyExpandedItemProps {
   item: Item;
   userId: string;
   showTags?: boolean;
   onExpand?: () => void;
 }
 
-function ListItem({ item, userId, showTags = true, onExpand }: ListItemProps) {
+function MyExpandedItem({
+  item,
+  userId,
+  showTags = true,
+}: MyExpandedItemProps) {
   const [editingField, setEditingField] = useState<
     'name' | 'description' | null
   >(null);
@@ -113,9 +117,7 @@ function ListItem({ item, userId, showTags = true, onExpand }: ListItemProps) {
     const metadata = {
       ...item.metadata,
       imageFolder: folder?.id ? folder : {},
-      previewImage: previewImage?.id
-        ? { id: previewImage.id, name: previewImage.name }
-        : {},
+      previewImage: previewImage?.thumbnailLink ? previewImage : {},
     };
     try {
       await updateItem({
@@ -130,29 +132,12 @@ function ListItem({ item, userId, showTags = true, onExpand }: ListItemProps) {
     }
   };
   return (
-    <motion.div
-      layoutId={`expandable-${item.id}`}
-      className="flex flex-col gap-2 rounded-lg border border-base-300 bg-base-200 p-4"
-      // onClick={(e) => {
-      //   const target = e.target as HTMLElement;
-
-      //   // prevent interfering with inputs/buttons
-      //   if (target.closest('input, textarea, button, select')) return;
-
-      //   // prevent double-click breaking expand
-      //   if (e.detail > 1) return;
-
-      //   onExpand?.();
-      // }}
-    >
+    <div className="flex flex-col gap-2 bg-base-200 p-4">
       {/* Tags at the top, toggleable */}
       <div className="flex items-center gap-2">
         {showTags && (
           <Tags userId={item.userId} itemId={item.id} tags={item.tags || []} />
         )}
-        <button className="btn btn-ghost btn-xs" onClick={onExpand}>
-          <Maximaze />
-        </button>
       </div>
       <div className="flex items-center gap-2">
         {editing && editingField === 'name' ? (
@@ -184,12 +169,8 @@ function ListItem({ item, userId, showTags = true, onExpand }: ListItemProps) {
           {imagePreview?.id && (
             <img
               loading="lazy"
-              // src={imagePreview.thumbnailLink}
-              src={`https://drive.google.com/thumbnail?id=${item?.metadata?.previewImage?.id}&sz=w200`}
-              // src={'https://drive.google.com/thumbnail?authuser=0&sz=w320&id=YOUR_FILE_ID'.replace(
-              //   'YOUR_FILE_ID',
-              //   imagePreview.id
-              // )}
+              // src={imagePreview.thumbnailLink} --- IGNORE ---
+              src={`https://drive.google.com/thumbnail?id=${imagePreview?.id}&sz=w200`}
               referrerPolicy={'no-referrer'}
               alt={imagePreview.name}
               className="w-full h-auto rounded"
@@ -236,6 +217,19 @@ function ListItem({ item, userId, showTags = true, onExpand }: ListItemProps) {
         {/* End Description */}
       </div>
 
+      {/* <ItemImages folder={imageFolder} /> */}
+      {imageFolder && (
+        <details className="collapse collapse-arrow bg-base-100 rounded">
+          <summary className="collapse-title text-sm font-medium cursor-pointer">
+            See more images...
+          </summary>
+
+          <div className="collapse-content">
+            <ItemImages folder={imageFolder} />
+          </div>
+        </details>
+      )}
+
       {/* Visibility, dates, and actions row */}
       <div className="flex flex-row gap-4 items-center text-xs text-base-content/60 justify-between w-full mt-1">
         <div className="flex flex-row gap-4 items-center">
@@ -268,8 +262,8 @@ function ListItem({ item, userId, showTags = true, onExpand }: ListItemProps) {
           />
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
-export default ListItem;
+export default MyExpandedItem;
