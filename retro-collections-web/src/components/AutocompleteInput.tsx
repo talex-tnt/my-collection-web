@@ -59,6 +59,19 @@ function AutocompleteInput<T>({
           setTimeout(() => setOpen(false), 150);
         }}
         onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            // Check if a suggestion is actively highlighted
+            if (open && highlighted >= 0 && highlighted < suggestions.length) {
+              e.preventDefault(); // Stop form submission *only* to select the suggestion
+              selectItem(suggestions[highlighted]);
+            } else {
+              // No suggestion is selected -> Close dropdown and let the event bubble up to submit the form!
+              setOpen(false);
+              setHighlighted(-1);
+            }
+            return;
+          }
+
           if (!open) return;
 
           if (e.key === 'ArrowDown') {
@@ -73,13 +86,6 @@ function AutocompleteInput<T>({
             setHighlighted((prev) =>
               prev > 0 ? prev - 1 : suggestions.length - 1
             );
-          }
-
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            if (highlighted >= 0) {
-              selectItem(suggestions[highlighted]);
-            }
           }
 
           if (e.key === 'Escape') {
