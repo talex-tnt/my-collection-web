@@ -73,8 +73,15 @@ const ItemImages = ({ folder }: ItemImagesProps) => {
             className="flex flex-col items-center cursor-pointer"
             onClick={() => setActiveImage(img)}
           >
-            <div className="w-full h-[120px] bg-base-200 rounded overflow-hidden flex items-center justify-center hover:opacity-90 transition">
-              <DriveImage fileId={img.id ?? ''} name={img.name ?? ''} />
+            <div className="w-full bg-base-200 rounded overflow-hidden flex items-center justify-center hover:opacity-90 transition">
+              {/* <DriveImage fileId={img.id ?? ''} name={img.name ?? ''} /> */}
+              <img
+                loading="lazy"
+                src={`https://drive.google.com/thumbnail?id=${img?.id}&sz=w300`}
+                referrerPolicy={'no-referrer'}
+                alt={img.name}
+                className="w-full h-auto rounded"
+              />
             </div>
 
             <span

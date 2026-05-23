@@ -162,14 +162,11 @@ function ExpandedItem({ item, userId, showTags = true }: ListItemProps) {
       <div className="flex flex-row gap-4 justify-between items-start w-full">
         {/* Description (left) */}
         <div className="flex flex-col gap-2">
-          {imagePreview?.thumbnailLink && (
+          {imagePreview?.id && (
             <img
               loading="lazy"
-              src={imagePreview.thumbnailLink}
-              // src={'https://drive.google.com/thumbnail?authuser=0&sz=w320&id=YOUR_FILE_ID'.replace(
-              //   'YOUR_FILE_ID',
-              //   imagePreview.id
-              // )}
+              // src={imagePreview.thumbnailLink} --- IGNORE ---
+              src={`https://drive.google.com/thumbnail?id=${imagePreview?.id}&sz=w200`}
               referrerPolicy={'no-referrer'}
               alt={imagePreview.name}
               className="w-full h-auto rounded"
@@ -220,7 +217,7 @@ function ExpandedItem({ item, userId, showTags = true }: ListItemProps) {
       {imageFolder && (
         <details className="collapse collapse-arrow bg-base-100 rounded">
           <summary className="collapse-title text-sm font-medium cursor-pointer">
-            Images
+            See more images...
           </summary>
 
           <div className="collapse-content">
