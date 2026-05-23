@@ -1,5 +1,9 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import { getDriveToken, requestDriveToken } from './googleDriveAuth';
+import {
+  clearDriveToken,
+  getDriveToken,
+  requestDriveToken,
+} from './googleDriveAuth';
 
 type ListFilesArgs = {
   folderId?: string;
@@ -45,8 +49,11 @@ export const driveApi = createApi({
 
     const result = await base(args, api, extraOptions);
 
-    // 🔄 auto retry on expired token
     if (result.error?.status === 401) {
+      // Svuota il token vecchio e corrotto
+      clearDriveToken();
+
+      // Richiede un nuovo token (mostrerà il pop-up solo se la sessione Google nel browser è scaduta)
       const newToken = await requestDriveToken();
 
       return fetchBaseQuery({
@@ -57,7 +64,6 @@ export const driveApi = createApi({
         },
       })(args, api, extraOptions);
     }
-
     return result;
   },
   endpoints: (builder) => ({
