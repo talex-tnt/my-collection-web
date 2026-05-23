@@ -360,7 +360,7 @@ service cloud.firestore {
       }
 
 
-     match /public/users/{userId}/tags/{tagId} {
+      match /public/users/{userId}/tags/{tagId} {
         function isUserOwner() {
           return isOwner({'userId': userId}, 'userId');
         }
@@ -487,6 +487,30 @@ service cloud.firestore {
             isAuthenticated() && // Test 4.1.3
             resource.data.userId == request.auth.uid // Test 4.1.3
           ));
+      }
+
+      match /private/users/{userId}/settings/wikipedia {
+        function isUserOwner() {
+          return isOwner({'userId': userId}, 'userId');
+        }
+
+        // Helper specifico per validare che ci sia SOLO enableSuggestions e che sia booleano
+        function isValidWikipediaSettings(data) {
+          return hasOnlyValidKeys(data, ['enableSuggestions']) 
+            && ('enableSuggestions' in data) 
+            && data.enableSuggestions is bool;
+        }
+  
+        allow read: if 
+          environmentAccessAllowed() 
+          && folderMatchesConfig()
+          && isUserOwner();
+        
+        allow write: if 
+          environmentAccessAllowed() 
+          && folderMatchesConfig()
+          && isUserOwner()
+          && isValidWikipediaSettings(request.resource.data); // 👈 Blocca qualsiasi altro campo o tipo errato
       }
     }
     match /{document=**} {

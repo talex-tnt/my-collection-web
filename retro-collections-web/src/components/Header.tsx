@@ -163,6 +163,14 @@ function Header() {
               >
                 Collectors
               </NavLink>
+              <NavLink
+                to="/settings"
+                className={({ isActive }) =>
+                  isActive ? 'tab tab-active' : 'tab'
+                }
+              >
+                Settings
+              </NavLink>
               {isAdmin && (
                 <NavLink
                   to="/users"

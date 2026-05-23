@@ -7,6 +7,7 @@ import getUsersEndpoints from './services/public/users';
 import getAuthorizedUsersEndpoints from './services/private/authorized-users';
 import getPrivateUsersEndpoints from './services/private/users';
 import getPublicUserTagsEndpoints from './services/public/userTags';
+import getWikipediaSettingsEndpoints from './services/private/wikipediaSettings';
 
 export const firestoreApi = createApi({
   reducerPath: 'firestoreApi',
@@ -27,6 +28,7 @@ export const firestoreApi = createApi({
     ...getUsersEndpoints(builder),
     ...getPrivateUsersEndpoints(builder),
     ...getAuthorizedUsersEndpoints(builder),
+    ...getWikipediaSettingsEndpoints(builder),
   }),
 });
 
@@ -57,4 +59,8 @@ export const {
   useCreatePublicUserTagMutation,
   useDeletePublicUserTagMutation,
   useUpdatePublicUserTagMutation,
+
+  // Settings
+  useGetWikipediaSettingsQuery,
+  useUpdateWikipediaSettingsMutation,
 } = firestoreApi;

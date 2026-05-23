@@ -8,6 +8,7 @@ import { useSearchQuery } from '../api/wikipedia/wikipediaApi';
 import AutocompleteInput from './AutocompleteInput';
 // import { useListFilesQuery } from '../api/google-drive/googleDriveApi';
 import { useSearchGamesQuery } from '../api/games/rawgApi';
+import { useWikiSettings } from '../utils/hooks';
 interface NewItemProps {
   userId: string;
 }
@@ -17,6 +18,8 @@ type Suggestion = {
 };
 
 function NewItem({ userId }: NewItemProps) {
+  const [wikiSettings] = useWikiSettings();
+  const enableWikiSuggestions = wikiSettings?.enableSuggestions ?? false;
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -25,7 +28,7 @@ function NewItem({ userId }: NewItemProps) {
 
   const { data: wikiResults, isLoading: isLoadingWikiSuggestions } =
     useSearchQuery(name, {
-      skip: name.length < 3 || isGame,
+      skip: name.length < 3 || isGame || !enableWikiSuggestions,
     });
   const { data: rawgResults, isLoading: isLoadingGameSuggestions } =
     useSearchGamesQuery(name, {

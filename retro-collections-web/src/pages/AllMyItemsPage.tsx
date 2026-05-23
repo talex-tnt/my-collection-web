@@ -1,6 +1,3 @@
-import { useEffect, useState } from 'react';
-import { onAuthStateChanged, type User } from 'firebase/auth';
-import { auth } from '../lib/firebase';
 import {
   Routes,
   Route,
@@ -10,18 +7,12 @@ import {
 } from 'react-router-dom';
 import MySpareItems from './MySpareItems';
 import MyCollections from './MyCollections';
+import { useCurrentUser } from '../utils/hooks';
 
 function AllMyItemsPage() {
-  const [user, setUser] = useState<User | null>(null);
+  const user = useCurrentUser();
   const navigate = useNavigate();
   const location = useLocation();
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
-    return unsubscribe;
-  }, []);
 
   if (!user) {
     return (

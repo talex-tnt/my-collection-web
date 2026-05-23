@@ -7,7 +7,8 @@ export type FirestoreTagTypes =
   | 'PublicUserTags'
   | 'PublicUsers'
   | 'PrivateUsers'
-  | 'PrivateAuthorizedUsers';
+  | 'PrivateAuthorizedUsers'
+  | 'WikipediaSettings';
 
 export type FirestoreBuilder = EndpointBuilder<
   BaseQueryFn<void, unknown, FirestoreApiError>,

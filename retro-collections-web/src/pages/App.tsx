@@ -3,6 +3,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import HomePage from '../pages/HomePage';
 import AdminPage from '../pages/AdminPage';
+import SettingsPage from '../pages/SettingsPage';
 import CollectorPage from '../pages/CollectorPage';
 import CollectorsPage from '../pages/CollectorsPage';
 import UsersPage from '../pages/UsersPage';
@@ -81,6 +82,7 @@ function App() {
                 />
                 <Route path="/collectors" element={<CollectorsPage />} />
                 <Route path="/users" element={<UsersPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/admin" element={<AdminPage />} />
                 <Route
                   path="/tags"
