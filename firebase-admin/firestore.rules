@@ -494,8 +494,7 @@ service cloud.firestore {
           return isOwner({'userId': userId}, 'userId');
         }
 
-        // Helper specifico per validare che ci sia SOLO enableSuggestions e che sia booleano
-        function isValidWikipediaSettings(data) {
+        function isValidSetting(data) {
           return hasOnlyValidKeys(data, ['enableSuggestions']) 
             && ('enableSuggestions' in data) 
             && data.enableSuggestions is bool;
@@ -510,7 +509,29 @@ service cloud.firestore {
           environmentAccessAllowed() 
           && folderMatchesConfig()
           && isUserOwner()
-          && isValidWikipediaSettings(request.resource.data); // 👈 Blocca qualsiasi altro campo o tipo errato
+          && isValidSetting(request.resource.data);
+      }
+      match /private/users/{userId}/settings/rawg {
+        function isUserOwner() {
+          return isOwner({'userId': userId}, 'userId');
+        }
+
+        function isValidSetting(data) {
+          return hasOnlyValidKeys(data, ['enableSuggestions']) 
+            && ('enableSuggestions' in data) 
+            && data.enableSuggestions is bool;
+        }
+  
+        allow read: if 
+          environmentAccessAllowed() 
+          && folderMatchesConfig()
+          && isUserOwner();
+        
+        allow write: if 
+          environmentAccessAllowed() 
+          && folderMatchesConfig()
+          && isUserOwner()
+          && isValidSetting(request.resource.data);
       }
     }
     match /{document=**} {

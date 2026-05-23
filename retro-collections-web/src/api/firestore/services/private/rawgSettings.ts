@@ -7,17 +7,17 @@ import { resolveDataCollectionPath } from '../../runtimeConfig';
 
 const visibility = 'private' as const;
 
-export interface WikipediaSettingsRecord {
+export interface RawgSettingsRecord {
   userId: string;
   enableSuggestions: boolean;
 }
 
-interface FirestoreWikipediaSettingsDoc {
+interface FirestoreRawgSettingsDoc {
   enableSuggestions?: boolean;
 }
 
-const getWikipediaSettingsEndpoints = (builder: FirestoreBuilder) => ({
-  getWikipediaSettings: builder.query<WikipediaSettingsRecord, string>({
+const getRawgSettingsEndpoints = (builder: FirestoreBuilder) => ({
+  getRawgSettings: builder.query<RawgSettingsRecord, string>({
     keepUnusedDataFor: 60 * 60, // 1h cache
     async queryFn(userId) {
       const path = await resolveDataCollectionPath({
@@ -26,11 +26,11 @@ const getWikipediaSettingsEndpoints = (builder: FirestoreBuilder) => ({
       });
 
       const context = {
-        apiEndpoint: 'getWikipediaSettings',
+        apiEndpoint: 'getRawgSettings',
         operation: 'GET' as const,
         firebaseFunc: 'getDoc',
         path,
-        segmentPaths: [userId, 'settings', 'wikipedia'],
+        segmentPaths: [userId, 'settings', 'rawg'],
       };
 
       try {
@@ -45,7 +45,7 @@ const getWikipediaSettingsEndpoints = (builder: FirestoreBuilder) => ({
           snap = await getDoc(docRef);
         }
 
-        const data = snap.data() as FirestoreWikipediaSettingsDoc;
+        const data = snap.data() as FirestoreRawgSettingsDoc;
 
         return {
           data: {
@@ -58,11 +58,11 @@ const getWikipediaSettingsEndpoints = (builder: FirestoreBuilder) => ({
       }
     },
     providesTags: (_result, _error, userId) => [
-      { type: 'WikipediaSettings' as const, id: userId },
+      { type: 'RawgSettings' as const, id: userId },
     ],
   }),
 
-  updateWikipediaSettings: builder.mutation<
+  updateRawgSettings: builder.mutation<
     void,
     {
       userId: string;
@@ -80,11 +80,11 @@ const getWikipediaSettingsEndpoints = (builder: FirestoreBuilder) => ({
       };
 
       const context = {
-        apiEndpoint: 'updateWikipediaSettings',
+        apiEndpoint: 'updateRawgSettings',
         operation: 'UPDATE' as const,
         firebaseFunc: 'setDoc',
         path,
-        segmentPaths: [userId, 'settings', 'wikipedia'],
+        segmentPaths: [userId, 'settings', 'rawg'],
         requestPayload,
       };
 
@@ -101,9 +101,9 @@ const getWikipediaSettingsEndpoints = (builder: FirestoreBuilder) => ({
       }
     },
     invalidatesTags: (_result, _error, { userId }) => [
-      { type: 'WikipediaSettings' as const, id: userId },
+      { type: 'RawgSettings' as const, id: userId },
     ],
   }),
 });
 
-export default getWikipediaSettingsEndpoints;
+export default getRawgSettingsEndpoints;

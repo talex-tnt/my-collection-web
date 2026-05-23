@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { auth } from '../lib/firebase';
 import {
   useGetWikipediaSettingsQuery,
+  useGetRawgSettingsQuery,
+  useUpdateRawgSettingsMutation,
   useUpdateWikipediaSettingsMutation,
 } from '../api/firestore/firestoreApi';
 
@@ -42,6 +44,34 @@ export const useWikiSettings = () => {
   return [
     wikiSettings,
     setWikiSettings,
+    { isLoading, isUpdating, getError },
+  ] as const;
+};
+
+export const useRawgSettings = () => {
+  const user = useCurrentUser();
+
+  const userId = user?.uid;
+
+  const {
+    data: rawgSettings,
+    isLoading,
+    error: getError,
+  } = useGetRawgSettingsQuery(userId ?? '', {
+    skip: !userId,
+  });
+  const [updateRawgSettings, { isLoading: isUpdating }] =
+    useUpdateRawgSettingsMutation();
+
+  const setRawgSettings = async (payload: { enableSuggestions: boolean }) => {
+    await updateRawgSettings({
+      userId: userId ?? '',
+      ...payload,
+    }).unwrap();
+  };
+  return [
+    rawgSettings,
+    setRawgSettings,
     { isLoading, isUpdating, getError },
   ] as const;
 };

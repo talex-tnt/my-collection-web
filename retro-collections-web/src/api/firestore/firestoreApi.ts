@@ -8,18 +8,14 @@ import getAuthorizedUsersEndpoints from './services/private/authorized-users';
 import getPrivateUsersEndpoints from './services/private/users';
 import getPublicUserTagsEndpoints from './services/public/userTags';
 import getWikipediaSettingsEndpoints from './services/private/wikipediaSettings';
-
+import getRawgSettingsEndpoints from './services/private/rawgSettings';
+import { FIRESTORE_TAG_TYPES } from './types/firestoreBuilder';
 export const firestoreApi = createApi({
   reducerPath: 'firestoreApi',
 
   baseQuery: fakeBaseQuery<FirestoreApiError>(),
 
-  tagTypes: [
-    'PublicUserItems',
-    'PublicUsers',
-    'PrivateUsers',
-    'PrivateAuthorizedUsers',
-  ],
+  tagTypes: FIRESTORE_TAG_TYPES,
 
   endpoints: (builder) => ({
     ...getRuntimeConfigEndpoints(builder),
@@ -29,6 +25,7 @@ export const firestoreApi = createApi({
     ...getPrivateUsersEndpoints(builder),
     ...getAuthorizedUsersEndpoints(builder),
     ...getWikipediaSettingsEndpoints(builder),
+    ...getRawgSettingsEndpoints(builder),
   }),
 });
 
@@ -63,4 +60,6 @@ export const {
   // Settings
   useGetWikipediaSettingsQuery,
   useUpdateWikipediaSettingsMutation,
+  useGetRawgSettingsQuery,
+  useUpdateRawgSettingsMutation,
 } = firestoreApi;
