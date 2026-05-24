@@ -288,10 +288,10 @@ service cloud.firestore {
                 (field == 'item.description') ? 1000 : 0;
         }
         function createKeys() {
-          return ['name', 'userId', 'createdAt', 'updatedAt', 'description', 'tags', 'nameLowercase', 'nameTokens'];
+          return ['name', 'nameLowercase', 'nameTokens', 'createdAt', 'updatedAt', 'description', 'tags', 'metadata'];
         }
         function createRequiredKeys() {
-          return ['name', 'nameLowercase', 'nameTokens', 'userId', 'createdAt'];
+          return ['name', 'nameLowercase', 'nameTokens', 'createdAt'];
         }
         function validCreate(data) {
           return 
@@ -299,7 +299,7 @@ service cloud.firestore {
               isAuthenticated() &&
               hasOnlyValidKeys(data, createKeys()) &&
               hasAllRequiredKeys(data, createRequiredKeys()) &&
-              isOwner(data, 'userId') &&
+              isUserOwner() &&
               validString(data.name, getLengthLimit('item.name')) &&
               validTimestamp(data.createdAt) &&
               hasValidOptionalString(data, 'description', getLengthLimit('item.description'))
@@ -318,7 +318,7 @@ service cloud.firestore {
               existingData != null &&
               hasOnlyAffectedKeys(newData, existingData, updateKeys()) &&
               hasAllRequiredAffectedKeys(newData, existingData, updateRequiredKeys()) &&
-              isOwner(existingData, 'userId') &&
+              isUserOwner() &&
               newData.userId == existingData.userId &&
               newData.createdAt == existingData.createdAt &&
               validTimestamp(newData.updatedAt) &&
@@ -543,10 +543,10 @@ service cloud.firestore {
                 (field == 'item.description') ? 1000 : 0;
         }
         function createKeys() {
-          return ['name', 'userId', 'createdAt', 'updatedAt', 'description', 'tags', 'nameLowercase', 'nameTokens'];
+          return ['name', 'nameLowercase', 'nameTokens', 'createdAt', 'updatedAt', 'description', 'tags', 'metadata'];
         }
         function createRequiredKeys() {
-          return ['name', 'nameLowercase', 'nameTokens', 'userId', 'createdAt'];
+          return ['name', 'nameLowercase', 'nameTokens', 'createdAt'];
         }
         function validCreate(data) {
           return 
@@ -554,7 +554,7 @@ service cloud.firestore {
               isAuthenticated() &&
               hasOnlyValidKeys(data, createKeys()) &&
               hasAllRequiredKeys(data, createRequiredKeys()) &&
-              isOwner(data, 'userId') &&
+              isUserOwner() &&
               validString(data.name, getLengthLimit('item.name')) &&
               validTimestamp(data.createdAt) &&
               hasValidOptionalString(data, 'description', getLengthLimit('item.description'))
@@ -573,7 +573,7 @@ service cloud.firestore {
               existingData != null &&
               hasOnlyAffectedKeys(newData, existingData, updateKeys()) &&
               hasAllRequiredAffectedKeys(newData, existingData, updateRequiredKeys()) &&
-              isOwner(existingData, 'userId') &&
+              isUserOwner() &&
               newData.userId == existingData.userId &&
               newData.createdAt == existingData.createdAt &&
               validTimestamp(newData.updatedAt) &&

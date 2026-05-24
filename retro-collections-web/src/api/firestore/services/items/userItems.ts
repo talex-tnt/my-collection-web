@@ -26,7 +26,7 @@ import { createFirestoreApiError } from '../../errorLogger';
 import { db } from '../../../../lib/firebase';
 import { getUserCollectionPath } from '../../runtimeConfig';
 import type { ImageFolder, ImagePreview } from '../../types/shared';
-
+import { sanitizeFirestorePayload } from '../../utils';
 export interface Item {
   id: string;
   name: string;
@@ -191,7 +191,7 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
 
         return {
           data: {
-            items: pagedItems,
+            items: pagedItems.map((i) => ({ ...i, userId })),
             pageInfo: {
               endCursor: last
                 ? {
@@ -353,9 +353,10 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
         resourceType: 'items',
         userId: itemData.userId,
       });
-
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { userId: _, ...cleanData } = sanitizeFirestorePayload(itemData);
       const requestPayload = {
-        ...itemData,
+        ...cleanData,
         nameLowercase: itemData.name.trim().toLowerCase(),
         nameTokens: tokenizeName(itemData.name),
         tags: itemData.tags || [],

@@ -255,7 +255,7 @@ function MyListItem({
         </div>
         <div className="flex flex-row items-center">
           <ItemActions
-            itemId={item.id}
+            itemData={item}
             isPublicItem={isPublicItem}
             onEdit={() => startEditing('name', item.name)}
             onDelete={internalDeleteItem}

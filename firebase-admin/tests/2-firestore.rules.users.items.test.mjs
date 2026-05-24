@@ -265,7 +265,6 @@ test(`[2.2.1] owner can create own item on ${RULES_TARGET}`, async () => {
     await assert.doesNotReject(
       setDoc(doc(context.db, itemPath), {
         ...validItem,
-        userId,
         createdAt: Timestamp.now(),
       })
     );
