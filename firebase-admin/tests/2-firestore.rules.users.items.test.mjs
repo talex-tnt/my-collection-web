@@ -64,22 +64,28 @@ import {
   expectFailedPrecondition,
   acquireSuiteLock,
   getPublicResourcePath,
+  getPrivateResourcePath,
   TEST_ROOT,
 } from './test-utils.mjs';
 
 // New model: items are under /public/users/{userId}/items/{itemId}
-const getItemPath = (userId, itemId) =>
+const getPublicItemPath = (userId, itemId) =>
   `${getPublicResourcePath(TEST_DATA_FOLDER, 'users')}/${userId}/items/${itemId}`;
 
-const getItemsPath = (userId) =>
+const getPublicItemsPath = (userId) =>
   `${getPublicResourcePath(TEST_DATA_FOLDER, 'users')}/${userId}/items`;
+
+const getPrivateItemPath = (userId, itemId) =>
+  `${getPrivateResourcePath(TEST_DATA_FOLDER, 'users')}/${userId}/items/${itemId}`;
+
+const getPrivateItemsPath = (userId) =>
+  `${getPrivateResourcePath(TEST_DATA_FOLDER, 'users')}/${userId}/items`;
 
 const validItem = {
   name: 'Test Item',
   nameLowercase: 'test item',
   nameTokens: ['test', 'item'],
   createdAt: admin.firestore.Timestamp.now(),
-  visibility: { public: false },
 };
 
 const TEST_USER_ID = 'rules-regular-user';
@@ -87,32 +93,32 @@ const FIRST_DOC_ID = 'item-a';
 const SECOND_DOC_ID = 'item-b';
 
 const itemsCleanupDocPaths = [
-  getItemPath(TEST_USER_ID, 'item-a'),
-  getItemPath(TEST_USER_ID, 'item-b'),
-  getItemPath(TEST_USER_ID, 'new-item-1'),
-  getItemPath(TEST_USER_ID, 'new-item-2'),
-  getItemPath(TEST_USER_ID, 'new-item-3'),
-  getItemPath(TEST_USER_ID, 'new-item-admin'),
-  getItemPath(TEST_USER_ID, 'missing-name'),
-  getItemPath(TEST_USER_ID, 'missing-createdat'),
-  getItemPath(TEST_USER_ID, 'missing-visibility'),
-  getItemPath(TEST_USER_ID, 'name-too-long'),
-  getItemPath(TEST_USER_ID, 'desc-too-long'),
-  getItemPath(TEST_USER_ID, 'no-description'),
-  getItemPath(TEST_USER_ID, 'invalid-visibility'),
-  getItemPath(TEST_USER_ID, 'invalid-timestamp'),
-  getItemPath(TEST_USER_ID, 'update-item-1'),
-  getItemPath(TEST_USER_ID, 'update-item-2'),
-  getItemPath(TEST_USER_ID, 'update-missing-timestamp'),
-  getItemPath(TEST_USER_ID, 'update-no-name'),
-  getItemPath(TEST_USER_ID, 'update-no-description'),
-  getItemPath(TEST_USER_ID, 'update-no-visibility'),
-  getItemPath(TEST_USER_ID, 'update-name-too-long'),
-  getItemPath(TEST_USER_ID, 'delete-item-1'),
-  getItemPath(TEST_USER_ID, 'delete-item-2'),
-  getItemPath(TEST_USER_ID, 'delete-item-admin'),
-  getItemPath(TEST_USER_ID, 'public-item'),
-  getItemPath(TEST_USER_ID, 'private-item'),
+  getPublicItemPath(TEST_USER_ID, 'item-a'),
+  getPublicItemPath(TEST_USER_ID, 'item-b'),
+  getPublicItemPath(TEST_USER_ID, 'new-item-1'),
+  getPublicItemPath(TEST_USER_ID, 'new-item-2'),
+  getPublicItemPath(TEST_USER_ID, 'new-item-3'),
+  getPublicItemPath(TEST_USER_ID, 'new-item-admin'),
+  getPublicItemPath(TEST_USER_ID, 'missing-name'),
+  getPublicItemPath(TEST_USER_ID, 'missing-createdat'),
+  getPublicItemPath(TEST_USER_ID, 'missing-visibility'),
+  getPublicItemPath(TEST_USER_ID, 'name-too-long'),
+  getPublicItemPath(TEST_USER_ID, 'desc-too-long'),
+  getPublicItemPath(TEST_USER_ID, 'no-description'),
+  getPublicItemPath(TEST_USER_ID, 'invalid-visibility'),
+  getPublicItemPath(TEST_USER_ID, 'invalid-timestamp'),
+  getPublicItemPath(TEST_USER_ID, 'update-item-1'),
+  getPublicItemPath(TEST_USER_ID, 'update-item-2'),
+  getPublicItemPath(TEST_USER_ID, 'update-missing-timestamp'),
+  getPublicItemPath(TEST_USER_ID, 'update-no-name'),
+  getPublicItemPath(TEST_USER_ID, 'update-no-description'),
+  getPublicItemPath(TEST_USER_ID, 'update-no-visibility'),
+  getPublicItemPath(TEST_USER_ID, 'update-name-too-long'),
+  getPublicItemPath(TEST_USER_ID, 'delete-item-1'),
+  getPublicItemPath(TEST_USER_ID, 'delete-item-2'),
+  getPublicItemPath(TEST_USER_ID, 'delete-item-admin'),
+  getPublicItemPath(TEST_USER_ID, 'public-item'),
+  getPublicItemPath(TEST_USER_ID, 'private-item'),
 ];
 
 const adminApp = createAdminApp('items');
@@ -149,7 +155,7 @@ test(`[2.1.1] admin can read any item on ${RULES_TARGET}`, async () => {
   });
 
   const ownerId = 'some-other-user';
-  const itemPath = getItemPath('item-a');
+  const itemPath = getPublicItemPath('item-a');
 
   try {
     // Admin writes as someone else
@@ -170,7 +176,7 @@ test(`[2.1.1] admin can read any item on ${RULES_TARGET}`, async () => {
 
 test(`[2.1.2] owner can read own item on ${RULES_TARGET}`, async () => {
   const userId = 'item-owner';
-  const itemPath = getItemPath(userId, 'item-b');
+  const itemPath = getPublicItemPath(userId, 'item-b');
 
   // Setup: write item as admin
   await getAdminDb()
@@ -194,7 +200,7 @@ test(`[2.1.2] owner can read own item on ${RULES_TARGET}`, async () => {
 
 test(`[2.1.3] non-owner cannot read private item on ${RULES_TARGET}`, async () => {
   const ownerId = 'owner-user';
-  const itemPath = getItemPath('private-item');
+  const itemPath = getPrivateItemPath(ownerId, 'private-item');
 
   // Setup: write private item
   await getAdminDb()
@@ -202,7 +208,6 @@ test(`[2.1.3] non-owner cannot read private item on ${RULES_TARGET}`, async () =
     .set({
       ...validItem,
       userId: ownerId,
-      visibility: { public: false },
       createdAt: admin.firestore.Timestamp.now(),
     });
 
@@ -220,7 +225,7 @@ test(`[2.1.3] non-owner cannot read private item on ${RULES_TARGET}`, async () =
 });
 
 test(`[2.1.4] authenticated non-owner can read public item on ${RULES_TARGET}`, async () => {
-  const itemPath = getItemPath('public-item');
+  const itemPath = getPublicItemPath('public-item');
 
   // Setup: write public item
   await getAdminDb()
@@ -249,7 +254,7 @@ test(`[2.1.4] authenticated non-owner can read public item on ${RULES_TARGET}`, 
 
 test(`[2.2.1] owner can create own item on ${RULES_TARGET}`, async () => {
   const userId = 'creator-user';
-  const itemPath = getItemPath(userId, 'new-item-1');
+  const itemPath = getPublicItemPath(userId, 'new-item-1');
 
   const context = await buildClientContext({
     uid: userId,
@@ -271,7 +276,7 @@ test(`[2.2.1] owner can create own item on ${RULES_TARGET}`, async () => {
 
 test(`[2.2.2] non-owner cannot create item for another user on ${RULES_TARGET}`, async () => {
   const userId = 'creator-user';
-  const itemPath = getItemPath('new-item-2');
+  const itemPath = getPublicItemPath('new-item-2');
 
   const context = await buildClientContext({
     uid: userId,
@@ -292,7 +297,7 @@ test(`[2.2.2] non-owner cannot create item for another user on ${RULES_TARGET}`,
 });
 
 test(`[2.2.3] unauthenticated cannot create item on ${RULES_TARGET}`, async () => {
-  const itemPath = getItemPath(TEST_USER_ID, 'new-item-3');
+  const itemPath = getPublicItemPath(TEST_USER_ID, 'new-item-3');
   const context = await buildUnauthenticatedClientContext();
 
   try {
@@ -314,7 +319,7 @@ test(`[2.2.3] unauthenticated cannot create item on ${RULES_TARGET}`, async () =
 
 test(`[2.3.1] rejects missing required name field on ${RULES_TARGET}`, async () => {
   const userId = 'creator-user';
-  const itemPath = getItemPath(userId, 'missing-name');
+  const itemPath = getPublicItemPath(userId, 'missing-name');
 
   const context = await buildClientContext({
     uid: userId,
@@ -336,7 +341,7 @@ test(`[2.3.1] rejects missing required name field on ${RULES_TARGET}`, async () 
 
 test(`[2.3.2] rejects missing required createdAt on ${RULES_TARGET}`, async () => {
   const userId = 'creator-user';
-  const itemPath = getItemPath(userId, 'missing-createdat');
+  const itemPath = getPublicItemPath(userId, 'missing-createdat');
 
   const context = await buildClientContext({
     uid: userId,
@@ -358,7 +363,7 @@ test(`[2.3.2] rejects missing required createdAt on ${RULES_TARGET}`, async () =
 
 test(`[2.3.3] rejects missing required visibility on ${RULES_TARGET}`, async () => {
   const userId = 'creator-user';
-  const itemPath = getItemPath(userId, 'missing-visibility');
+  const itemPath = getPublicItemPath(userId, 'missing-visibility');
 
   const context = await buildClientContext({
     uid: userId,
@@ -380,7 +385,7 @@ test(`[2.3.3] rejects missing required visibility on ${RULES_TARGET}`, async () 
 
 test(`[2.3.4] name cannot exceed 100 characters on ${RULES_TARGET}`, async () => {
   const userId = 'creator-user';
-  const itemPath = getItemPath(userId, 'name-too-long');
+  const itemPath = getPublicItemPath(userId, 'name-too-long');
 
   const context = await buildClientContext({
     uid: userId,
@@ -403,7 +408,7 @@ test(`[2.3.4] name cannot exceed 100 characters on ${RULES_TARGET}`, async () =>
 
 test(`[2.3.6] description cannot exceed 1000 characters on ${RULES_TARGET}`, async () => {
   const userId = 'creator-user';
-  const itemPath = getItemPath(userId, 'desc-too-long');
+  const itemPath = getPublicItemPath(userId, 'desc-too-long');
 
   const context = await buildClientContext({
     uid: userId,
@@ -427,7 +432,7 @@ test(`[2.3.6] description cannot exceed 1000 characters on ${RULES_TARGET}`, asy
 
 test(`[2.3.7] rejects invalid visibility map on ${RULES_TARGET}`, async () => {
   const userId = 'creator-user';
-  const itemPath = getItemPath(userId, 'invalid-visibility');
+  const itemPath = getPublicItemPath(userId, 'invalid-visibility');
 
   const context = await buildClientContext({
     uid: userId,
@@ -450,7 +455,7 @@ test(`[2.3.7] rejects invalid visibility map on ${RULES_TARGET}`, async () => {
 
 test(`[2.3.8] rejects non-timestamp createdAt on ${RULES_TARGET}`, async () => {
   const userId = 'creator-user';
-  const itemPath = getItemPath(userId, 'invalid-timestamp');
+  const itemPath = getPublicItemPath(userId, 'invalid-timestamp');
 
   const context = await buildClientContext({
     uid: userId,
@@ -477,7 +482,7 @@ test(`[2.3.8] rejects non-timestamp createdAt on ${RULES_TARGET}`, async () => {
 
 test(`[2.4.1] owner can update own item on ${RULES_TARGET}`, async () => {
   const userId = 'update-owner';
-  const itemPath = getItemPath('update-owner', 'update-item-1');
+  const itemPath = getPublicItemPath('update-owner', 'update-item-1');
 
   // Setup
   await getAdminDb()
@@ -513,7 +518,7 @@ test(`[2.4.1] owner can update own item on ${RULES_TARGET}`, async () => {
 
 test(`[2.4.2] non-owner cannot update item on ${RULES_TARGET}`, async () => {
   const ownerId = 'update-owner';
-  const itemPath = getItemPath('update-owner', 'update-item-2');
+  const itemPath = getPublicItemPath('update-owner', 'update-item-2');
 
   // Setup
   await getAdminDb()
@@ -549,7 +554,7 @@ test(`[2.4.2] non-owner cannot update item on ${RULES_TARGET}`, async () => {
 
 test(`[2.5.1] updatedAt is required on ${RULES_TARGET}`, async () => {
   const userId = 'update-owner';
-  const itemPath = getItemPath(userId, 'update-missing-timestamp');
+  const itemPath = getPublicItemPath(userId, 'update-missing-timestamp');
 
   // Setup
   await getAdminDb()
@@ -583,7 +588,7 @@ test(`[2.5.1] updatedAt is required on ${RULES_TARGET}`, async () => {
 
 test(`[2.5.2] name is optional in updates on ${RULES_TARGET}`, async () => {
   const userId = 'update-owner';
-  const itemPath = getItemPath('update-owner', 'update-no-name');
+  const itemPath = getPublicItemPath('update-owner', 'update-no-name');
 
   // Setup
   await getAdminDb()
@@ -619,7 +624,7 @@ test(`[2.5.2] name is optional in updates on ${RULES_TARGET}`, async () => {
 
 test(`[2.5.3] description is optional in updates on ${RULES_TARGET}`, async () => {
   const userId = 'update-owner';
-  const itemPath = getItemPath('update-owner', 'update-no-description');
+  const itemPath = getPublicItemPath('update-owner', 'update-no-description');
 
   // Setup
   await getAdminDb()
@@ -655,7 +660,7 @@ test(`[2.5.3] description is optional in updates on ${RULES_TARGET}`, async () =
 
 test(`[2.5.4] visibility is optional in updates on ${RULES_TARGET}`, async () => {
   const userId = 'update-owner';
-  const itemPath = getItemPath('update-owner', 'update-no-visibility');
+  const itemPath = getPublicItemPath('update-owner', 'update-no-visibility');
 
   // Setup
   await getAdminDb()
@@ -691,7 +696,7 @@ test(`[2.5.4] visibility is optional in updates on ${RULES_TARGET}`, async () =>
 
 test(`[2.5.5] name cannot exceed 100 characters on update on ${RULES_TARGET}`, async () => {
   const userId = 'update-owner';
-  const itemPath = getItemPath('update-owner', 'update-name-too-long');
+  const itemPath = getPublicItemPath('update-owner', 'update-name-too-long');
 
   // Setup
   await getAdminDb()
@@ -731,7 +736,7 @@ test(`[2.5.5] name cannot exceed 100 characters on update on ${RULES_TARGET}`, a
 
 test(`[2.6.1] owner can delete own item on ${RULES_TARGET}`, async () => {
   const userId = 'delete-owner';
-  const itemPath = getItemPath('delete-owner', 'delete-item-1');
+  const itemPath = getPublicItemPath('delete-owner', 'delete-item-1');
 
   // Setup
   await getAdminDb()
@@ -758,7 +763,7 @@ test(`[2.6.1] owner can delete own item on ${RULES_TARGET}`, async () => {
 
 test(`[2.6.2] non-owner cannot delete item on ${RULES_TARGET}`, async () => {
   const ownerId = 'delete-owner';
-  const itemPath = getItemPath('delete-owner', 'delete-item-2');
+  const itemPath = getPublicItemPath('delete-owner', 'delete-item-2');
 
   // Setup
   await getAdminDb()
@@ -785,7 +790,7 @@ test(`[2.6.2] non-owner cannot delete item on ${RULES_TARGET}`, async () => {
 
 test(`[2.6.3] admin can delete any item on ${RULES_TARGET}`, async () => {
   const userId = 'some-owner';
-  const itemPath = getItemPath(userId, 'delete-item-admin');
+  const itemPath = getPublicItemPath(userId, 'delete-item-admin');
 
   // Setup
   await getAdminDb()
@@ -819,13 +824,13 @@ test(`[2.1.1] public items query reproduces the frontend getItems shape on ${RUL
   const TEST_USER_ID = 'rules-regular-user';
 
   // Create two public items
-  await adminDb.doc(getItemPath(TEST_USER_ID, FIRST_DOC_ID)).set({
+  await adminDb.doc(getPublicItemPath(TEST_USER_ID, FIRST_DOC_ID)).set({
     name: 'First item',
     userId: TEST_USER_ID,
     createdAt: admin.firestore.Timestamp.now(),
     visibility: { public: true },
   });
-  await adminDb.doc(getItemPath(TEST_USER_ID, SECOND_DOC_ID)).set({
+  await adminDb.doc(getPublicItemPath(TEST_USER_ID, SECOND_DOC_ID)).set({
     name: 'Second item',
     userId: TEST_USER_ID,
     createdAt: admin.firestore.Timestamp.now(),
@@ -840,7 +845,7 @@ test(`[2.1.1] public items query reproduces the frontend getItems shape on ${RUL
   try {
     // Query by documentId to verify public items are readable
     const snapshot1 = await getDoc(
-      doc(context.db, getItemPath(TEST_USER_ID, FIRST_DOC_ID))
+      doc(context.db, getPublicItemPath(TEST_USER_ID, FIRST_DOC_ID))
     );
     assert.equal(
       snapshot1.exists(),
@@ -849,7 +854,7 @@ test(`[2.1.1] public items query reproduces the frontend getItems shape on ${RUL
     );
 
     const snapshot2 = await getDoc(
-      doc(context.db, getItemPath(TEST_USER_ID, SECOND_DOC_ID))
+      doc(context.db, getPublicItemPath(TEST_USER_ID, SECOND_DOC_ID))
     );
     assert.equal(
       snapshot2.exists(),
@@ -859,7 +864,7 @@ test(`[2.1.1] public items query reproduces the frontend getItems shape on ${RUL
 
     // Also test the compound query with collectionId and ordering
     const itemsQuery = query(
-      collection(context.db, getItemsPath(TEST_USER_ID)),
+      collection(context.db, getPublicItemsPath(TEST_USER_ID)),
       where('visibility.public', '==', true),
       orderBy('createdAt', 'desc'),
       orderBy('__name__', 'asc')
@@ -873,12 +878,12 @@ test(`[2.1.1] public items query reproduces the frontend getItems shape on ${RUL
     assert.equal(querySnapshot.size, 2, 'Query should return 2 public items');
   } finally {
     await adminDb
-      .collection(getItemsPath(TEST_USER_ID))
+      .collection(getPublicItemsPath(TEST_USER_ID))
       .doc(FIRST_DOC_ID)
       .delete()
       .catch(() => undefined);
     await adminDb
-      .collection(getItemsPath(TEST_USER_ID))
+      .collection(getPublicItemsPath(TEST_USER_ID))
       .doc(SECOND_DOC_ID)
       .delete()
       .catch(() => undefined);
@@ -892,7 +897,7 @@ test(`[2.1.2] owner items query reproduces the frontend getItems shape on ${RULE
 
   // Create two public items
   await adminDb
-    .collection(getItemsPath(TEST_USER_ID))
+    .collection(getPublicItemsPath(TEST_USER_ID))
     .doc(FIRST_DOC_ID)
     .set({
       name: 'First item',
@@ -901,7 +906,7 @@ test(`[2.1.2] owner items query reproduces the frontend getItems shape on ${RULE
       visibility: { public: false },
     });
   await adminDb
-    .collection(getItemsPath(TEST_USER_ID))
+    .collection(getPublicItemsPath(TEST_USER_ID))
     .doc(SECOND_DOC_ID)
     .set({
       name: 'Second item',
@@ -918,7 +923,7 @@ test(`[2.1.2] owner items query reproduces the frontend getItems shape on ${RULE
   try {
     // Query by documentId to verify public items are readable
     const snapshot1 = await getDoc(
-      doc(context.db, getItemPath(TEST_USER_ID, FIRST_DOC_ID))
+      doc(context.db, getPublicItemPath(TEST_USER_ID, FIRST_DOC_ID))
     );
     assert.equal(
       snapshot1.exists(),
@@ -927,7 +932,7 @@ test(`[2.1.2] owner items query reproduces the frontend getItems shape on ${RULE
     );
 
     const snapshot2 = await getDoc(
-      doc(context.db, getItemPath(TEST_USER_ID, SECOND_DOC_ID))
+      doc(context.db, getPublicItemPath(TEST_USER_ID, SECOND_DOC_ID))
     );
     assert.equal(
       snapshot2.exists(),
@@ -937,7 +942,7 @@ test(`[2.1.2] owner items query reproduces the frontend getItems shape on ${RULE
 
     // Also test the compound query with collectionId and ordering
     const itemsQuery = query(
-      collection(context.db, getItemsPath(TEST_USER_ID)),
+      collection(context.db, getPublicItemsPath(TEST_USER_ID)),
       where('userId', '==', TEST_USER_ID),
       orderBy('createdAt', 'desc'),
       orderBy('__name__', 'asc')
@@ -950,12 +955,12 @@ test(`[2.1.2] owner items query reproduces the frontend getItems shape on ${RULE
     assert.equal(querySnapshot.size, 2, 'Query should return 2 public items');
   } finally {
     await adminDb
-      .collection(getItemsPath(TEST_USER_ID))
+      .collection(getPublicItemsPath(TEST_USER_ID))
       .doc(FIRST_DOC_ID)
       .delete()
       .catch(() => undefined);
     await adminDb
-      .collection(getItemsPath(TEST_USER_ID))
+      .collection(getPublicItemsPath(TEST_USER_ID))
       .doc(SECOND_DOC_ID)
       .delete()
       .catch(() => undefined);
