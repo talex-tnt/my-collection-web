@@ -23,7 +23,7 @@ function MyListItem({
   userId,
   showTags = true,
   onExpand,
-  isPublicItem = true,
+  isPublicItem,
 }: MyListItemProps) {
   const [editingField, setEditingField] = useState<
     'name' | 'description' | null
