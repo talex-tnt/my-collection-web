@@ -1,4 +1,4 @@
-import type { Item } from '../api/firestore/services/public/userItems';
+import type { Item } from '../api/firestore/services/items/userItems';
 import Tags from './Tags';
 import ItemImages from './ItemImages';
 
@@ -29,7 +29,12 @@ function CollectorExpandedItem({
       {/* Tags at the top, toggleable */}
       <div className="flex items-center gap-2">
         {showTags && (
-          <Tags userId={item.userId} itemId={item.id} tags={item.tags || []} />
+          <Tags
+            userId={item.userId}
+            itemId={item.id}
+            tags={item.tags || []}
+            isPublicItem={true}
+          />
         )}
       </div>
       <div className="flex items-center gap-2">

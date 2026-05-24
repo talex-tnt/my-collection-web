@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import {
-  useGetPublicUserItemsQuery,
-  useGetPublicUserItemsCountQuery,
+  useGetUserItemsQuery,
+  useGetUserItemsCountQuery,
 } from '../api/firestore/firestoreApi';
 
 import CollectorListItem from './CollectorListItem';
 import { ExpandableMotion } from './ExpandableMotion';
-import CollectorExpandedItem from './CollectorxpandedItem';
+import CollectorExpandedItem from './CollectorExpandedItem';
 
 interface Cursor {
   createdAt: string;
@@ -39,13 +39,13 @@ function CollectorItemsList({
   const isAll = pageSize === 'all';
 
   // Total count (optional UI use)
-  const { data: totalCount = 0 } = useGetPublicUserItemsCountQuery(
+  const { data: totalCount = 0 } = useGetUserItemsCountQuery(
     {
       userId: userId || '',
       tags: selectedTags.length ? selectedTags : undefined,
       startWithNameFilter: startWithNameFilter || undefined,
       nameContainsTokens: nameContainsTokens || undefined,
-      isPublic: true,
+      isPublicItem: true,
     },
     {
       skip: !userId,
@@ -56,11 +56,11 @@ function CollectorItemsList({
     data: itemsData,
     isLoading,
     error,
-  } = useGetPublicUserItemsQuery(
+  } = useGetUserItemsQuery(
     {
       userId: userId || '',
       tags: selectedTags.length ? selectedTags : undefined,
-      isPublic: true,
+      isPublicItem: true,
       limit: isAll ? undefined : pageSize,
       startAfter: currentCursor,
       startWithNameFilter: startWithNameFilter || undefined,

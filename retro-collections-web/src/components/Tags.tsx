@@ -2,13 +2,14 @@ import { useState } from 'react';
 import {
   useGetPublicUserTagsQuery,
   useCreatePublicUserTagMutation,
-  useUpdatePublicUserItemMutation,
+  useUpdateUserItemMutation,
 } from '../api/firestore/firestoreApi';
 import type { UserTag } from '../api/firestore/services/public/userTags';
 
 interface TagsProps {
   userId: string;
   itemId: string;
+  isPublicItem: boolean;
   tags: string[];
   onTagsChange?: (tags: string[]) => void;
   readOnly?: boolean;
@@ -17,6 +18,7 @@ interface TagsProps {
 export default function Tags({
   userId,
   itemId,
+  isPublicItem,
   tags = [],
   onTagsChange,
   readOnly = false,
@@ -26,7 +28,7 @@ export default function Tags({
     { skip: !userId }
   );
   const [createTag] = useCreatePublicUserTagMutation();
-  const [updateItem] = useUpdatePublicUserItemMutation();
+  const [updateItem] = useUpdateUserItemMutation();
   const [newTag, setNewTag] = useState('');
   const [showAddTag, setShowAddTag] = useState(false);
   const [addTagError, setAddTagError] = useState<string | null>(null);
@@ -49,6 +51,7 @@ export default function Tags({
           id: itemId,
           userId,
           updates: { tags: updatedTags },
+          isPublicItem, // Ensure the item is treated as public for tag updates
         }).unwrap();
         onTagsChange?.(updatedTags);
       }
@@ -68,6 +71,7 @@ export default function Tags({
         id: itemId,
         userId,
         updates: { tags: updatedTags },
+        isPublicItem, // Ensure the item is treated as public for tag updates
       }).unwrap();
       onTagsChange?.(updatedTags);
     } catch (err: unknown) {

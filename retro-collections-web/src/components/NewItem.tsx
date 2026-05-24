@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 
 import {
-  useCreatePublicUserItemMutation,
+  useCreateUserItemMutation,
   useGetPublicUserTagsQuery,
 } from '../api/firestore/firestoreApi';
 import { useSearchQuery } from '../api/wikipedia/wikipediaApi';
@@ -17,7 +17,10 @@ type Suggestion = {
   name: string;
 };
 
-function NewItem({ userId }: NewItemProps) {
+function NewItem({
+  userId,
+  isPublicItem = true,
+}: NewItemProps & { isPublicItem: boolean }) {
   const [wikiSettings] = useWikiSettings();
   const [rawgSettings] = useRawgSettings();
   const enableWikiSuggestions = wikiSettings?.enableSuggestions ?? false;
@@ -62,7 +65,7 @@ function NewItem({ userId }: NewItemProps) {
   const nameInputRef = useRef<HTMLInputElement | null>(null);
 
   const [createItem, { isLoading: isCreatingItem }] =
-    useCreatePublicUserItemMutation();
+    useCreateUserItemMutation();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -73,7 +76,6 @@ function NewItem({ userId }: NewItemProps) {
       const itemData: Record<string, unknown> = {
         name: name.trim(),
         userId,
-        visibility: { public: false },
       };
 
       if (description.trim()) {
@@ -84,7 +86,9 @@ function NewItem({ userId }: NewItemProps) {
         itemData.tags = selectedTags;
       }
 
-      await createItem(itemData as Parameters<typeof createItem>[0]).unwrap();
+      await createItem({ ...itemData, isPublicItem } as Parameters<
+        typeof createItem
+      >[0]).unwrap();
 
       setName('');
       setDescription('');

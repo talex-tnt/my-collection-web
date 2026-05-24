@@ -1,9 +1,9 @@
-import type { Item } from '../api/firestore/services/public/userItems';
+import type { Item } from '../api/firestore/services/items/userItems';
 import ItemActions from './ItemActions';
 import { useState } from 'react';
 import {
-  useUpdatePublicUserItemMutation,
-  useDeletePublicUserItemMutation,
+  useUpdateUserItemMutation,
+  useDeleteUserItemMutation,
 } from '../api/firestore/firestoreApi';
 import Tags from './Tags';
 import { findPreviewImage } from '../utils/findPreviewImage';
@@ -14,6 +14,7 @@ interface MyExpandedItemProps {
   item: Item;
   userId: string;
   showTags?: boolean;
+  isPublicItem?: boolean;
   onExpand?: () => void;
 }
 
@@ -21,14 +22,15 @@ function MyExpandedItem({
   item,
   userId,
   showTags = true,
+  isPublicItem = true,
 }: MyExpandedItemProps) {
   const [editingField, setEditingField] = useState<
     'name' | 'description' | null
   >(null);
   const [editValue, setEditValue] = useState('');
   const [editing, setEditing] = useState(false);
-  const [updateItem] = useUpdatePublicUserItemMutation();
-  const [deleteItem] = useDeletePublicUserItemMutation();
+  const [updateItem] = useUpdateUserItemMutation();
+  const [deleteItem] = useDeleteUserItemMutation();
 
   const internalDeleteItem = async (itemId: string) => {
     if (!userId) return;
@@ -36,25 +38,10 @@ function MyExpandedItem({
       await deleteItem({
         id: itemId,
         userId,
+        isPublicItem,
       }).unwrap();
     } catch (error) {
       console.error('Error deleting item:', error);
-    }
-  };
-
-  const internalToggleItemVisibility = async (
-    itemId: string,
-    currentVisibility: boolean
-  ) => {
-    if (!userId) return;
-    try {
-      await updateItem({
-        id: itemId,
-        userId,
-        updates: { visibility: { public: !currentVisibility } },
-      }).unwrap();
-    } catch (error) {
-      console.error('Error toggling visibility:', error);
     }
   };
 
@@ -78,6 +65,7 @@ function MyExpandedItem({
         id: item.id,
         userId,
         updates,
+        isPublicItem,
       }).unwrap();
     } catch (error) {
       console.error('Error updating item:', error);
@@ -123,6 +111,7 @@ function MyExpandedItem({
       await updateItem({
         id: item.id,
         userId,
+        isPublicItem,
         updates: {
           metadata,
         },
@@ -136,7 +125,12 @@ function MyExpandedItem({
       {/* Tags at the top, toggleable */}
       <div className="flex items-center gap-2">
         {showTags && (
-          <Tags userId={item.userId} itemId={item.id} tags={item.tags || []} />
+          <Tags
+            userId={item.userId}
+            itemId={item.id}
+            tags={item.tags || []}
+            isPublicItem={isPublicItem}
+          />
         )}
       </div>
       <div className="flex items-center gap-2">
@@ -236,11 +230,9 @@ function MyExpandedItem({
           <span>
             Visibility:{' '}
             <span
-              className={
-                item.visibility?.public ? 'text-green-600' : 'text-yellow-600'
-              }
+              className={isPublicItem ? 'text-green-600' : 'text-yellow-600'}
             >
-              {item.visibility?.public ? 'Public' : 'Private'}
+              {isPublicItem ? 'Public' : 'Private'}
             </span>
           </span>
           {item.createdAt && (
@@ -253,9 +245,8 @@ function MyExpandedItem({
         <div className="flex flex-row items-center">
           <ItemActions
             itemId={item.id}
-            isPublic={!!item.visibility?.public}
+            isPublicItem={isPublicItem}
             onEdit={() => startEditing('name', item.name)}
-            onToggleVisibility={internalToggleItemVisibility}
             onDelete={internalDeleteItem}
             onImageFolderSelect={setImageFolder}
             imageFolder={imageFolder}

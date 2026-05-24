@@ -283,73 +283,70 @@ service cloud.firestore {
         }
         // ----------------------------------------------------------------
         // items helpers -----------------------------------------------
-        function getLengthLimitItem(field) {
+        function getLengthLimit(field) {
           return (field == 'item.name') ? 100 :
                 (field == 'item.description') ? 1000 : 0;
         }
-        function createItemKeys() {
-          return ['name', 'userId', 'createdAt', 'updatedAt', 'visibility', 'description', 'tags', 'nameLowercase', 'nameTokens'];
+        function createKeys() {
+          return ['name', 'userId', 'createdAt', 'updatedAt', 'description', 'tags', 'nameLowercase', 'nameTokens'];
         }
-        function createItemRequiredKeys() {
-          return ['name', 'nameLowercase', 'nameTokens', 'userId', 'createdAt', 'visibility'];
+        function createRequiredKeys() {
+          return ['name', 'nameLowercase', 'nameTokens', 'userId', 'createdAt'];
         }
-        function validItemCreate(data) {
+        function validCreate(data) {
           return 
             (
               isAuthenticated() &&
-              hasOnlyValidKeys(data, createItemKeys()) &&
-              hasAllRequiredKeys(data, createItemRequiredKeys()) &&
+              hasOnlyValidKeys(data, createKeys()) &&
+              hasAllRequiredKeys(data, createRequiredKeys()) &&
               isOwner(data, 'userId') &&
-              validString(data.name, getLengthLimitItem('item.name')) &&
+              validString(data.name, getLengthLimit('item.name')) &&
               validTimestamp(data.createdAt) &&
-              isValidVisibilityMap(data.visibility) &&
-              hasValidOptionalString(data, 'description', getLengthLimitItem('item.description'))
+              hasValidOptionalString(data, 'description', getLengthLimit('item.description'))
             );
         }
-        function updateItemKeys() {
-          return ['name', 'nameLowercase', 'nameTokens', 'updatedAt', 'description', 'visibility', 'tags', 'metadata'];
+        function updateKeys() {
+          return ['name', 'nameLowercase', 'nameTokens', 'updatedAt', 'description', 'tags', 'metadata'];
         }
-        function updateItemRequiredKeys() {
+        function updateRequiredKeys() {
           return ['updatedAt'];
         }
-        function validItemUpdate(newData, existingData) {
+        function validUpdate(newData, existingData) {
           return 
             (
               isAuthenticated() &&
               existingData != null &&
-              hasOnlyAffectedKeys(newData, existingData, updateItemKeys()) &&
-              hasAllRequiredAffectedKeys(newData, existingData, updateItemRequiredKeys()) &&
+              hasOnlyAffectedKeys(newData, existingData, updateKeys()) &&
+              hasAllRequiredAffectedKeys(newData, existingData, updateRequiredKeys()) &&
               isOwner(existingData, 'userId') &&
               newData.userId == existingData.userId &&
               newData.createdAt == existingData.createdAt &&
               validTimestamp(newData.updatedAt) &&
-              hasValidOptionalString(newData, 'name', getLengthLimitItem('item.name')) &&
-              hasValidOptionalString(newData, 'description', getLengthLimitItem('item.description')) &&
-              isValidVisibilityMapOptional(newData.visibility)
+              hasValidOptionalString(newData, 'name', getLengthLimit('item.name')) &&
+              hasValidOptionalString(newData, 'description', getLengthLimit('item.description'))
             );
         }
 
-        // Admin, owner, or public
-        allow get: if 
+       
+        allow get: if  // public
           environmentAccessAllowed() 
-          && folderMatchesConfig() 
-          && (isAdmin() || isUserOwner() || isPubliclyVisible());
+          && folderMatchesConfig(); 
+       
+        allow list: if //public
+          environmentAccessAllowed() 
+          && folderMatchesConfig();
         
-        allow list: if 
+
+        allow create: if // owner or admin
           environmentAccessAllowed() 
           && folderMatchesConfig() 
-          && (isAdmin() || isUserOwner() || isPubliclyVisible());
-        
-        allow create: if 
-          environmentAccessAllowed() 
-          && folderMatchesConfig() 
-          && validItemCreate(request.resource.data)
+          && validCreate(request.resource.data)
           && (isAdmin() || isUserOwner());
         
         allow update: if 
           environmentAccessAllowed() 
           && folderMatchesConfig() 
-          && validItemUpdate(request.resource.data, resource.data)
+          && validUpdate(request.resource.data, resource.data)
           && (isAdmin() || isUserOwner());
         
         allow delete: if 
@@ -532,6 +529,89 @@ service cloud.firestore {
           && folderMatchesConfig()
           && isUserOwner()
           && isValidSetting(request.resource.data);
+      }
+
+            // Items are now stored directly under the user document (no collections)
+      match /private/users/{userId}/items/{itemId} {
+        function isUserOwner() {
+          return isOwner({'userId': userId}, 'userId');
+        }
+        // ----------------------------------------------------------------
+        // items helpers -----------------------------------------------
+        function getLengthLimit(field) {
+          return (field == 'item.name') ? 100 :
+                (field == 'item.description') ? 1000 : 0;
+        }
+        function createKeys() {
+          return ['name', 'userId', 'createdAt', 'updatedAt', 'description', 'tags', 'nameLowercase', 'nameTokens'];
+        }
+        function createRequiredKeys() {
+          return ['name', 'nameLowercase', 'nameTokens', 'userId', 'createdAt'];
+        }
+        function validCreate(data) {
+          return 
+            (
+              isAuthenticated() &&
+              hasOnlyValidKeys(data, createKeys()) &&
+              hasAllRequiredKeys(data, createRequiredKeys()) &&
+              isOwner(data, 'userId') &&
+              validString(data.name, getLengthLimit('item.name')) &&
+              validTimestamp(data.createdAt) &&
+              hasValidOptionalString(data, 'description', getLengthLimit('item.description'))
+            );
+        }
+        function updateKeys() {
+          return ['name', 'nameLowercase', 'nameTokens', 'updatedAt', 'description', 'tags', 'metadata'];
+        }
+        function updateRequiredKeys() {
+          return ['updatedAt'];
+        }
+        function validUpdate(newData, existingData) {
+          return 
+            (
+              isAuthenticated() &&
+              existingData != null &&
+              hasOnlyAffectedKeys(newData, existingData, updateKeys()) &&
+              hasAllRequiredAffectedKeys(newData, existingData, updateRequiredKeys()) &&
+              isOwner(existingData, 'userId') &&
+              newData.userId == existingData.userId &&
+              newData.createdAt == existingData.createdAt &&
+              validTimestamp(newData.updatedAt) &&
+              hasValidOptionalString(newData, 'name', getLengthLimit('item.name')) &&
+              hasValidOptionalString(newData, 'description', getLengthLimit('item.description'))
+            );
+        }
+
+       
+        allow get: if  // public
+          environmentAccessAllowed() 
+          && folderMatchesConfig()
+          && (isAdmin() || isUserOwner());
+ 
+       
+        allow list: if //public
+          environmentAccessAllowed() 
+          && folderMatchesConfig()
+          && (isAdmin() || isUserOwner());
+        
+
+        allow create: if // owner or admin
+          environmentAccessAllowed() 
+          && folderMatchesConfig() 
+          && validCreate(request.resource.data)
+          && (isAdmin() || isUserOwner());
+        
+        allow update: if 
+          environmentAccessAllowed() 
+          && folderMatchesConfig() 
+          && validUpdate(request.resource.data, resource.data)
+          && (isAdmin() || isUserOwner());
+        
+        allow delete: if 
+          environmentAccessAllowed() 
+          && folderMatchesConfig()
+          && (isAdmin() || isUserOwner());
+
       }
     }
     match /{document=**} {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
-  useGetPublicUserItemsQuery,
-  useGetPublicUserItemsCountQuery,
+  useGetUserItemsQuery,
+  useGetUserItemsCountQuery,
 } from '../api/firestore/firestoreApi';
 
 import MyListItem from './MyListItem';
@@ -17,7 +17,7 @@ interface MyItemsListProps {
   user: { uid: string } | null;
   itemNameClientFilter: string;
   selectedTags: string[];
-  isPublic?: boolean;
+  isPublicItem: boolean;
   startWithNameFilter: string;
   nameContainsTokens: string;
 }
@@ -26,7 +26,7 @@ function MyItemsList({
   user,
   itemNameClientFilter,
   selectedTags,
-  isPublic,
+  isPublicItem,
   startWithNameFilter,
   nameContainsTokens,
 }: MyItemsListProps) {
@@ -41,13 +41,13 @@ function MyItemsList({
   const isAll = pageSize === 'all';
 
   // Total count (optional UI use)
-  const { data: totalCount = 0 } = useGetPublicUserItemsCountQuery(
+  const { data: totalCount = 0 } = useGetUserItemsCountQuery(
     {
       userId: user?.uid || '',
       tags: selectedTags.length ? selectedTags : undefined,
       startWithNameFilter: startWithNameFilter || undefined,
       nameContainsTokens: nameContainsTokens || undefined,
-      isPublic: isPublic,
+      isPublicItem,
     },
     {
       skip: !user?.uid,
@@ -58,11 +58,11 @@ function MyItemsList({
     data: itemsData,
     isLoading,
     error,
-  } = useGetPublicUserItemsQuery(
+  } = useGetUserItemsQuery(
     {
       userId: user?.uid || '',
       tags: selectedTags.length ? selectedTags : undefined,
-      isPublic,
+      isPublicItem,
       limit: isAll ? undefined : pageSize,
       startAfter: currentCursor,
       startWithNameFilter: startWithNameFilter || undefined,
@@ -126,6 +126,7 @@ function MyItemsList({
                   item={item}
                   userId={user?.uid || ''}
                   showTags={true}
+                  isPublicItem={isPublicItem}
                 />
               </ExpandableMotion>
             ))

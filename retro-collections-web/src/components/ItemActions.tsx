@@ -11,9 +11,8 @@ import type { FileType, ImageFolder } from '../api/firestore/types/shared';
 
 interface ItemActionsProps {
   itemId: string;
-  isPublic: boolean;
+  isPublicItem: boolean;
   onEdit: () => void;
-  onToggleVisibility: (itemId: string, currentVisibility: boolean) => void;
   onDelete: (itemId: string) => void;
   onImageFolderSelect: ({
     folder,
@@ -27,9 +26,8 @@ interface ItemActionsProps {
 
 function ItemActions({
   itemId,
-  isPublic,
+  isPublicItem,
   onEdit,
-  onToggleVisibility,
   onDelete,
   onImageFolderSelect,
   imageFolder,
@@ -103,11 +101,10 @@ function ItemActions({
       </button>
       <button
         className="btn btn-sm btn-ghost tooltip"
-        data-tip={isPublic ? 'Make Private' : 'Make Public'}
-        onClick={() => onToggleVisibility(itemId, isPublic)}
-        title={isPublic ? 'Make Private' : 'Make Public'}
+        data-tip={isPublicItem ? 'Make Private' : 'Make Public'}
+        title={isPublicItem ? 'Make Private' : 'Make Public'}
       >
-        {isPublic ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+        {isPublicItem ? <FiEyeOff size={18} /> : <FiEye size={18} />}
       </button>
       <button
         className="btn btn-sm btn-ghost text-error hover:text-error tooltip"

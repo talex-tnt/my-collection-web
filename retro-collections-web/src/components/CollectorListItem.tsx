@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import type { Item } from '../api/firestore/services/public/userItems';
+import type { Item } from '../api/firestore/services/items/userItems';
 import Tags from './Tags';
 interface CollectorListItemProps {
   item: Item;
@@ -34,6 +34,7 @@ function CollectorListItem({
           userId={item.userId}
           itemId={item.id}
           tags={item.tags || []}
+          isPublicItem={true} // Ensure tags are treated as public for display
         />
       )}
       <div className="flex items-center gap-2">

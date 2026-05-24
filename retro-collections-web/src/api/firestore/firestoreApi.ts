@@ -2,7 +2,7 @@ import { createApi, fakeBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { FirestoreApiError } from './errorLogger';
 
 import getRuntimeConfigEndpoints from './services/runtime-config';
-import getPublicUserItemsEndpoints from './services/public/userItems';
+import getUserItemsEndpoints from './services/items/userItems';
 import getUsersEndpoints from './services/public/users';
 import getAuthorizedUsersEndpoints from './services/private/authorized-users';
 import getPrivateUsersEndpoints from './services/private/users';
@@ -19,7 +19,7 @@ export const firestoreApi = createApi({
 
   endpoints: (builder) => ({
     ...getRuntimeConfigEndpoints(builder),
-    ...getPublicUserItemsEndpoints(builder),
+    ...getUserItemsEndpoints(builder),
     ...getPublicUserTagsEndpoints(builder),
     ...getUsersEndpoints(builder),
     ...getPrivateUsersEndpoints(builder),
@@ -32,11 +32,11 @@ export const firestoreApi = createApi({
 export const {
   useGetRuntimeConfigQuery,
 
-  useGetPublicUserItemsQuery,
-  useGetPublicUserItemsCountQuery,
-  useCreatePublicUserItemMutation,
-  useUpdatePublicUserItemMutation,
-  useDeletePublicUserItemMutation,
+  useGetUserItemsQuery,
+  useGetUserItemsCountQuery,
+  useCreateUserItemMutation,
+  useUpdateUserItemMutation,
+  useDeleteUserItemMutation,
 
   useGetUsersQuery,
   useGetPublicUsersQuery,

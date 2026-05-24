@@ -18,13 +18,14 @@ import {
   limit as fsLimit,
 } from 'firebase/firestore';
 
-import type { FirestoreBuilder } from '../../types/firestoreBuilder';
+import type {
+  FirestoreBuilder,
+  FirestoreTagTypes,
+} from '../../types/firestoreBuilder';
 import { createFirestoreApiError } from '../../errorLogger';
 import { db } from '../../../../lib/firebase';
 import { getUserCollectionPath } from '../../runtimeConfig';
 import type { ImageFolder, ImagePreview } from '../../types/shared';
-
-const visibility = 'public' as const;
 
 export interface Item {
   id: string;
@@ -33,9 +34,6 @@ export interface Item {
   createdAt: string;
   updatedAt?: string;
   description?: string;
-  visibility?: {
-    public: boolean;
-  };
   tags?: string[];
   metadata?: {
     imageFolder?: ImageFolder;
@@ -43,7 +41,9 @@ export interface Item {
   };
 }
 
-type ItemInput = Omit<Item, 'id' | 'createdAt' | 'updatedAt'>;
+type ItemInput = Omit<Item, 'id' | 'createdAt' | 'updatedAt'> & {
+  isPublicItem: boolean;
+};
 type ItemUpdate = Partial<Omit<Item, 'id' | 'createdAt'>>;
 
 interface FirestoreItemDoc {
@@ -54,9 +54,6 @@ interface FirestoreItemDoc {
   createdAt: Timestamp;
   updatedAt?: Timestamp;
   description?: string;
-  visibility?: {
-    public: boolean;
-  };
   tags?: string[];
   metadata?: {
     imageFolder?: ImageFolder;
@@ -81,7 +78,6 @@ const mapItemDoc = (snapshot: QueryDocumentSnapshot<DocumentData>): Item => {
     name: data.name,
     userId: data.userId,
     description: data.description,
-    visibility: data.visibility,
     tags: data.tags || [],
     createdAt: data.createdAt?.toDate?.()?.toISOString?.() ?? '',
     updatedAt: data.updatedAt?.toDate?.()?.toISOString?.(),
@@ -89,8 +85,8 @@ const mapItemDoc = (snapshot: QueryDocumentSnapshot<DocumentData>): Item => {
   };
 };
 
-const getPublicUserItemsEndpoints = (builder: FirestoreBuilder) => ({
-  getPublicUserItems: builder.query<
+const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
+  getUserItems: builder.query<
     {
       items: Item[];
       pageInfo: {
@@ -100,25 +96,29 @@ const getPublicUserItemsEndpoints = (builder: FirestoreBuilder) => ({
     },
     {
       userId: string;
+      isPublicItem: boolean;
       tags?: string[];
       startWithNameFilter?: string;
       nameContainsTokens?: string;
-      isPublic?: boolean;
       limit?: number;
       startAfter?: PaginationCursor | null;
     }
   >({
     async queryFn({
       userId,
+      isPublicItem,
       tags,
       startWithNameFilter,
       nameContainsTokens,
-      isPublic,
       limit,
       startAfter,
     }) {
+      const resolvedVisibility = isPublicItem
+        ? ('public' as const)
+        : ('private' as const);
+
       const path = await getUserCollectionPath({
-        visibility,
+        visibility: resolvedVisibility,
         resourceType: 'items',
         userId,
       });
@@ -127,10 +127,6 @@ const getPublicUserItemsEndpoints = (builder: FirestoreBuilder) => ({
 
       if (tags?.length) {
         baseConstraints.push(where('tags', 'array-contains-any', tags));
-      }
-
-      if (isPublic !== undefined) {
-        baseConstraints.push(where('visibility.public', '==', isPublic));
       }
 
       const prefix = startWithNameFilter?.trim().toLowerCase();
@@ -212,7 +208,7 @@ const getPublicUserItemsEndpoints = (builder: FirestoreBuilder) => ({
         return {
           error: createFirestoreApiError(
             {
-              apiEndpoint: 'getPublicUserItems',
+              apiEndpoint: 'getUserItems',
               operation: 'QUERY',
               firebaseFunc: 'getDocs',
               path,
@@ -223,45 +219,55 @@ const getPublicUserItemsEndpoints = (builder: FirestoreBuilder) => ({
       }
     },
 
-    providesTags: (result, _error, request) =>
-      result && result.items
+    providesTags: (result, _error, request) => {
+      const tagType: FirestoreTagTypes = request.isPublicItem
+        ? 'PublicUserItems'
+        : 'PrivateUserItems';
+      const listId = `${request.userId}_LIST`;
+
+      return result && result.items
         ? [
             ...result.items.map(({ id }) => ({
-              type: 'PublicUserItems' as const,
+              type: tagType,
               id,
             })),
             {
-              type: 'PublicUserItems' as const,
-              id: `${request.userId}_LIST`,
+              type: tagType,
+              id: listId,
             },
           ]
         : [
             {
-              type: 'PublicUserItems' as const,
-              id: `${request.userId}_LIST`,
+              type: tagType,
+              id: listId,
             },
-          ],
+          ];
+    },
   }),
 
-  getPublicUserItemsCount: builder.query<
+  getUserItemsCount: builder.query<
     number,
     {
       userId: string;
+      isPublicItem: boolean;
       tags?: string[];
       startWithNameFilter?: string;
       nameContainsTokens?: string;
-      isPublic?: boolean;
     }
   >({
     async queryFn({
       userId,
+      isPublicItem,
       tags,
       startWithNameFilter,
       nameContainsTokens,
-      isPublic,
     }) {
+      const resolvedVisibility = isPublicItem
+        ? ('public' as const)
+        : ('private' as const);
+
       const path = await getUserCollectionPath({
-        visibility,
+        visibility: resolvedVisibility,
         resourceType: 'items',
         userId,
       });
@@ -272,13 +278,8 @@ const getPublicUserItemsEndpoints = (builder: FirestoreBuilder) => ({
         baseConstraints.push(where('tags', 'array-contains-any', tags));
       }
 
-      if (isPublic !== undefined) {
-        baseConstraints.push(where('visibility.public', '==', isPublic));
-      }
-
       const prefix = startWithNameFilter?.trim().toLowerCase();
 
-      // Apply the same token / prefix filtering constraints
       if (prefix || nameContainsTokens) {
         if (nameContainsTokens) {
           const tokens = tokenizeName(nameContainsTokens);
@@ -301,7 +302,7 @@ const getPublicUserItemsEndpoints = (builder: FirestoreBuilder) => ({
       const countQuery = query(collection(db, path), ...baseConstraints);
 
       const context = {
-        apiEndpoint: 'getPublicUserItemsCount',
+        apiEndpoint: 'getUserItemsCount',
         operation: 'QUERY' as const,
         firebaseFunc: 'getCountFromServer',
         path,
@@ -310,7 +311,6 @@ const getPublicUserItemsEndpoints = (builder: FirestoreBuilder) => ({
           tags,
           startWithNameFilter,
           nameContainsTokens,
-          isPublic,
         },
       };
 
@@ -327,21 +327,29 @@ const getPublicUserItemsEndpoints = (builder: FirestoreBuilder) => ({
       }
     },
 
-    providesTags: (result, _error, request) =>
-      result !== undefined
+    providesTags: (result, _error, request) => {
+      const tagType: FirestoreTagTypes = request.isPublicItem
+        ? 'PublicUserItems'
+        : 'PrivateUserItems';
+      return result !== undefined
         ? [
             {
-              type: 'PublicUserItems' as const,
+              type: tagType,
               id: `${request.userId}_LIST`,
             },
           ]
-        : [],
+        : [];
+    },
   }),
 
-  createPublicUserItem: builder.mutation<Item, ItemInput>({
-    async queryFn(itemData) {
+  createUserItem: builder.mutation<Item, ItemInput>({
+    async queryFn({ isPublicItem, ...itemData }) {
+      const resolvedVisibility = isPublicItem
+        ? ('public' as const)
+        : ('private' as const);
+
       const path = await getUserCollectionPath({
-        visibility,
+        visibility: resolvedVisibility,
         resourceType: 'items',
         userId: itemData.userId,
       });
@@ -356,7 +364,7 @@ const getPublicUserItemsEndpoints = (builder: FirestoreBuilder) => ({
       };
 
       const context = {
-        apiEndpoint: 'createPublicUserItem',
+        apiEndpoint: 'createUserItem',
         operation: 'CREATE' as const,
         firebaseFunc: 'addDoc',
         path,
@@ -381,21 +389,30 @@ const getPublicUserItemsEndpoints = (builder: FirestoreBuilder) => ({
       }
     },
 
-    invalidatesTags: (_r, _e, { userId }) => [
-      {
-        type: 'PublicUserItems' as const,
-        id: `${userId}_LIST`,
-      },
-    ],
+    invalidatesTags: (_r, _e, { userId, isPublicItem }) => {
+      const tagType: FirestoreTagTypes = isPublicItem
+        ? 'PublicUserItems'
+        : 'PrivateUserItems';
+      return [
+        {
+          type: tagType,
+          id: `${userId}_LIST`,
+        },
+      ];
+    },
   }),
 
-  updatePublicUserItem: builder.mutation<
+  updateUserItem: builder.mutation<
     void,
-    { id: string; userId: string; updates: ItemUpdate }
+    { id: string; userId: string; isPublicItem: boolean; updates: ItemUpdate }
   >({
-    async queryFn({ id, userId, updates }) {
+    async queryFn({ id, userId, isPublicItem, updates }) {
+      const resolvedVisibility = isPublicItem
+        ? ('public' as const)
+        : ('private' as const);
+
       const path = await getUserCollectionPath({
-        visibility,
+        visibility: resolvedVisibility,
         resourceType: 'items',
         userId,
       });
@@ -412,7 +429,7 @@ const getPublicUserItemsEndpoints = (builder: FirestoreBuilder) => ({
       };
 
       const context = {
-        apiEndpoint: 'updatePublicUserItem',
+        apiEndpoint: 'updateUserItem',
         operation: 'UPDATE' as const,
         firebaseFunc: 'setDoc',
         path,
@@ -432,28 +449,40 @@ const getPublicUserItemsEndpoints = (builder: FirestoreBuilder) => ({
       }
     },
 
-    invalidatesTags: (_r, _e, { id, userId }) => [
-      {
-        type: 'PublicUserItems' as const,
-        id,
-      },
-      {
-        type: 'PublicUserItems' as const,
-        id: `${userId}_LIST`,
-      },
-    ],
+    invalidatesTags: (_r, _e, { id, userId, isPublicItem }) => {
+      const tagType: FirestoreTagTypes = isPublicItem
+        ? 'PublicUserItems'
+        : 'PrivateUserItems';
+      return [
+        {
+          type: tagType,
+          id,
+        },
+        {
+          type: tagType,
+          id: `${userId}_LIST`,
+        },
+      ];
+    },
   }),
 
-  deletePublicUserItem: builder.mutation<void, { id: string; userId: string }>({
-    async queryFn({ id, userId }) {
+  deleteUserItem: builder.mutation<
+    void,
+    { id: string; userId: string; isPublicItem: boolean }
+  >({
+    async queryFn({ id, userId, isPublicItem }) {
+      const resolvedVisibility = isPublicItem
+        ? ('public' as const)
+        : ('private' as const);
+
       const path = await getUserCollectionPath({
-        visibility,
+        visibility: resolvedVisibility,
         resourceType: 'items',
         userId,
       });
 
       const context = {
-        apiEndpoint: 'deletePublicUserItem',
+        apiEndpoint: 'deleteUserItem',
         operation: 'DELETE' as const,
         firebaseFunc: 'deleteDoc',
         path,
@@ -468,17 +497,22 @@ const getPublicUserItemsEndpoints = (builder: FirestoreBuilder) => ({
         };
       }
     },
-    invalidatesTags: (_r, _e, { id, userId }) => [
-      {
-        type: 'PublicUserItems' as const,
-        id,
-      },
-      {
-        type: 'PublicUserItems' as const,
-        id: `${userId}_LIST`,
-      },
-    ],
+    invalidatesTags: (_r, _e, { id, userId, isPublicItem }) => {
+      const tagType: FirestoreTagTypes = isPublicItem
+        ? 'PublicUserItems'
+        : 'PrivateUserItems';
+      return [
+        {
+          type: tagType,
+          id,
+        },
+        {
+          type: tagType,
+          id: `${userId}_LIST`,
+        },
+      ];
+    },
   }),
 });
 
-export default getPublicUserItemsEndpoints;
+export default getUserItemsEndpoints;
