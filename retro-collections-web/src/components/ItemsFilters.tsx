@@ -6,8 +6,6 @@ interface ItemsFiltersProps {
   onItemNameClientFilterChange: (filter: string) => void;
   selectedTags: string[];
   setSelectedTags: (tags: string[]) => void;
-  visibilityFilter?: 'public' | 'private';
-  onVisibilityFilterChange?: (v: 'public' | 'private') => void;
   startWithNameFilter: string;
   onStartWithNameFilterChange: (filter: string) => void;
   nameContainsTokens: string;
@@ -20,8 +18,6 @@ export default function ItemsFilters({
   onItemNameClientFilterChange,
   selectedTags,
   setSelectedTags,
-  visibilityFilter = 'public',
-  onVisibilityFilterChange,
   startWithNameFilter,
   onStartWithNameFilterChange,
   nameContainsTokens,
@@ -42,23 +38,7 @@ export default function ItemsFilters({
           <div className="font-semibold text-xs mb-1 opacity-70">
             Server Filters
           </div>
-          {onVisibilityFilterChange && (
-            <div className="flex gap-2 items-center mt-2 mb-4">
-              <span className="text-xs opacity-70">Visibility:</span>
-              <select
-                className="select select-xs min-w-[100px]"
-                value={visibilityFilter}
-                onChange={(e) =>
-                  onVisibilityFilterChange?.(
-                    e.target.value as 'public' | 'private'
-                  )
-                }
-              >
-                <option value="public">Public</option>
-                <option value="private">Private</option>
-              </select>
-            </div>
-          )}
+
           <div className="flex flex-wrap gap-2 mb-2 items-center">
             {allTags.map((tag) => {
               const isSelected = selectedTags.includes(tag.id);

@@ -4,16 +4,18 @@ import NewItem from './NewItem';
 import ItemsFilters from './ItemsFilters';
 import type { User } from 'firebase/auth/web-extension';
 
-function MySpareItems({ user }: { user: User }) {
+function MySpareItems({
+  user,
+  isPublicItem,
+}: {
+  user: User;
+  isPublicItem: boolean;
+}) {
   const [itemNameClientFilter, setItemNameClientFilter] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [visibilityFilter, setVisibilityFilter] = useState<
-    'public' | 'private'
-  >('public');
   const [startWithNameFilter, setStartWithNameFilter] = useState('');
   const [nameContainsTokens, setNameContainsTokens] = useState('');
 
-  const isPublicItem = visibilityFilter === 'public';
   return (
     <div className="grid grid-cols-1 md:grid-cols-6 gap-6">
       {/* Left column: NewItem and future filters */}
@@ -25,8 +27,6 @@ function MySpareItems({ user }: { user: User }) {
           onItemNameClientFilterChange={setItemNameClientFilter}
           selectedTags={selectedTags}
           setSelectedTags={setSelectedTags}
-          visibilityFilter={visibilityFilter}
-          onVisibilityFilterChange={setVisibilityFilter}
           startWithNameFilter={startWithNameFilter}
           onStartWithNameFilterChange={setStartWithNameFilter}
           nameContainsTokens={nameContainsTokens}

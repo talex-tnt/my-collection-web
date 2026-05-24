@@ -113,163 +113,160 @@ function Header() {
   // console.log('Current user in Header:', user);
 
   return (
-    <div className="space-y-4">
-      <header className="rounded-box border border-base-300 bg-base-100 shadow-sm">
-        <div className="navbar gap-4 px-4">
-          <div className="flex-1 flex-col items-start gap-3 lg:flex-row lg:items-center">
-            <div>
-              <h1 className="text-2xl font-bold mb-2 ml-2 mt-2">
-                Retro Collections
-              </h1>
-              <p className="text-sm text-base-content/70 mb-2 ml-2">
-                Organize, tag, and share your retro collections. Manage
-                collectibles, track items, customize tags, and control
-                visibility.
+    <header className="rounded-box border border-base-300 bg-base-100 shadow-sm">
+      <div className="navbar gap-4 px-4">
+        <div className="flex-1 flex-col items-start gap-3 lg:flex-row lg:items-center">
+          <div>
+            <h1 className="text-2xl font-bold mb-2 ml-2 mt-2">
+              Retro Collections
+            </h1>
+            <p className="text-sm text-base-content/70 mb-2 ml-2">
+              Organize, tag, and share your retro collections. Manage
+              collectibles, track items, customize tags, and control visibility.
+            </p>
+          </div>
+
+          <nav className="tabs tabs-boxed flex-wrap gap-2">
+            <NavLink
+              end
+              to="/"
+              className={({ isActive }) =>
+                isActive ? 'tab tab-active' : 'tab'
+              }
+            >
+              Home
+            </NavLink>
+            <NavLink
+              to="/my-collectibles"
+              className={({ isActive }) =>
+                isActive ? 'tab tab-active' : 'tab'
+              }
+            >
+              All My Collectibles
+            </NavLink>
+            <NavLink
+              to="/tags"
+              className={({ isActive }) =>
+                isActive ? 'tab tab-active' : 'tab'
+              }
+            >
+              Tags
+            </NavLink>
+
+            <NavLink
+              to="/collectors"
+              className={({ isActive }) =>
+                isActive ? 'tab tab-active' : 'tab'
+              }
+            >
+              Collectors
+            </NavLink>
+            <NavLink
+              to="/settings"
+              className={({ isActive }) =>
+                isActive ? 'tab tab-active' : 'tab'
+              }
+            >
+              Settings
+            </NavLink>
+            {isAdmin && (
+              <NavLink
+                to="/users"
+                className={({ isActive }) =>
+                  isActive ? 'tab tab-active' : 'tab'
+                }
+              >
+                Users
+              </NavLink>
+            )}
+            {isAdmin && (
+              <NavLink
+                to="/admin"
+                className={({ isActive }) =>
+                  isActive ? 'tab tab-active' : 'tab'
+                }
+              >
+                Admin
+              </NavLink>
+            )}
+          </nav>
+        </div>
+
+        <div className="dropdown dropdown-end">
+          <button tabIndex={0} className="btn btn-ghost gap-3 px-3">
+            <div className="hidden text-right sm:block">
+              <p className="text-sm font-medium">
+                {user?.displayName || user?.email || 'Guest'}
+              </p>
+              <p className="text-xs text-base-content/70">
+                {user ? 'Signed in' : 'Not signed in'}
               </p>
             </div>
-
-            <nav className="tabs tabs-boxed flex-wrap gap-2">
-              <NavLink
-                end
-                to="/"
-                className={({ isActive }) =>
-                  isActive ? 'tab tab-active' : 'tab'
-                }
-              >
-                Home
-              </NavLink>
-              <NavLink
-                to="/my-collectibles"
-                className={({ isActive }) =>
-                  isActive ? 'tab tab-active' : 'tab'
-                }
-              >
-                All My Collectibles
-              </NavLink>
-              <NavLink
-                to="/tags"
-                className={({ isActive }) =>
-                  isActive ? 'tab tab-active' : 'tab'
-                }
-              >
-                Tags
-              </NavLink>
-
-              <NavLink
-                to="/collectors"
-                className={({ isActive }) =>
-                  isActive ? 'tab tab-active' : 'tab'
-                }
-              >
-                Collectors
-              </NavLink>
-              <NavLink
-                to="/settings"
-                className={({ isActive }) =>
-                  isActive ? 'tab tab-active' : 'tab'
-                }
-              >
-                Settings
-              </NavLink>
-              {isAdmin && (
-                <NavLink
-                  to="/users"
-                  className={({ isActive }) =>
-                    isActive ? 'tab tab-active' : 'tab'
-                  }
-                >
-                  Users
-                </NavLink>
-              )}
-              {isAdmin && (
-                <NavLink
-                  to="/admin"
-                  className={({ isActive }) =>
-                    isActive ? 'tab tab-active' : 'tab'
-                  }
-                >
-                  Admin
-                </NavLink>
-              )}
-            </nav>
-          </div>
-
-          <div className="dropdown dropdown-end">
-            <button tabIndex={0} className="btn btn-ghost gap-3 px-3">
-              <div className="hidden text-right sm:block">
-                <p className="text-sm font-medium">
-                  {user?.displayName || user?.email || 'Guest'}
-                </p>
-                <p className="text-xs text-base-content/70">
-                  {user ? 'Signed in' : 'Not signed in'}
-                </p>
-              </div>
-              <div className="avatar">
-                {user?.photoURL ? (
-                  <div className="w-8 h-8 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2 overflow-hidden">
-                    <img
-                      src={user.photoURL}
-                      alt="avatar"
-                      className="w-8 h-8 object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-primary text-primary-content flex items-center justify-center">
-                    <span className="text-xs font-semibold">
-                      {(user?.displayName || user?.email || 'G')
-                        .charAt(0)
-                        .toUpperCase()}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </button>
-
-            <div
-              tabIndex={0}
-              className="dropdown-content z-10 mt-3 w-80 rounded-box border border-base-300 bg-base-100 p-4 shadow-xl"
-            >
-              {error && <div className="alert alert-error mb-3">{error}</div>}
-
-              {user ? (
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-sm text-base-content/70">Signed in as</p>
-                    <p className="font-semibold">
-                      {user.displayName || user.email}
-                    </p>
-                  </div>
-                  <div className="space-y-1 text-sm text-base-content/80">
-                    <p>{user.email}</p>
-                    <p className="break-all">UID: {user.uid}</p>
-                  </div>
-
-                  <NavLink
-                    to="/profile"
-                    className="btn btn-ghost w-full justify-start"
-                  >
-                    Edit Profile
-                  </NavLink>
-
-                  <button className="btn btn-primary w-full" onClick={logout}>
-                    Logout
-                  </button>
+            <div className="avatar">
+              {user?.photoURL ? (
+                <div className="w-8 h-8 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2 overflow-hidden">
+                  <img
+                    src={user.photoURL}
+                    alt="avatar"
+                    className="w-8 h-8 object-cover"
+                  />
                 </div>
               ) : (
-                <div className="space-y-3">
-                  <p className="text-sm text-base-content/70">
-                    Sign in to manage your collections and items.
-                  </p>
-                  <button className="btn btn-primary w-full" onClick={login}>
-                    Login with Google
-                  </button>
+                <div className="w-8 h-8 rounded-full bg-primary text-primary-content flex items-center justify-center">
+                  <span className="text-xs font-semibold">
+                    {(user?.displayName || user?.email || 'G')
+                      .charAt(0)
+                      .toUpperCase()}
+                  </span>
                 </div>
               )}
             </div>
+          </button>
+
+          <div
+            tabIndex={0}
+            className="dropdown-content z-10 mt-3 w-80 rounded-box border border-base-300 bg-base-100 p-4 shadow-xl"
+          >
+            {error && <div className="alert alert-error mb-3">{error}</div>}
+
+            {user ? (
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm text-base-content/70">Signed in as</p>
+                  <p className="font-semibold">
+                    {user.displayName || user.email}
+                  </p>
+                </div>
+                <div className="space-y-1 text-sm text-base-content/80">
+                  <p>{user.email}</p>
+                  <p className="break-all">UID: {user.uid}</p>
+                </div>
+
+                <NavLink
+                  to="/profile"
+                  className="btn btn-ghost w-full justify-start"
+                >
+                  Edit Profile
+                </NavLink>
+
+                <button className="btn btn-primary w-full" onClick={logout}>
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-base-content/70">
+                  Sign in to manage your collections and items.
+                </p>
+                <button className="btn btn-primary w-full" onClick={login}>
+                  Login with Google
+                </button>
+              </div>
+            )}
           </div>
         </div>
-      </header>
-    </div>
+      </div>
+    </header>
   );
 }
 

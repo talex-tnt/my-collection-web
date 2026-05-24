@@ -8,11 +8,16 @@ import {
 import MySpareItems from '../components/MySpareItems';
 import MyCollections from '../components/MyCollections';
 import { useCurrentUser } from '../utils/hooks';
+import { useState } from 'react';
+import { FiEye, FiEyeOff } from 'react-icons/fi';
 
 function AllMyItemsPage() {
   const user = useCurrentUser();
   const navigate = useNavigate();
   const location = useLocation();
+  const [visibilityFilter, setVisibilityFilter] = useState<
+    'public' | 'private'
+  >('public');
 
   if (!user) {
     return (
@@ -33,6 +38,32 @@ function AllMyItemsPage() {
   return (
     <div>
       <div className="tabs tabs-boxed mb-4">
+        <div className="flex gap-2 items-center">
+          <label className="inline-flex cursor-pointer gap-2 select-none items-center text-xs font-medium mr-6">
+            <span className="inline-flex items-center gap-1 min-w-[65px] justify-end transition-colors">
+              {visibilityFilter === 'public' ? (
+                <>
+                  <FiEye className="h-3.5 w-3.5 text-primary" />
+                  <span className="text-primary font-semibold">Public</span>
+                </>
+              ) : (
+                <>
+                  <FiEyeOff className="h-3.5 w-3.5 text-base-content/50" />
+                  <span className="text-base-content/50">Public</span>
+                </>
+              )}
+            </span>
+            <input
+              type="checkbox"
+              className="toggle toggle-xs toggle-primary"
+              checked={visibilityFilter === 'public'}
+              onChange={(e) =>
+                setVisibilityFilter?.(e.target.checked ? 'public' : 'private')
+              }
+            />
+          </label>
+        </div>
+
         <button
           className={`tab${tab === 'spare' ? ' tab-active' : ''}`}
           onClick={() => navigate('/my-collectibles/spare')}
@@ -47,7 +78,15 @@ function AllMyItemsPage() {
         </button>
       </div>
       <Routes>
-        <Route path="/spare" element={<MySpareItems user={user} />} />
+        <Route
+          path="/spare"
+          element={
+            <MySpareItems
+              user={user}
+              isPublicItem={visibilityFilter === 'public'}
+            />
+          }
+        />
         <Route path="/collections" element={<MyCollections />} />
         {/* Default redirect to /spare */}
         <Route

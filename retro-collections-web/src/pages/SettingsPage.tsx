@@ -1,5 +1,5 @@
 import SettingsWiki from '../components/SettingsWiki';
-import SettingsRawg from '../components/SettingsRawg copy';
+import SettingsRawg from '../components/SettingsRawg';
 
 export default function SettingsPage() {
   return (

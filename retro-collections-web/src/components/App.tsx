@@ -68,7 +68,7 @@ function App() {
     <HashRouter>
       <div className="flex flex-col min-h-screen bg-base-200 text-base-content">
         <div className="flex-1">
-          <div className="mx-auto max-w-screen-2xl space-y-8 px-4 py-8">
+          <div className="mx-auto max-w-screen-2xl space-y-4 px-4 py-8">
             <Header />
 
             <div className="space-y-6">
