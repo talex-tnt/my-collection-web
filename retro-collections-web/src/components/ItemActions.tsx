@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiEdit2, FiTrash2, FiFolderPlus } from 'react-icons/fi';
+import { FiEdit2, FiTrash2, FiFolderPlus, FiFolder } from 'react-icons/fi';
 import DriveBrowser from './DriveBrowser';
 import ActionConflictModal from './ActionConflictModal';
 import ItemActionsDropdown from './ItemActionsDropdown';
@@ -137,10 +137,11 @@ function ItemActions({
           className="btn btn-sm btn-ghost tooltip"
           onClick={() => setShowDrivePopup(true)}
         >
-          <FiFolderPlus
-            size={18}
-            className={imageFolder ? 'text-primary' : ''}
-          />
+          {imageFolder ? (
+            <FiFolder size={18} className={'text-primary fill-current'} />
+          ) : (
+            <FiFolderPlus size={18} />
+          )}
         </button>
       </div>
 
