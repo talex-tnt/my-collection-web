@@ -87,7 +87,15 @@ function AllMyItemsPage() {
             />
           }
         />
-        <Route path="/collections" element={<MyCollections />} />
+        <Route
+          path="/collections"
+          element={
+            <MyCollections
+              user={user}
+              isPublicCollection={visibilityFilter === 'public'}
+            />
+          }
+        />
         {/* Default redirect to /spare */}
         <Route
           path="*"

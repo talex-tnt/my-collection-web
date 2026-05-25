@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import type { Item } from '../api/firestore/services/items/userItems';
+import type { Item } from '../api/firestore/services/misc/userItems';
 import ItemActions from './ItemActions';
 import { useState } from 'react';
 import {

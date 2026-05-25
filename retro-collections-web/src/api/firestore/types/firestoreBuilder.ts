@@ -11,6 +11,8 @@ export const FIRESTORE_TAG_TYPES = [
   'PrivateAuthorizedUsers',
   'RawgSettings',
   'WikipediaSettings',
+  'PublicUserCollections',
+  'PrivateUserCollections',
 ] as const;
 
 // 2. Extract the TypeScript union type from the array values

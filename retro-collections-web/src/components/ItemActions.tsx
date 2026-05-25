@@ -5,7 +5,7 @@ import ActionConflictModal from './ActionConflictModal';
 import ItemActionsDropdown from './ItemActionsDropdown';
 
 import type { FileType, ImageFolder } from '../api/firestore/types/shared';
-import type { Item } from '../api/firestore/services/items/userItems';
+import type { Item } from '../api/firestore/services/misc/userItems';
 import { useCreateUserItemMutation } from '../api/firestore/firestoreApi';
 
 interface ItemActionsProps {

@@ -1,4 +1,4 @@
-import type { Item } from '../api/firestore/services/items/userItems';
+import type { Item } from '../api/firestore/services/misc/userItems';
 import Tags from './Tags';
 import ItemImages from './ItemImages';
 
