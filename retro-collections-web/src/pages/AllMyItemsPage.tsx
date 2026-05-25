@@ -31,12 +31,12 @@ function AllMyItemsPage() {
   const isPrivate = location.pathname.includes('/private');
   const visibility: 'public' | 'private' = isPrivate ? 'private' : 'public';
 
-  // 2. Determine tab from URL structure
+  // 2. Determine view mode from URL structure
   const tab = location.pathname.includes('/collections')
     ? 'collections'
     : 'spare';
 
-  // Helper to handle switching visibility while preserving the current tab/view
+  // Helper to handle switching visibility while preserving the current view
   const handleVisibilityToggle = (toPublic: boolean) => {
     const newVisibility = toPublic ? 'public' : 'private';
     const currentSubPath = location.pathname.includes('/collections')
@@ -50,11 +50,19 @@ function AllMyItemsPage() {
     navigate(`/my-collectibles/${newVisibility}/${finalSubPath}`);
   };
 
+  // Handles dropdown selection changes
+  const handleViewChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const targetView = e.target.value;
+    navigate(`/my-collectibles/${visibility}/${targetView}`);
+  };
+
   return (
     <div>
-      <div className="tabs tabs-boxed mb-4">
-        <div className="flex gap-2 items-center">
-          <label className="inline-flex cursor-pointer gap-2 select-none items-center text-xs font-medium mr-6">
+      {/* Control bar using DaisyUI utilities */}
+      <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-base-200 rounded-xl mb-4">
+        {/* Toggle Controls */}
+        <div className="flex items-center">
+          <label className="inline-flex cursor-pointer gap-2 select-none items-center text-xs font-medium">
             <span className="inline-flex items-center gap-1 min-w-[65px] justify-end transition-colors">
               {visibility === 'public' ? (
                 <>
@@ -76,18 +84,18 @@ function AllMyItemsPage() {
             />
           </label>
         </div>
-        <button
-          className={`tab${tab === 'collections' ? ' tab-active' : ''}`}
-          onClick={() => navigate(`/my-collectibles/${visibility}/collections`)}
-        >
-          Collections
-        </button>
-        <button
-          className={`tab${tab === 'spare' ? ' tab-active' : ''}`}
-          onClick={() => navigate(`/my-collectibles/${visibility}/spare`)}
-        >
-          Spare Collectibles
-        </button>
+
+        {/* View Selection Dropdown via DaisyUI select component */}
+        <div className="form-control w-full max-w-xs">
+          <select
+            className="select select-bordered select-sm w-full"
+            value={tab}
+            onChange={handleViewChange}
+          >
+            <option value="collections">Collections</option>
+            <option value="spare">Spare Collectibles</option>
+          </select>
+        </div>
       </div>
 
       <Routes>
@@ -116,7 +124,7 @@ function AllMyItemsPage() {
             />
           }
         />
-        {/* Default redirect to public/spare */}
+        {/* Default redirect to public/collections */}
         <Route
           path="*"
           element={
