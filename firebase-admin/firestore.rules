@@ -320,6 +320,7 @@ service cloud.firestore {
               hasAllRequiredAffectedKeys(newData, existingData, updateRequiredKeys()) &&
               isUserOwner() &&
               newData.createdAt == existingData.createdAt &&
+              newData.userId == existingData.userId &&
               validTimestamp(newData.updatedAt) &&
               hasValidOptionalString(newData, 'name', getLengthLimit('item.name')) &&
               hasValidOptionalString(newData, 'description', getLengthLimit('item.description'))
@@ -442,6 +443,163 @@ service cloud.firestore {
 
       }
 
+      match /public/users/{userId}/collections/{collectionId} {
+        function isUserOwner() {
+          return isOwner({'userId': userId}, 'userId');
+        }
+        // ----------------------------------------------------------------
+        // items helpers -----------------------------------------------
+        function getLengthLimit(field) {
+          return (field == 'item.name') ? 100 :
+                (field == 'item.description') ? 1000 : 0;
+        }
+        function createKeys() {
+          return ['name', 'nameLowercase', 'nameTokens', 'createdAt', 'updatedAt', 'description', 'tags', 'metadata', 'userId'];
+        }
+        function createRequiredKeys() {
+          return ['name', 'nameLowercase', 'nameTokens', 'createdAt', 'userId'];
+        }
+        function validCreate(data) {
+          return 
+            (
+              isAuthenticated() &&
+              hasOnlyValidKeys(data, createKeys()) &&
+              hasAllRequiredKeys(data, createRequiredKeys()) &&
+              isUserOwner() && isOwner(data, 'userId') &&
+              validString(data.name, getLengthLimit('item.name')) &&
+              validTimestamp(data.createdAt) &&
+              hasValidOptionalString(data, 'description', getLengthLimit('item.description'))
+            );
+        }
+        function updateKeys() {
+          return ['name', 'nameLowercase', 'nameTokens', 'updatedAt', 'description', 'tags', 'metadata', 'userId'];
+        }
+        function updateRequiredKeys() {
+          return ['updatedAt'];
+        }
+        function validUpdate(newData, existingData) {
+          return 
+            (
+              isAuthenticated() &&
+              existingData != null &&
+              hasOnlyAffectedKeys(newData, existingData, updateKeys()) &&
+              hasAllRequiredAffectedKeys(newData, existingData, updateRequiredKeys()) &&
+              isUserOwner() &&
+              newData.createdAt == existingData.createdAt &&
+              newData.userId == existingData.userId &&
+              validTimestamp(newData.updatedAt) &&
+              hasValidOptionalString(newData, 'name', getLengthLimit('item.name')) &&
+              hasValidOptionalString(newData, 'description', getLengthLimit('item.description'))
+            );
+        }
+
+       
+        allow get: if  // public
+          environmentAccessAllowed() 
+          && folderMatchesConfig(); 
+       
+        allow list: if //public
+          environmentAccessAllowed() 
+          && folderMatchesConfig();
+        
+
+        allow create: if // owner or admin
+          environmentAccessAllowed() 
+          && folderMatchesConfig() 
+          && validCreate(request.resource.data)
+          && (isAdmin() || isUserOwner());
+        
+        allow update: if 
+          environmentAccessAllowed() 
+          && folderMatchesConfig() 
+          && validUpdate(request.resource.data, resource.data)
+          && (isAdmin() || isUserOwner());
+        
+        allow delete: if 
+          environmentAccessAllowed() 
+          && folderMatchesConfig()
+          && (isAdmin() || isUserOwner());
+
+      }
+      match /public/users/{userId}/collections/{collectionId}/items/{itemId} {
+        function isUserOwner() {
+          return isOwner({'userId': userId}, 'userId');
+        }
+        // ----------------------------------------------------------------
+        // items helpers -----------------------------------------------
+        function getLengthLimit(field) {
+          return (field == 'item.name') ? 100 :
+                (field == 'item.description') ? 1000 : 0;
+        }
+        function createKeys() {
+          return ['name', 'nameLowercase', 'nameTokens', 'createdAt', 'updatedAt', 'description', 'tags', 'metadata', 'userId'];
+        }
+        function createRequiredKeys() {
+          return ['name', 'nameLowercase', 'nameTokens', 'createdAt', 'userId'];
+        }
+        function validCreate(data) {
+          return 
+            (
+              isAuthenticated() &&
+              hasOnlyValidKeys(data, createKeys()) &&
+              hasAllRequiredKeys(data, createRequiredKeys()) &&
+              isUserOwner() && isOwner(data, 'userId') &&
+              validString(data.name, getLengthLimit('item.name')) &&
+              validTimestamp(data.createdAt) &&
+              hasValidOptionalString(data, 'description', getLengthLimit('item.description'))
+            );
+        }
+        function updateKeys() {
+          return ['name', 'nameLowercase', 'nameTokens', 'updatedAt', 'description', 'tags', 'metadata', 'userId'];
+        }
+        function updateRequiredKeys() {
+          return ['updatedAt'];
+        }
+        function validUpdate(newData, existingData) {
+          return 
+            (
+              isAuthenticated() &&
+              existingData != null &&
+              hasOnlyAffectedKeys(newData, existingData, updateKeys()) &&
+              hasAllRequiredAffectedKeys(newData, existingData, updateRequiredKeys()) &&
+              isUserOwner() &&
+              newData.createdAt == existingData.createdAt &&
+              newData.userId == existingData.userId &&
+              validTimestamp(newData.updatedAt) &&
+              hasValidOptionalString(newData, 'name', getLengthLimit('item.name')) &&
+              hasValidOptionalString(newData, 'description', getLengthLimit('item.description'))
+            );
+        }
+
+       
+        allow get: if  // public
+          environmentAccessAllowed() 
+          && folderMatchesConfig(); 
+       
+        allow list: if //public
+          environmentAccessAllowed() 
+          && folderMatchesConfig();
+        
+
+        allow create: if // owner or admin
+          environmentAccessAllowed() 
+          && folderMatchesConfig() 
+          && validCreate(request.resource.data)
+          && (isAdmin() || isUserOwner());
+        
+        allow update: if 
+          environmentAccessAllowed() 
+          && folderMatchesConfig() 
+          && validUpdate(request.resource.data, resource.data)
+          && (isAdmin() || isUserOwner());
+        
+        allow delete: if 
+          environmentAccessAllowed() 
+          && folderMatchesConfig()
+          && (isAdmin() || isUserOwner());
+
+      }
+
       // Nickname index: track nicknames and their owners - Tests 4.1.1-4.1.5
       // Authenticated users can read nickname docs, but can only write/delete if they contain their own userId
       match /public/nicknameIndex/{nickname} {
@@ -530,7 +688,7 @@ service cloud.firestore {
           && isValidSetting(request.resource.data);
       }
 
-            // Items are now stored directly under the user document (no collections)
+      // Items are now stored directly under the user document (no collections)
       match /private/users/{userId}/items/{itemId} {
         function isUserOwner() {
           return isOwner({'userId': userId}, 'userId');
@@ -553,7 +711,7 @@ service cloud.firestore {
               isAuthenticated() &&
               hasOnlyValidKeys(data, createKeys()) &&
               hasAllRequiredKeys(data, createRequiredKeys()) &&
-              isUserOwner() &&
+              isUserOwner() && isOwner(data, 'userId') &&
               validString(data.name, getLengthLimit('item.name')) &&
               validTimestamp(data.createdAt) &&
               hasValidOptionalString(data, 'description', getLengthLimit('item.description'))
@@ -572,8 +730,174 @@ service cloud.firestore {
               existingData != null &&
               hasOnlyAffectedKeys(newData, existingData, updateKeys()) &&
               hasAllRequiredAffectedKeys(newData, existingData, updateRequiredKeys()) &&
-              isUserOwner() &&
+              isUserOwner() && isOwner(data, 'userId') &&
               newData.createdAt == existingData.createdAt &&
+              newData.userId == existingData.userId &&
+              validTimestamp(newData.updatedAt) &&
+              hasValidOptionalString(newData, 'name', getLengthLimit('item.name')) &&
+              hasValidOptionalString(newData, 'description', getLengthLimit('item.description'))
+            );
+        }
+
+       
+        allow get: if  // public
+          environmentAccessAllowed() 
+          && folderMatchesConfig()
+          && (isAdmin() || isUserOwner());
+ 
+       
+        allow list: if //public
+          environmentAccessAllowed() 
+          && folderMatchesConfig()
+          && (isAdmin() || isUserOwner());
+        
+
+        allow create: if // owner or admin
+          environmentAccessAllowed() 
+          && folderMatchesConfig() 
+          && validCreate(request.resource.data)
+          && (isAdmin() || isUserOwner());
+        
+        allow update: if 
+          environmentAccessAllowed() 
+          && folderMatchesConfig() 
+          && validUpdate(request.resource.data, resource.data)
+          && (isAdmin() || isUserOwner());
+        
+        allow delete: if 
+          environmentAccessAllowed() 
+          && folderMatchesConfig()
+          && (isAdmin() || isUserOwner());
+
+      }
+      // Private collections
+      match /private/users/{userId}/collections/{collectionId} {
+        function isUserOwner() {
+          return isOwner({'userId': userId}, 'userId');
+        }
+        // ----------------------------------------------------------------
+        // items helpers -----------------------------------------------
+        function getLengthLimit(field) {
+          return (field == 'item.name') ? 100 :
+                (field == 'item.description') ? 1000 : 0;
+        }
+        function createKeys() {
+          return ['name', 'nameLowercase', 'nameTokens', 'createdAt', 'updatedAt', 'description', 'tags', 'metadata', 'userId'];
+        }
+        function createRequiredKeys() {
+          return ['name', 'nameLowercase', 'nameTokens', 'createdAt', 'userId'];
+        }
+        function validCreate(data) {
+          return 
+            (
+              isAuthenticated() &&
+              hasOnlyValidKeys(data, createKeys()) &&
+              hasAllRequiredKeys(data, createRequiredKeys()) &&
+              isUserOwner() && isOwner(data, 'userId') &&
+              validString(data.name, getLengthLimit('item.name')) &&
+              validTimestamp(data.createdAt) &&
+              hasValidOptionalString(data, 'description', getLengthLimit('item.description'))
+            );
+        }
+        function updateKeys() {
+          return ['name', 'nameLowercase', 'nameTokens', 'updatedAt', 'description', 'tags', 'metadata', 'userId'];
+        }
+        function updateRequiredKeys() {
+          return ['updatedAt'];
+        }
+        function validUpdate(newData, existingData) {
+          return 
+            (
+              isAuthenticated() &&
+              existingData != null &&
+              hasOnlyAffectedKeys(newData, existingData, updateKeys()) &&
+              hasAllRequiredAffectedKeys(newData, existingData, updateRequiredKeys()) &&
+              isUserOwner() && isOwner(data, 'userId') &&
+              newData.createdAt == existingData.createdAt &&
+              newData.userId == existingData.userId &&
+              validTimestamp(newData.updatedAt) &&
+              hasValidOptionalString(newData, 'name', getLengthLimit('item.name')) &&
+              hasValidOptionalString(newData, 'description', getLengthLimit('item.description'))
+            );
+        }
+
+       
+        allow get: if  // public
+          environmentAccessAllowed() 
+          && folderMatchesConfig()
+          && (isAdmin() || isUserOwner());
+ 
+       
+        allow list: if //public
+          environmentAccessAllowed() 
+          && folderMatchesConfig()
+          && (isAdmin() || isUserOwner());
+        
+
+        allow create: if // owner or admin
+          environmentAccessAllowed() 
+          && folderMatchesConfig() 
+          && validCreate(request.resource.data)
+          && (isAdmin() || isUserOwner());
+        
+        allow update: if 
+          environmentAccessAllowed() 
+          && folderMatchesConfig() 
+          && validUpdate(request.resource.data, resource.data)
+          && (isAdmin() || isUserOwner());
+        
+        allow delete: if 
+          environmentAccessAllowed() 
+          && folderMatchesConfig()
+          && (isAdmin() || isUserOwner());
+
+      }
+
+      // Private collections' items
+      match /private/users/{userId}/collections/{collectionId}/items/{itemId} {
+        function isUserOwner() {
+          return isOwner({'userId': userId}, 'userId');
+        }
+        // ----------------------------------------------------------------
+        // items helpers -----------------------------------------------
+        function getLengthLimit(field) {
+          return (field == 'item.name') ? 100 :
+                (field == 'item.description') ? 1000 : 0;
+        }
+        function createKeys() {
+          return ['name', 'nameLowercase', 'nameTokens', 'createdAt', 'updatedAt', 'description', 'tags', 'metadata', 'userId'];
+        }
+        function createRequiredKeys() {
+          return ['name', 'nameLowercase', 'nameTokens', 'createdAt', 'userId'];
+        }
+        function validCreate(data) {
+          return 
+            (
+              isAuthenticated() &&
+              hasOnlyValidKeys(data, createKeys()) &&
+              hasAllRequiredKeys(data, createRequiredKeys()) &&
+              isUserOwner() && isOwner(data, 'userId') &&
+              validString(data.name, getLengthLimit('item.name')) &&
+              validTimestamp(data.createdAt) &&
+              hasValidOptionalString(data, 'description', getLengthLimit('item.description'))
+            );
+        }
+        function updateKeys() {
+          return ['name', 'nameLowercase', 'nameTokens', 'updatedAt', 'description', 'tags', 'metadata', 'userId'];
+        }
+        function updateRequiredKeys() {
+          return ['updatedAt'];
+        }
+        function validUpdate(newData, existingData) {
+          return 
+            (
+              isAuthenticated() &&
+              existingData != null &&
+              hasOnlyAffectedKeys(newData, existingData, updateKeys()) &&
+              hasAllRequiredAffectedKeys(newData, existingData, updateRequiredKeys()) &&
+              isUserOwner() && isOwner(data, 'userId') &&
+              newData.createdAt == existingData.createdAt &&
+              newData.userId == existingData.userId &&
               validTimestamp(newData.updatedAt) &&
               hasValidOptionalString(newData, 'name', getLengthLimit('item.name')) &&
               hasValidOptionalString(newData, 'description', getLengthLimit('item.description'))
