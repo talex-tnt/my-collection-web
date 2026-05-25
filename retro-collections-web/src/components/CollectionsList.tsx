@@ -17,14 +17,14 @@ interface Collection {
 }
 
 interface MyCollectionsListProps {
-  user: { uid: string } | null;
+  userId: string;
   isPublicCollection: boolean;
   readOnly?: boolean;
   onCollectionClick?: (collection: Collection) => void;
 }
 
-function MyCollectionsList({
-  user,
+function CollectionsList({
+  userId,
   isPublicCollection,
   readOnly = false,
   onCollectionClick,
@@ -32,19 +32,18 @@ function MyCollectionsList({
   const [searchTerm, setSearchTerm] = useState('');
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
-
   const {
     data: collectionsData,
     isLoading,
     error,
   } = useGetUserCollectionsQuery(
     {
-      userId: user?.uid || '',
+      userId: userId || '',
       isPublicCollection,
     },
-    { skip: !user?.uid }
+    { skip: !userId }
   );
-
+  console.log('CollectionsList data', { collectionsData, isLoading, error });
   const [createCollection] = useCreateUserCollectionMutation();
   const [updateCollection] = useUpdateUserCollectionMutation();
   const [deleteCollection] = useDeleteUserCollectionMutation();
@@ -57,11 +56,11 @@ function MyCollectionsList({
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newName.trim() || readOnly || !user?.uid) return;
+    if (!newName.trim() || readOnly || !userId) return;
 
     try {
       await createCollection({
-        userId: user.uid,
+        userId: userId,
         isPublicCollection,
         name: newName.trim(),
         description: newDesc.trim(),
@@ -134,7 +133,7 @@ function MyCollectionsList({
               <MyCollectionItem
                 key={collection.id}
                 collection={collection}
-                userId={user?.uid || ''}
+                userId={userId || ''}
                 isPublicCollection={isPublicCollection}
                 readOnly={readOnly}
                 onUpdate={updateCollection}
@@ -149,7 +148,7 @@ function MyCollectionsList({
   );
 }
 
-export default MyCollectionsList;
+export default CollectionsList;
 
 /* ============================================================================
    SUB-COMPONENT: MyCollectionItem

@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import type { Collection } from '../api/firestore/services/misc/userCollections';
-import MyCollectionsList from './MyCollectionsList';
+import CollectionsList from './CollectionsList';
 import type { User } from 'firebase/auth/web-extension';
 
 function MyCollections({
@@ -18,8 +18,8 @@ function MyCollections({
   };
 
   return (
-    <MyCollectionsList
-      user={user}
+    <CollectionsList
+      userId={user.uid}
       isPublicCollection={isPublicCollection}
       onCollectionClick={onCollectionClick}
     />

@@ -19,6 +19,7 @@ interface CollectorItemsListProps {
   selectedTags: string[];
   startWithNameFilter: string;
   nameContainsTokens: string;
+  collectionId?: string;
 }
 
 function CollectorItemsList({
@@ -27,6 +28,7 @@ function CollectorItemsList({
   selectedTags,
   startWithNameFilter,
   nameContainsTokens,
+  collectionId,
 }: CollectorItemsListProps) {
   const [showTags, setShowTags] = useState(true);
 
@@ -46,6 +48,7 @@ function CollectorItemsList({
       startWithNameFilter: startWithNameFilter || undefined,
       nameContainsTokens: nameContainsTokens || undefined,
       isPublicItem: true,
+      collectionId: collectionId || undefined,
     },
     {
       skip: !userId,
@@ -65,6 +68,7 @@ function CollectorItemsList({
       startAfter: currentCursor,
       startWithNameFilter: startWithNameFilter || undefined,
       nameContainsTokens: nameContainsTokens || undefined,
+      collectionId: collectionId || undefined,
     },
     { skip: !userId }
   );

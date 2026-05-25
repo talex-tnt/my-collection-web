@@ -1,12 +1,21 @@
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function CollectorCollections({ userId: _ }: { userId: string }) {
+import { useNavigate } from 'react-router-dom';
+import type { Collection } from '../api/firestore/services/misc/userCollections';
+import CollectionsList from './CollectionsList';
+
+function CollectorCollections({ userId }: { userId: string }) {
+  const navigate = useNavigate();
+
+  const onCollectionClick = (collection: Collection) => {
+    // Navigates relatively to the current path (e.g., /dashboard -> /dashboard/123)
+    navigate(collection.id);
+  };
   return (
-    <div className="flex flex-col items-center justify-center h-full p-8">
-      <h2 className="text-2xl font-bold mb-4">Work In Progress</h2>
-      <p className="text-base-content/60">
-        This feature is under construction.
-      </p>
-    </div>
+    <CollectionsList
+      userId={userId}
+      isPublicCollection={true}
+      onCollectionClick={onCollectionClick}
+      readOnly
+    />
   );
 }
 
