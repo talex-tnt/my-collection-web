@@ -11,6 +11,7 @@ import { useSearchGamesQuery } from '../api/games/rawgApi';
 import { useRawgSettings, useWikiSettings } from '../utils/hooks';
 interface NewItemProps {
   userId: string;
+  collectionId?: string;
 }
 
 type Suggestion = {
@@ -20,6 +21,7 @@ type Suggestion = {
 function NewItem({
   userId,
   isPublicItem = true,
+  collectionId,
 }: NewItemProps & { isPublicItem: boolean }) {
   const [wikiSettings] = useWikiSettings();
   const [rawgSettings] = useRawgSettings();
@@ -86,9 +88,11 @@ function NewItem({
         itemData.tags = selectedTags;
       }
 
-      await createItem({ ...itemData, isPublicItem } as Parameters<
-        typeof createItem
-      >[0]).unwrap();
+      await createItem({
+        ...itemData,
+        isPublicItem,
+        collectionId,
+      } as Parameters<typeof createItem>[0]).unwrap();
 
       setName('');
       setDescription('');

@@ -16,6 +16,7 @@ import {
   getCountFromServer,
   startAfter as fsStartAfter,
   limit as fsLimit,
+  getDoc,
 } from 'firebase/firestore';
 
 import type {
@@ -89,6 +90,59 @@ const mapCollectionDoc = (
 };
 
 const getUserCollectionsEndpoints = (builder: FirestoreBuilder) => ({
+  getUserCollection: builder.query<
+    Collection,
+    { id: string; userId: string; isPublicCollection: boolean }
+  >({
+    async queryFn({ id, userId, isPublicCollection }) {
+      const resolvedVisibility = isPublicCollection
+        ? ('public' as const)
+        : ('private' as const);
+
+      const path = await getUserCollectionPath({
+        visibility: resolvedVisibility,
+        resourceType: 'collections',
+        userId,
+      });
+
+      const context = {
+        apiEndpoint: 'getCollection',
+        operation: 'QUERY' as const,
+        firebaseFunc: 'getDoc',
+        path,
+        segmentPaths: [id],
+      };
+
+      try {
+        const docRef = doc(db, path, id);
+        const snapshot = await getDoc(docRef);
+
+        if (!snapshot.exists()) {
+          throw new Error(`Collection with id ${id} does not exist.`);
+        }
+
+        const collectionData = mapCollectionDoc(snapshot);
+
+        return { data: collectionData };
+      } catch (error) {
+        return {
+          error: createFirestoreApiError(context, error),
+        };
+      }
+    },
+
+    providesTags: (_result, _error, request) => {
+      const tagType: FirestoreTagTypes = request.isPublicCollection
+        ? 'PublicUserCollections'
+        : 'PrivateUserCollections';
+      return [
+        {
+          type: tagType,
+          id: request.id,
+        },
+      ];
+    },
+  }),
   getUserCollections: builder.query<
     {
       collections: Collection[];

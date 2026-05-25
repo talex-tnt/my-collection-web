@@ -16,6 +16,7 @@ interface MyExpandedItemProps {
   showTags?: boolean;
   isPublicItem?: boolean;
   onExpand?: () => void;
+  collectionId?: string;
 }
 
 function MyExpandedItem({
@@ -23,6 +24,7 @@ function MyExpandedItem({
   userId,
   showTags = true,
   isPublicItem = true,
+  collectionId,
 }: MyExpandedItemProps) {
   const [editingField, setEditingField] = useState<
     'name' | 'description' | null
@@ -39,6 +41,7 @@ function MyExpandedItem({
         id: itemId,
         userId,
         isPublicItem,
+        collectionId,
       }).unwrap();
     } catch (error) {
       console.error('Error deleting item:', error);
@@ -66,6 +69,7 @@ function MyExpandedItem({
         userId,
         updates,
         isPublicItem,
+        collectionId,
       }).unwrap();
     } catch (error) {
       console.error('Error updating item:', error);
@@ -111,6 +115,7 @@ function MyExpandedItem({
       await updateItem({
         id: item.id,
         userId,
+        collectionId,
         isPublicItem,
         updates: {
           metadata,

@@ -20,10 +20,12 @@ interface MyItemsListProps {
   isPublicItem: boolean;
   startWithNameFilter: string;
   nameContainsTokens: string;
+  collectionId?: string;
 }
 
 function MyItemsList({
   user,
+  collectionId,
   itemNameClientFilter,
   selectedTags,
   isPublicItem,
@@ -48,6 +50,7 @@ function MyItemsList({
       startWithNameFilter: startWithNameFilter || undefined,
       nameContainsTokens: nameContainsTokens || undefined,
       isPublicItem,
+      collectionId,
     },
     {
       skip: !user?.uid,
@@ -67,6 +70,7 @@ function MyItemsList({
       startAfter: currentCursor,
       startWithNameFilter: startWithNameFilter || undefined,
       nameContainsTokens: nameContainsTokens || undefined,
+      collectionId,
     },
     { skip: !user?.uid }
   );
@@ -127,6 +131,7 @@ function MyItemsList({
                   userId={user?.uid || ''}
                   showTags={true}
                   isPublicItem={isPublicItem}
+                  collectionId={collectionId}
                 />
               </ExpandableMotion>
             ))

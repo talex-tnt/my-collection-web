@@ -16,6 +16,7 @@ interface MyListItemProps {
   showTags?: boolean;
   isPublicItem: boolean;
   onExpand?: () => void;
+  collectionId?: string;
 }
 
 function MyListItem({
@@ -24,6 +25,7 @@ function MyListItem({
   showTags = true,
   onExpand,
   isPublicItem,
+  collectionId,
 }: MyListItemProps) {
   const [editingField, setEditingField] = useState<
     'name' | 'description' | null
@@ -40,6 +42,7 @@ function MyListItem({
         id: itemId,
         userId,
         isPublicItem,
+        collectionId,
       }).unwrap();
     } catch (error) {
       console.error('Error deleting item:', error);
@@ -67,6 +70,7 @@ function MyListItem({
         userId,
         updates,
         isPublicItem,
+        collectionId,
       }).unwrap();
     } catch (error) {
       console.error('Error updating item:', error);
@@ -118,6 +122,7 @@ function MyListItem({
           metadata,
         },
         isPublicItem,
+        collectionId,
       }).unwrap();
     } catch (error) {
       console.error('Error updating image folder:', error);

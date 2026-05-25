@@ -1,3 +1,5 @@
+import { useNavigate } from 'react-router-dom';
+import type { Collection } from '../api/firestore/services/misc/userCollections';
 import MyCollectionsList from './MyCollectionsList';
 import type { User } from 'firebase/auth/web-extension';
 
@@ -8,17 +10,19 @@ function MyCollections({
   user: User;
   isPublicCollection: boolean;
 }) {
-  // return (
-  //   <div className="flex flex-col items-center justify-center h-full p-8">
-  //     <h2 className="text-2xl font-bold mb-4">Work In Progress</h2>
-  //     <p className="text-base-content/60">
-  //       This feature is under construction.
+  const navigate = useNavigate();
 
-  //     </p>
-  //   </div>
-  // );
+  const onCollectionClick = (collection: Collection) => {
+    // Navigates relatively to the current path (e.g., /dashboard -> /dashboard/123)
+    navigate(collection.id);
+  };
+
   return (
-    <MyCollectionsList user={user} isPublicCollection={isPublicCollection} />
+    <MyCollectionsList
+      user={user}
+      isPublicCollection={isPublicCollection}
+      onCollectionClick={onCollectionClick}
+    />
   );
 }
 

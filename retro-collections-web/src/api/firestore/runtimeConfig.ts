@@ -68,10 +68,13 @@ export const getUserCollectionPath = async ({
   visibility,
   resourceType,
   userId,
+  collectionId,
 }: {
   visibility: string;
   resourceType: string;
   userId: string;
+  collectionId?: string;
 }) => {
-  return `${await resolveDataCollectionPath({ visibility, resourceType: 'users' })}/${userId}/${resourceType}`;
+  const collectionSegment = collectionId ? `collections/${collectionId}/` : '';
+  return `${await resolveDataCollectionPath({ visibility, resourceType: 'users' })}/${userId}/${collectionSegment}${resourceType}`;
 };

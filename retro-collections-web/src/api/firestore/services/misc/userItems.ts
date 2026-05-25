@@ -43,6 +43,7 @@ export interface Item {
 
 type ItemInput = Omit<Item, 'id' | 'createdAt' | 'updatedAt'> & {
   isPublicItem: boolean;
+  collectionId?: string;
 };
 type ItemUpdate = Partial<Omit<Item, 'id' | 'createdAt'>>;
 
@@ -102,6 +103,7 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
       nameContainsTokens?: string;
       limit?: number;
       startAfter?: PaginationCursor | null;
+      collectionId?: string;
     }
   >({
     async queryFn({
@@ -112,6 +114,7 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
       nameContainsTokens,
       limit,
       startAfter,
+      collectionId,
     }) {
       const resolvedVisibility = isPublicItem
         ? ('public' as const)
@@ -121,6 +124,7 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
         visibility: resolvedVisibility,
         resourceType: 'items',
         userId,
+        collectionId,
       });
 
       const baseConstraints: QueryConstraint[] = [];
@@ -253,6 +257,7 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
       tags?: string[];
       startWithNameFilter?: string;
       nameContainsTokens?: string;
+      collectionId?: string;
     }
   >({
     async queryFn({
@@ -261,6 +266,7 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
       tags,
       startWithNameFilter,
       nameContainsTokens,
+      collectionId,
     }) {
       const resolvedVisibility = isPublicItem
         ? ('public' as const)
@@ -270,6 +276,7 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
         visibility: resolvedVisibility,
         resourceType: 'items',
         userId,
+        collectionId,
       });
 
       const baseConstraints: QueryConstraint[] = [];
@@ -343,7 +350,7 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
   }),
 
   createUserItem: builder.mutation<Item, ItemInput>({
-    async queryFn({ isPublicItem, ...itemData }) {
+    async queryFn({ isPublicItem, collectionId, ...itemData }) {
       const resolvedVisibility = isPublicItem
         ? ('public' as const)
         : ('private' as const);
@@ -352,6 +359,7 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
         visibility: resolvedVisibility,
         resourceType: 'items',
         userId: itemData.userId,
+        collectionId,
       });
 
       const cleanData = sanitizeFirestorePayload(itemData);
@@ -405,9 +413,15 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
 
   updateUserItem: builder.mutation<
     void,
-    { id: string; userId: string; isPublicItem: boolean; updates: ItemUpdate }
+    {
+      id: string;
+      userId: string;
+      isPublicItem: boolean;
+      collectionId?: string;
+      updates: ItemUpdate;
+    }
   >({
-    async queryFn({ id, userId, isPublicItem, updates }) {
+    async queryFn({ id, userId, isPublicItem, collectionId, updates }) {
       const resolvedVisibility = isPublicItem
         ? ('public' as const)
         : ('private' as const);
@@ -416,6 +430,7 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
         visibility: resolvedVisibility,
         resourceType: 'items',
         userId,
+        collectionId,
       });
 
       const requestPayload = {
@@ -469,9 +484,9 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
 
   deleteUserItem: builder.mutation<
     void,
-    { id: string; userId: string; isPublicItem: boolean }
+    { id: string; userId: string; isPublicItem: boolean; collectionId?: string }
   >({
-    async queryFn({ id, userId, isPublicItem }) {
+    async queryFn({ id, userId, isPublicItem, collectionId }) {
       const resolvedVisibility = isPublicItem
         ? ('public' as const)
         : ('private' as const);
@@ -480,6 +495,7 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
         visibility: resolvedVisibility,
         resourceType: 'items',
         userId,
+        collectionId,
       });
 
       const context = {
