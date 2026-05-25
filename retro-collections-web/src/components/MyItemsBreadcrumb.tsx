@@ -1,0 +1,238 @@
+import { useState, useRef, useEffect } from 'react';
+import { FiEye, FiEyeOff, FiChevronDown } from 'react-icons/fi';
+import type { Collection } from '../api/firestore/services/misc/userCollections';
+
+interface BreadcrumbProps {
+  visibility: 'public' | 'private';
+  tab: 'collections' | 'spare';
+  currentCollectionId: string | null;
+  collections: Collection[];
+  onVisibilityChange: (newVis: 'public' | 'private') => void;
+  onNavigate: (path: string) => void;
+}
+
+function MyItemsBreadcrumb({
+  visibility,
+  tab,
+  currentCollectionId,
+  collections,
+  onVisibilityChange,
+  onNavigate,
+}: BreadcrumbProps) {
+  const currentCollection = collections.find(
+    (c) => c.id === currentCollectionId
+  );
+
+  const visibilityColor =
+    visibility === 'public' ? 'text-primary' : 'text-secondary';
+  const tabColor = tab === 'collections' ? 'text-primary' : 'text-secondary';
+  const tertiaryColor = 'text-accent';
+
+  const [openDropdown, setOpenDropdown] = useState<
+    'visibility' | 'tab' | 'collection' | null
+  >(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setOpenDropdown(null);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  const toggleDropdown = (menu: 'visibility' | 'tab' | 'collection') => {
+    setOpenDropdown((prev) => (prev === menu ? null : menu));
+  };
+
+  const handleAction = (callback: () => void) => {
+    setOpenDropdown(null);
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    callback();
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      className="bg-base-200 p-4 rounded-xl text-sm breadcrumbs overflow-visible"
+    >
+      <ul>
+        {/* 1st Segment: Visibility */}
+        <li>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() =>
+                onVisibilityChange(
+                  visibility === 'public' ? 'private' : 'public'
+                )
+              }
+              className={`link font-bold capitalize flex items-center gap-1.5 no-underline hover:underline bg-transparent border-none p-0 min-h-0 h-auto ${visibilityColor}`}
+            >
+              {visibility === 'public' ? (
+                <FiEye className="h-4 w-4" />
+              ) : (
+                <FiEyeOff className="h-4 w-4" />
+              )}
+              {visibility}
+            </button>
+
+            {/* Dropdown container moved strictly to the icon button */}
+            <div
+              className={`dropdown dropdown-bottom ${openDropdown === 'visibility' ? 'dropdown-open' : ''}`}
+            >
+              <button
+                onClick={() => toggleDropdown('visibility')}
+                className={`btn btn-ghost btn-xs p-0 min-h-0 h-5 w-5 rounded ${visibilityColor}`}
+              >
+                <FiChevronDown className="h-3 w-3" />
+              </button>
+              <ul className="dropdown-content z-[50] menu p-2 shadow bg-base-100 rounded-box w-32 mt-2">
+                <li>
+                  <button
+                    onClick={() =>
+                      handleAction(() => onVisibilityChange('public'))
+                    }
+                    className="flex items-center gap-2 text-primary font-medium"
+                  >
+                    <FiEye className="h-3.5 w-3.5" /> Public
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() =>
+                      handleAction(() => onVisibilityChange('private'))
+                    }
+                    className="flex items-center gap-2 text-secondary font-medium"
+                  >
+                    <FiEyeOff className="h-3.5 w-3.5" /> Private
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </li>
+
+        {/* 2nd Segment: Category Tab */}
+        <li>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() =>
+                onNavigate(`/my-collectibles/${visibility}/${tab}`)
+              }
+              className={`link font-bold capitalize no-underline hover:underline bg-transparent border-none p-0 min-h-0 h-auto ${tabColor}`}
+            >
+              {tab === 'collections' ? 'Collections' : 'Spare Collectibles'}
+            </button>
+
+            {/* Dropdown container moved strictly to the icon button */}
+            <div
+              className={`dropdown dropdown-bottom ${openDropdown === 'tab' ? 'dropdown-open' : ''}`}
+            >
+              <button
+                onClick={() => toggleDropdown('tab')}
+                className={`btn btn-ghost btn-xs p-0 min-h-0 h-5 w-5 rounded ${tabColor}`}
+              >
+                <FiChevronDown className="h-3 w-3" />
+              </button>
+              <ul className="dropdown-content z-[50] menu p-2 shadow bg-base-100 rounded-box w-44 mt-2">
+                <li>
+                  <button
+                    onClick={() =>
+                      handleAction(() =>
+                        onNavigate(`/my-collectibles/${visibility}/collections`)
+                      )
+                    }
+                    className="font-medium text-primary"
+                  >
+                    Collections
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() =>
+                      handleAction(() =>
+                        onNavigate(`/my-collectibles/${visibility}/spare`)
+                      )
+                    }
+                    className="font-medium text-secondary"
+                  >
+                    Spare Collectibles
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </li>
+
+        {/* 3rd Segment: Collection Switcher */}
+        {tab === 'collections' && currentCollectionId && (
+          <li>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() =>
+                  onNavigate(
+                    `/my-collectibles/${visibility}/collections/${currentCollectionId}`
+                  )
+                }
+                className={`link font-bold max-w-[200px] truncate block no-underline hover:underline bg-transparent border-none p-0 min-h-0 h-auto text-left ${tertiaryColor}`}
+              >
+                {currentCollection?.name || 'Loading...'}
+              </button>
+
+              {/* Dropdown container moved strictly to the icon button */}
+              <div
+                className={`dropdown dropdown-bottom ${openDropdown === 'collection' ? 'dropdown-open' : ''}`}
+              >
+                <button
+                  onClick={() => toggleDropdown('collection')}
+                  className={`btn btn-ghost btn-xs p-0 min-h-0 h-5 w-5 rounded ${tertiaryColor}`}
+                >
+                  <FiChevronDown className="h-3 w-3" />
+                </button>
+                <ul className="dropdown-content z-[50] menu p-2 shadow bg-base-100 rounded-box w-56 max-h-60 overflow-y-auto mt-2">
+                  <li className="menu-title text-xs opacity-50">
+                    Switch Collection
+                  </li>
+                  {collections.map((col) => (
+                    <li key={col.id}>
+                      <button
+                        className={
+                          col.id === currentCollectionId
+                            ? 'bg-accent/10 text-accent font-bold'
+                            : ''
+                        }
+                        onClick={() =>
+                          handleAction(() =>
+                            onNavigate(
+                              `/my-collectibles/${visibility}/collections/${col.id}`
+                            )
+                          )
+                        }
+                      >
+                        {col.name}
+                      </button>
+                    </li>
+                  ))}
+                  {collections.length === 0 && (
+                    <li className="disabled text-xs p-2 italic">
+                      No other collections
+                    </li>
+                  )}
+                </ul>
+              </div>
+            </div>
+          </li>
+        )}
+      </ul>
+    </div>
+  );
+}
+
+export default MyItemsBreadcrumb;
