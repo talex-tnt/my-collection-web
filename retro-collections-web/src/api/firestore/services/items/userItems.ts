@@ -191,7 +191,7 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
 
         return {
           data: {
-            items: pagedItems.map((i) => ({ ...i, userId })),
+            items: pagedItems,
             pageInfo: {
               endCursor: last
                 ? {
@@ -353,8 +353,8 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
         resourceType: 'items',
         userId: itemData.userId,
       });
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { userId: _, ...cleanData } = sanitizeFirestorePayload(itemData);
+
+      const cleanData = sanitizeFirestorePayload(itemData);
       const requestPayload = {
         ...cleanData,
         nameLowercase: itemData.name.trim().toLowerCase(),
