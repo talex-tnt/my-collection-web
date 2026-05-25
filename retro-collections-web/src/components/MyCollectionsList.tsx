@@ -214,7 +214,7 @@ function MyCollectionItem({
   };
 
   const handleDelete = async (e: React.MouseEvent) => {
-    e.stopPropagation();
+    e.stopPropagation(); // Prevents redirecting to the sub-route
     if (readOnly) return;
     if (window.confirm(`Delete collection "${collection.name}"?`)) {
       try {
@@ -229,24 +229,23 @@ function MyCollectionItem({
     }
   };
 
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevents redirecting to the sub-route
+    setIsEditing(true);
+  };
+
   return (
     <div
-      onClick={() => onSelect?.(collection)}
-      className="flex items-center justify-between p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors cursor-pointer group"
+      onClick={() => !isEditing && onSelect?.(collection)}
+      className={`flex items-center justify-between p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors group ${
+        isEditing ? 'cursor-default' : 'cursor-pointer'
+      }`}
     >
-      <div
-        className="flex-1 min-w-0 pr-4"
-        onDoubleClick={(e) => {
-          if (!readOnly) {
-            e.stopPropagation();
-            setIsEditing(true);
-          }
-        }}
-      >
+      <div className="flex-1 min-w-0 pr-4 select-none">
         {isEditing ? (
           <div
             className="flex flex-col gap-2"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()} // Keeps inputs interactive without bubbling up
           >
             <input
               type="text"
@@ -290,17 +289,25 @@ function MyCollectionItem({
         )}
       </div>
 
-      <div
-        className="flex items-center gap-2"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {!readOnly && (
-          <button
-            onClick={handleDelete}
-            className="btn btn-xs btn-error btn-ghost opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
-          >
-            Delete
-          </button>
+      <div className="flex items-center gap-2">
+        {!readOnly && !isEditing && (
+          <>
+            {/* Explicit Edit Button */}
+            <button
+              onClick={handleEditClick}
+              className="btn btn-xs btn-outline btn-secondary opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+            >
+              Edit
+            </button>
+
+            {/* Delete Button */}
+            <button
+              onClick={handleDelete}
+              className="btn btn-xs btn-error btn-ghost opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+            >
+              Delete
+            </button>
+          </>
         )}
       </div>
     </div>
