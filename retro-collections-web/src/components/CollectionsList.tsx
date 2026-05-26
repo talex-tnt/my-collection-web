@@ -5,6 +5,7 @@ import {
   useUpdateUserCollectionMutation,
   useDeleteUserCollectionMutation,
 } from '../api/firestore/firestoreApi';
+import CollapsePanel from './CollapsePanel'; // Make sure the path matches your project structure
 
 interface Collection {
   id: string;
@@ -32,6 +33,7 @@ function CollectionsList({
   const [searchTerm, setSearchTerm] = useState('');
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
+
   const {
     data: collectionsData,
     isLoading,
@@ -43,7 +45,7 @@ function CollectionsList({
     },
     { skip: !userId }
   );
-  // console.log('CollectionsList data', { collectionsData, isLoading, error });
+
   const [createCollection] = useCreateUserCollectionMutation();
   const [updateCollection] = useUpdateUserCollectionMutation();
   const [deleteCollection] = useDeleteUserCollectionMutation();
@@ -68,6 +70,11 @@ function CollectionsList({
 
       setNewName('');
       setNewDesc('');
+
+      // Programmatically blurs focus to help reset native UI states if needed
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
     } catch (err) {
       console.error(err);
     }
@@ -88,14 +95,13 @@ function CollectionsList({
           />
         </div>
 
-        {/* CREATE FORM */}
+        {/* REUSABLE COLLAPSIBLE PANEL */}
         {!readOnly && (
-          <form
-            onSubmit={handleCreate}
-            className="bg-base-200 p-4 rounded-lg space-y-3"
-          >
-            <div className="text-sm font-bold">Create New Collection</div>
-            <div className="flex flex-col md:flex-row gap-2">
+          <CollapsePanel title="Create New Collection">
+            <form
+              onSubmit={handleCreate}
+              className="flex flex-col md:flex-row gap-2"
+            >
               <input
                 type="text"
                 placeholder="Collection Name"
@@ -116,8 +122,8 @@ function CollectionsList({
               <button type="submit" className="btn btn-sm btn-primary">
                 Add
               </button>
-            </div>
-          </form>
+            </form>
+          </CollapsePanel>
         )}
 
         {/* LIST */}
@@ -213,7 +219,7 @@ function MyCollectionItem({
   };
 
   const handleDelete = async (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevents redirecting to the sub-route
+    e.stopPropagation();
     if (readOnly) return;
     if (window.confirm(`Delete collection "${collection.name}"?`)) {
       try {
@@ -229,7 +235,7 @@ function MyCollectionItem({
   };
 
   const handleEditClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevents redirecting to the sub-route
+    e.stopPropagation();
     setIsEditing(true);
   };
 
@@ -244,7 +250,7 @@ function MyCollectionItem({
         {isEditing ? (
           <div
             className="flex flex-col gap-2"
-            onClick={(e) => e.stopPropagation()} // Keeps inputs interactive without bubbling up
+            onClick={(e) => e.stopPropagation()}
           >
             <input
               type="text"
@@ -291,7 +297,6 @@ function MyCollectionItem({
       <div className="flex items-center gap-2">
         {!readOnly && !isEditing && (
           <>
-            {/* Explicit Edit Button */}
             <button
               onClick={handleEditClick}
               className="btn btn-xs btn-outline btn-secondary opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
@@ -299,7 +304,6 @@ function MyCollectionItem({
               Edit
             </button>
 
-            {/* Delete Button */}
             <button
               onClick={handleDelete}
               className="btn btn-xs btn-error btn-ghost opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
