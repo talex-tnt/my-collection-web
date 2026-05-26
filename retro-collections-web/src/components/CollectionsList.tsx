@@ -116,6 +116,7 @@ function CollectionsList({
       {/* LIST */}
       <CollapsePanel
         title={`My Collections (${collectionsData?.collections.length || 0})`}
+        className="collapse-open bg-base-100"
       >
         <div className="flex flex-col md:flex-row md:justify-between items-center gap-2">
           <input
