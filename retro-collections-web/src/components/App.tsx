@@ -1,7 +1,6 @@
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import Header from './Header';
 import Footer from './Footer';
-import HomePage from '../pages/HomePage';
 import AdminPage from '../pages/AdminPage';
 import SettingsPage from '../pages/SettingsPage';
 import CollectorPage from '../pages/CollectorPage';
