@@ -106,7 +106,7 @@ function CollectionsList({
               maxLength={1000}
               value={newDesc}
               onChange={(e) => setNewDesc(e.target.value)}
-              className="input input-sm input-bordered"
+              className="input input-sm input-bordered w-full"
             />
             <button type="submit" className="btn btn-sm btn-primary">
               Add
