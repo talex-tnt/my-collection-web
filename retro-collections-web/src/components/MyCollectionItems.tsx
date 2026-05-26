@@ -30,14 +30,11 @@ function MyCollectionItems({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col bg-base-100 p-6 rounded-xl shadow-xl border border-base-200">
-        <h1 className="text-2l font-bold text-secondary">
-          {`${collection?.name}` || `Collection: ${collectionId}`}
-        </h1>
-        {collection?.description && (
+      {collection?.description && (
+        <div className="flex flex-col bg-base-100 p-6 rounded-xl shadow-xl border border-base-200">
           <p className="text-sm opacity-70 mt-1">{collection.description}</p>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-6 gap-6">
         {/* Left column: NewItem and filters */}

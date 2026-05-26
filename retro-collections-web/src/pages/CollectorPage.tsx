@@ -10,7 +10,7 @@ import {
   useGetUserByIdQuery,
   useGetUserCollectionsQuery,
 } from '../api/firestore/firestoreApi';
-import CollectorSpareItems from '../components/CollectorSpareItems';
+import CollectorFilterableItems from '../components/CollectorFilterableItems';
 import CollectorCollections from '../components/CollectorCollections';
 import CollectorItemsBreadcrumb from '../components/CollectorItemsBreadcrumb';
 
@@ -69,7 +69,7 @@ function CollectorPage() {
         <Routes>
           <Route
             path="/spare"
-            element={<CollectorSpareItems userId={userId} />}
+            element={<CollectorFilterableItems userId={userId} />}
           />
           <Route
             path="/collections"
@@ -77,7 +77,7 @@ function CollectorPage() {
           />
           <Route
             path="/collections/:collectionId"
-            element={<CollectorSpareItems userId={userId} />}
+            element={<CollectorFilterableItems userId={userId} />}
           />
           <Route
             path="*"

@@ -43,7 +43,7 @@ function CollectionsList({
     },
     { skip: !userId }
   );
-  console.log('CollectionsList data', { collectionsData, isLoading, error });
+  // console.log('CollectionsList data', { collectionsData, isLoading, error });
   const [createCollection] = useCreateUserCollectionMutation();
   const [updateCollection] = useUpdateUserCollectionMutation();
   const [deleteCollection] = useDeleteUserCollectionMutation();
