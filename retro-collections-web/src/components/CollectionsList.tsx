@@ -124,7 +124,7 @@ function CollectionsList({
             placeholder="Search collection by name..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="input input-sm input-bordered w-full max-w-xs"
+            className="input input-sm input-bordered w-full max-w-sm"
           />
         </div>
         {error ? (
@@ -297,14 +297,14 @@ function MyCollectionItem({
           <>
             <button
               onClick={handleEditClick}
-              className="btn btn-xs btn-outline btn-secondary opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+              className="btn btn-xs btn-outline btn-secondary group-hover:opacity-100"
             >
               Edit
             </button>
 
             <button
               onClick={handleDelete}
-              className="btn btn-xs btn-error btn-ghost opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+              className="btn btn-xs btn-error btn-ghost group-hover:opacity-100"
             >
               Delete
             </button>
