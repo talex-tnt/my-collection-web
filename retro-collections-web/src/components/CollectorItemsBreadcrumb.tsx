@@ -60,10 +60,10 @@ function CollectorItemsBreadcrumb({
       <ul>
         {/* 1st Segment: Category Tab */}
         <li>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 hover:no-underline">
             <button
               onClick={() => onNavigate(`/${tab}`)}
-              className={`link font-bold capitalize no-underline hover:underline bg-transparent border-none p-0 min-h-0 h-auto ${tabColor}`}
+              className={`link font-bold capitalize no-underline hover:no-underline bg-transparent border-none p-0 min-h-0 h-auto ${tabColor}`}
             >
               {tab === 'collections' ? 'Collections' : 'Spare Collectibles'}
             </button>

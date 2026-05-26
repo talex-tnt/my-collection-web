@@ -73,7 +73,7 @@ function MyItemsBreadcrumb({
                   visibility === 'public' ? 'private' : 'public'
                 )
               }
-              className={`link font-bold capitalize flex items-center gap-1.5 no-underline hover:underline bg-transparent border-none p-0 min-h-0 h-auto ${visibilityColor}`}
+              className={`link font-bold capitalize flex items-center gap-1.5 no-underline hover:no-underline bg-transparent border-none p-0 min-h-0 h-auto ${visibilityColor}`}
             >
               {visibility === 'public' ? (
                 <FiEye className="h-4 w-4" />
@@ -83,7 +83,6 @@ function MyItemsBreadcrumb({
               {visibility}
             </button>
 
-            {/* Dropdown container moved strictly to the icon button */}
             <div
               className={`dropdown dropdown-bottom ${openDropdown === 'visibility' ? 'dropdown-open' : ''}`}
             >
@@ -121,17 +120,27 @@ function MyItemsBreadcrumb({
 
         {/* 2nd Segment: Category Tab */}
         <li>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() =>
-                onNavigate(`/my-collectibles/${visibility}/${tab}`)
-              }
-              className={`link font-bold capitalize no-underline hover:underline bg-transparent border-none p-0 min-h-0 h-auto ${tabColor}`}
-            >
-              {tab === 'collections' ? 'Collections' : 'Spare Collectibles'}
-            </button>
+          <div className="flex items-center gap-1  hover:no-underline">
+            {/* If we're already on the 'spare' tab, or the parent 'collections' layout, 
+                render as unclickable text with standard text cursor. */}
+            {tab === 'spare' ||
+            (tab === 'collections' && !currentCollectionId) ? (
+              <span
+                className={`font-bold capitalize select-none cursor-default ${tabColor} hover:no-underline`}
+              >
+                {tab === 'collections' ? 'Collections' : 'Spare Collectibles'}
+              </span>
+            ) : (
+              <button
+                onClick={() =>
+                  onNavigate(`/my-collectibles/${visibility}/${tab}`)
+                }
+                className={`link font-bold capitalize no-underline hover:no-underline bg-transparent border-none p-0 min-h-0 h-auto ${tabColor}`}
+              >
+                {tab === 'collections' ? 'Collections' : 'Spare Collectibles'}
+              </button>
+            )}
 
-            {/* Dropdown container moved strictly to the icon button */}
             <div
               className={`dropdown dropdown-bottom ${openDropdown === 'tab' ? 'dropdown-open' : ''}`}
             >
@@ -175,18 +184,14 @@ function MyItemsBreadcrumb({
         {tab === 'collections' && currentCollectionId && (
           <li>
             <div className="flex items-center gap-1">
-              <button
-                onClick={() =>
-                  onNavigate(
-                    `/my-collectibles/${visibility}/collections/${currentCollectionId}`
-                  )
-                }
-                className={`link font-bold max-w-[200px] truncate block no-underline hover:underline bg-transparent border-none p-0 min-h-0 h-auto text-left ${tertiaryColor}`}
+              {/* Renders as unclickable static text with default text cursor, 
+                  removing the hand icon and link hovers completely. */}
+              <span
+                className={`font-bold max-w-[200px] truncate block text-left select-none cursor-default ${tertiaryColor}`}
               >
                 {currentCollection?.name || 'Loading...'}
-              </button>
+              </span>
 
-              {/* Dropdown container moved strictly to the icon button */}
               <div
                 className={`dropdown dropdown-bottom ${openDropdown === 'collection' ? 'dropdown-open' : ''}`}
               >
