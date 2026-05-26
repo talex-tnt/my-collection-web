@@ -1,4 +1,6 @@
 import { useState, useMemo } from 'react';
+import { FiEdit2 as FiEdit, FiTrash2 as FiTrash } from 'react-icons/fi';
+
 import {
   useGetUserCollectionsQuery,
   useCreateUserCollectionMutation,
@@ -297,16 +299,16 @@ function MyCollectionItem({
           <>
             <button
               onClick={handleEditClick}
-              className="btn btn-xs btn-outline btn-secondary group-hover:opacity-100"
+              className="btn btn-xs btn-secondary btn-ghost group-hover:opacity-100"
             >
-              Edit
+              <FiEdit className="h-5 w-5" />
             </button>
 
             <button
               onClick={handleDelete}
               className="btn btn-xs btn-error btn-ghost group-hover:opacity-100"
             >
-              Delete
+              <FiTrash className="h-5 w-5" />
             </button>
           </>
         )}
