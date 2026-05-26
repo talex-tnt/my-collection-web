@@ -81,11 +81,43 @@ function CollectionsList({
   };
 
   return (
-    <div className="card bg-base-100 shadow-xl">
-      <div className="card-body space-y-4">
-        <div className="flex flex-col md:flex-row md:justify-between items-center gap-2">
-          <h2 className="card-title">My Collections</h2>
+    <div className="space-y-2">
+      {/* REUSABLE COLLAPSIBLE PANEL */}
+      {!readOnly && (
+        <CollapsePanel title="Create New Collection">
+          <form
+            onSubmit={handleCreate}
+            className="flex flex-col md:flex-row gap-2"
+          >
+            <input
+              type="text"
+              placeholder="Collection Name"
+              maxLength={100}
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              className="input input-sm input-bordered"
+              required
+            />
+            <input
+              type="text"
+              placeholder="Description (Optional)"
+              maxLength={1000}
+              value={newDesc}
+              onChange={(e) => setNewDesc(e.target.value)}
+              className="input input-sm input-bordered"
+            />
+            <button type="submit" className="btn btn-sm btn-primary">
+              Add
+            </button>
+          </form>
+        </CollapsePanel>
+      )}
 
+      {/* LIST */}
+      <CollapsePanel
+        title={`My Collections (${collectionsData?.collections.length || 0})`}
+      >
+        <div className="flex flex-col md:flex-row md:justify-between items-center gap-2">
           <input
             type="text"
             placeholder="Search collection by name..."
@@ -94,62 +126,27 @@ function CollectionsList({
             className="input input-sm input-bordered w-full max-w-xs"
           />
         </div>
-
-        {/* REUSABLE COLLAPSIBLE PANEL */}
-        {!readOnly && (
-          <CollapsePanel title="Create New Collection">
-            <form
-              onSubmit={handleCreate}
-              className="flex flex-col md:flex-row gap-2"
-            >
-              <input
-                type="text"
-                placeholder="Collection Name"
-                maxLength={100}
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                className="input input-sm input-bordered"
-                required
-              />
-              <input
-                type="text"
-                placeholder="Description (Optional)"
-                maxLength={1000}
-                value={newDesc}
-                onChange={(e) => setNewDesc(e.target.value)}
-                className="input input-sm input-bordered"
-              />
-              <button type="submit" className="btn btn-sm btn-primary">
-                Add
-              </button>
-            </form>
-          </CollapsePanel>
+        {error ? (
+          <div className="alert alert-error">Error loading collections</div>
+        ) : isLoading ? (
+          <div className="alert alert-info">Loading...</div>
+        ) : filteredCollections.length === 0 ? (
+          <div className="alert alert-info">No collections found</div>
+        ) : (
+          filteredCollections.map((collection) => (
+            <MyCollectionItem
+              key={collection.id}
+              collection={collection}
+              userId={userId || ''}
+              isPublicCollection={isPublicCollection}
+              readOnly={readOnly}
+              onUpdate={updateCollection}
+              onDelete={deleteCollection}
+              onSelect={onCollectionClick}
+            />
+          ))
         )}
-
-        {/* LIST */}
-        <div className="space-y-2">
-          {error ? (
-            <div className="alert alert-error">Error loading collections</div>
-          ) : isLoading ? (
-            <div className="alert alert-info">Loading...</div>
-          ) : filteredCollections.length === 0 ? (
-            <div className="alert alert-info">No collections found</div>
-          ) : (
-            filteredCollections.map((collection) => (
-              <MyCollectionItem
-                key={collection.id}
-                collection={collection}
-                userId={userId || ''}
-                isPublicCollection={isPublicCollection}
-                readOnly={readOnly}
-                onUpdate={updateCollection}
-                onDelete={deleteCollection}
-                onSelect={onCollectionClick}
-              />
-            ))
-          )}
-        </div>
-      </div>
+      </CollapsePanel>
     </div>
   );
 }
