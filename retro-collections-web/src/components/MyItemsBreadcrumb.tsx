@@ -61,7 +61,7 @@ function MyItemsBreadcrumb({
   return (
     <div
       ref={containerRef}
-      className="bg-base-200 p-4 rounded-xl text-sm breadcrumbs overflow-visible"
+      className="bg-base-200 p-4 pt-2 px-2 rounded-xl text-sm breadcrumbs overflow-visible"
     >
       <ul>
         {/* 1st Segment: Visibility */}

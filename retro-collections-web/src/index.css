@@ -34,7 +34,7 @@ body {
 }
 
 #root {
-  padding: 1rem;
+  padding: 0;
 }
 
 button,
@@ -67,7 +67,7 @@ body {
 }
 
 #root {
-  padding: 1rem;
+  padding: 0;
 }
 
 button,

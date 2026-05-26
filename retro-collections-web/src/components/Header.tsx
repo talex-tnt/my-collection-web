@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   GoogleAuthProvider,
   browserLocalPersistence,
@@ -21,6 +21,8 @@ import { useDispatch } from 'react-redux';
 import { clearAuth, setAccessToken } from '../store/authSlice';
 
 function Header() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const dispatch = useDispatch();
   const [user, setUser] = useState<User | null>(null);
   const [error, setError] = useState('');
@@ -113,29 +115,51 @@ function Header() {
   // console.log('Current user in Header:', user);
 
   return (
-    <header className="rounded-box border border-base-300 bg-base-100 shadow-sm">
-      <div className="navbar gap-4 px-4">
-        <div className="flex-1 flex-col items-start gap-3 lg:flex-row lg:items-center">
+    // <header className="rounded-box border border-base-300 bg-base-100 shadow-sm">
+    <header className="mb-0">
+      <div className="navbar p-0 mb-4">
+        <div className="flex flex-col lg:flex-row items-start gap-3 lg:items-center mr-4 w-full">
           <div>
-            <h1 className="text-2xl font-bold mb-2 ml-2 mt-2">
+            <h1 className="text-2xl font-bold mb-2 ml-2 mt-2 mr-4">
               Retro Collections
             </h1>
-            <p className="text-sm text-base-content/70 mb-2 ml-2">
+            {/* <p className="text-sm text-base-content/70 mb-2 ml-2">
               Organize, tag, and share your retro collections. Manage
               collectibles, track items, customize tags, and control visibility.
-            </p>
+            </p> */}
           </div>
 
-          <nav className="tabs tabs-boxed flex-wrap gap-2">
-            <NavLink
-              end
-              to="/"
-              className={({ isActive }) =>
-                isActive ? 'tab tab-active' : 'tab'
-              }
+          {/* Mobile: select dropdown navigation */}
+          <div className="relative w-full block lg:hidden">
+            <select
+              className="select select-bordered w-full max-w-xs"
+              value={(() => {
+                if (location.pathname.startsWith('/my-collectibles'))
+                  return '/my-collectibles';
+                if (location.pathname.startsWith('/tags')) return '/tags';
+                if (location.pathname.startsWith('/collectors'))
+                  return '/collectors';
+                if (location.pathname.startsWith('/settings'))
+                  return '/settings';
+                if (isAdmin && location.pathname.startsWith('/users'))
+                  return '/users';
+                if (isAdmin && location.pathname.startsWith('/admin'))
+                  return '/admin';
+                return '/my-collectibles';
+              })()}
+              onChange={(e) => navigate(e.target.value)}
             >
-              Home
-            </NavLink>
+              <option value="/my-collectibles">All My Collectibles</option>
+              <option value="/tags">Tags</option>
+              <option value="/collectors">Collectors</option>
+              <option value="/settings">Settings</option>
+              {isAdmin && <option value="/users">Users</option>}
+              {isAdmin && <option value="/admin">Admin</option>}
+            </select>
+          </div>
+
+          {/* Desktop: tab navigation */}
+          <nav className="tabs tabs-boxed flex-wrap gap-2 hidden lg:flex">
             <NavLink
               to="/my-collectibles"
               className={({ isActive }) =>
@@ -152,7 +176,6 @@ function Header() {
             >
               Tags
             </NavLink>
-
             <NavLink
               to="/collectors"
               className={({ isActive }) =>
