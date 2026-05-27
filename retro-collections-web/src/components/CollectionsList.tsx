@@ -1,5 +1,4 @@
 import { useState, useMemo } from 'react';
-import { FiEdit2 as FiEdit, FiTrash2 as FiTrash } from 'react-icons/fi';
 
 import {
   useGetUserCollectionsQuery,
@@ -7,23 +6,14 @@ import {
   useUpdateUserCollectionMutation,
   useDeleteUserCollectionMutation,
 } from '../api/firestore/firestoreApi';
-import CollapsePanel from './CollapsePanel'; // Make sure the path matches your project structure
-
-interface Collection {
-  id: string;
-  name: string;
-  userId: string;
-  createdAt: string;
-  updatedAt?: string;
-  description?: string;
-  tags?: string[];
-}
-
-interface MyCollectionsListProps {
+import CollapsePanel from './CollapsePanel';
+import { type CollectionType } from './Collection';
+import Collection from './Collection';
+interface CollectionsListProps {
   userId: string;
   isPublicCollection: boolean;
   readOnly?: boolean;
-  onCollectionClick?: (collection: Collection) => void;
+  onCollectionClick?: (collection: CollectionType) => void;
 }
 
 function CollectionsList({
@@ -31,7 +21,7 @@ function CollectionsList({
   isPublicCollection,
   readOnly = false,
   onCollectionClick,
-}: MyCollectionsListProps) {
+}: CollectionsListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
@@ -52,6 +42,7 @@ function CollectionsList({
   const [updateCollection] = useUpdateUserCollectionMutation();
   const [deleteCollection] = useDeleteUserCollectionMutation();
 
+  // Client-side search filtering by collection name
   const filteredCollections = useMemo(() => {
     return (collectionsData?.collections || []).filter((col) =>
       col.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -73,7 +64,7 @@ function CollectionsList({
       setNewName('');
       setNewDesc('');
 
-      // Programmatically blurs focus to help reset native UI states if needed
+      // Safely remove active focus to reset inputs
       if (document.activeElement instanceof HTMLElement) {
         document.activeElement.blur();
       }
@@ -84,7 +75,7 @@ function CollectionsList({
 
   return (
     <div className="space-y-2">
-      {/* REUSABLE COLLAPSIBLE PANEL */}
+      {/* REUSABLE COLLAPSIBLE PANEL FOR CREATION */}
       {!readOnly && (
         <CollapsePanel title="Create New Collection">
           <form
@@ -115,12 +106,12 @@ function CollectionsList({
         </CollapsePanel>
       )}
 
-      {/* LIST */}
+      {/* COLLECTIONS MANAGEMENT LIST */}
       <CollapsePanel
         title={`My Collections (${collectionsData?.collections.length || 0})`}
         className="collapse-open bg-base-100"
       >
-        <div className="flex flex-col md:flex-row md:justify-between items-center gap-2">
+        <div className="flex flex-col md:flex-row md:justify-between items-center gap-2 mb-4">
           <input
             type="text"
             placeholder="Search collection by name..."
@@ -129,6 +120,7 @@ function CollectionsList({
             className="input input-sm input-bordered w-full max-w-sm"
           />
         </div>
+
         {error ? (
           <div className="alert alert-error">Error loading collections</div>
         ) : isLoading ? (
@@ -136,18 +128,20 @@ function CollectionsList({
         ) : filteredCollections.length === 0 ? (
           <div className="alert alert-info">No collections found</div>
         ) : (
-          filteredCollections.map((collection) => (
-            <MyCollectionItem
-              key={collection.id}
-              collection={collection}
-              userId={userId || ''}
-              isPublicCollection={isPublicCollection}
-              readOnly={readOnly}
-              onUpdate={updateCollection}
-              onDelete={deleteCollection}
-              onSelect={onCollectionClick}
-            />
-          ))
+          <div className="flex flex-col gap-2">
+            {filteredCollections.map((collection) => (
+              <Collection
+                key={collection.id}
+                collection={collection}
+                userId={userId || ''}
+                isPublicCollection={isPublicCollection}
+                readOnly={readOnly}
+                onUpdate={updateCollection}
+                onDelete={deleteCollection}
+                onSelect={onCollectionClick}
+              />
+            ))}
+          </div>
         )}
       </CollapsePanel>
     </div>
@@ -155,164 +149,3 @@ function CollectionsList({
 }
 
 export default CollectionsList;
-
-/* ============================================================================
-   SUB-COMPONENT: MyCollectionItem
-   ============================================================================ */
-interface MyCollectionItemProps {
-  collection: Collection;
-  userId: string;
-  isPublicCollection: boolean;
-  readOnly: boolean;
-  onUpdate: ReturnType<typeof useUpdateUserCollectionMutation>[0];
-  onDelete: ReturnType<typeof useDeleteUserCollectionMutation>[0];
-  onSelect?: (collection: Collection) => void;
-}
-
-function MyCollectionItem({
-  collection,
-  userId,
-  isPublicCollection,
-  readOnly,
-  onUpdate,
-  onDelete,
-  onSelect,
-}: MyCollectionItemProps) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState(collection.name);
-  const [editDesc, setEditDesc] = useState(collection.description || '');
-
-  const handleSave = async () => {
-    if (readOnly) return;
-    if (
-      editName.trim() === collection.name &&
-      editDesc.trim() === (collection.description || '')
-    ) {
-      setIsEditing(false);
-      return;
-    }
-    if (!editName.trim()) return;
-
-    try {
-      await onUpdate({
-        id: collection.id,
-        userId,
-        isPublicCollection,
-        updates: {
-          name: editName.trim(),
-          description: editDesc.trim(),
-        },
-      }).unwrap();
-      setIsEditing(false);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') handleSave();
-    if (e.key === 'Escape') {
-      setEditName(collection.name);
-      setEditDesc(collection.description || '');
-      setIsEditing(false);
-    }
-  };
-
-  const handleDelete = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (readOnly) return;
-    if (window.confirm(`Delete collection "${collection.name}"?`)) {
-      try {
-        await onDelete({
-          id: collection.id,
-          userId,
-          isPublicCollection,
-        }).unwrap();
-      } catch (err) {
-        console.error(err);
-      }
-    }
-  };
-
-  const handleEditClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsEditing(true);
-  };
-
-  return (
-    <div
-      onClick={() => !isEditing && onSelect?.(collection)}
-      className={`flex items-center justify-between p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors group ${
-        isEditing ? 'cursor-default' : 'cursor-pointer'
-      }`}
-    >
-      <div className="flex-1 min-w-0 pr-4 select-none">
-        {isEditing ? (
-          <div
-            className="flex flex-col gap-2"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <input
-              type="text"
-              value={editName}
-              maxLength={100}
-              onChange={(e) => setEditName(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="input input-xs input-bordered w-full max-w-xs focus:input-primary"
-              autoFocus
-            />
-            <input
-              type="text"
-              value={editDesc}
-              maxLength={1000}
-              onChange={(e) => setEditDesc(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="input input-xs input-bordered w-full max-w-md"
-              placeholder="Description..."
-            />
-            <div className="flex gap-2">
-              <button onClick={handleSave} className="btn btn-xs btn-success">
-                Save
-              </button>
-              <button
-                onClick={() => setIsEditing(false)}
-                className="btn btn-xs btn-ghost"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div>
-            <div className="font-bold truncate text-sm">{collection.name}</div>
-            <div className="text-xs opacity-60 truncate">
-              {collection.description || (
-                <span className="italic opacity-40">No description</span>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="flex items-center gap-2">
-        {!readOnly && !isEditing && (
-          <>
-            <button
-              onClick={handleEditClick}
-              className="btn btn-xs btn-secondary btn-ghost group-hover:opacity-100"
-            >
-              <FiEdit className="h-5 w-5" />
-            </button>
-
-            <button
-              onClick={handleDelete}
-              className="btn btn-xs btn-error btn-ghost group-hover:opacity-100"
-            >
-              <FiTrash className="h-5 w-5" />
-            </button>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
