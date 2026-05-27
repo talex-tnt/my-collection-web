@@ -242,8 +242,8 @@ function MyListItem({
       </div>
 
       {/* Visibility, dates, and actions row */}
-      <div className="flex flex-row gap-4 items-center text-xs text-base-content/60 justify-between w-full mt-1">
-        <div className="flex flex-row gap-4 items-center">
+      <div className="flex flex-col sm:flex-row gap-4 items-center text-xs text-base-content/60 justify-center sm:justify-between w-full mt-1">
+        <div className="flex flex-row flex-wrap gap-x-4 gap-y-1 items-center justify-center sm:justify-start">
           <span>
             Visibility:{' '}
             <span
@@ -259,6 +259,7 @@ function MyListItem({
             <span>Edited: {new Date(item.updatedAt).toLocaleString()}</span>
           )}
         </div>
+
         <div className="flex flex-row items-center">
           <ItemActions
             itemData={item}
