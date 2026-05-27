@@ -7,7 +7,7 @@ import type { UserTag } from '../api/firestore/services/public/userTags';
 
 interface AddTagInputProps {
   userId: string;
-  itemId: string;
+  itemId?: string;
   collectionId?: string;
   isPublicItem: boolean;
   assignedTags: string[];
