@@ -4,11 +4,12 @@ import {
   useCreateUserItemMutation,
   useGetPublicUserTagsQuery,
 } from '../api/firestore/firestoreApi';
-import { useSearchQuery } from '../api/wikipedia/wikipediaApi';
-import AutocompleteInput from './AutocompleteInput';
-// import { useListFilesQuery } from '../api/google-drive/googleDriveApi';
 import { useSearchGamesQuery } from '../api/games/rawgApi';
+import { useSearchQuery } from '../api/wikipedia/wikipediaApi';
 import { useRawgSettings, useWikiSettings } from '../utils/hooks';
+import AutocompleteInput from './AutocompleteInput';
+import CollapsePanel from './CollapsePanel'; // <-- Importato il nuovo pannello
+
 interface NewItemProps {
   userId: string;
   collectionId?: string;
@@ -50,13 +51,7 @@ function NewItem({
 
   const wikiSuggestions = wikiResults?.results || ([] as Suggestion[]);
 
-  // console.log('Wiki suggestions:', wikiSuggestions); // Debugging log for Wikipedia suggestions
-  // console.log('Game suggestions:', gameSuggestions); // Debugging log for RAWG suggestions
-
   const suggestions = isGame ? gameSuggestions : wikiSuggestions;
-
-  // const { data: files = [] } = useListFilesQuery({});
-  // console.log('Google Drive files:', files); // Debugging log for Google Drive files
 
   // Fetch all tags for the user
   const { data: allTags = [] } = useGetPublicUserTagsQuery(
@@ -107,106 +102,99 @@ function NewItem({
   };
 
   return (
-    <div className="card bg-base-100 shadow-xl h-fit">
-      <div className="card-body space-y-4">
-        <div>
-          <h2 className="card-title text-lg">New Collectible</h2>
+    <CollapsePanel
+      title="New Collectible"
+      className="bg-base-100 shadow-xl h-fit border border-base-200"
+      headerClassName="text-lg font-bold px-6 pt-5" // Spaziatura allineata allo stile DaisyUI card
+      contentClassName="space-y-4 px-6"
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
+          {/* TAG SELECTION */}
+          <label className="form-control w-full">
+            <span className="label-text">Tags</span>
+            <div className="flex flex-wrap gap-2 mt-1 items-center">
+              {allTags.length === 0 && (
+                <span className="text-xs opacity-60">No tags available</span>
+              )}
+              {allTags.map((tag) => {
+                const isSelected = selectedTags.includes(tag.id);
+                const style =
+                  isSelected && tag.style
+                    ? {
+                        backgroundColor: tag.style.backgroundColor || undefined,
+                        color: tag.style.foregroundColor || undefined,
+                        borderColor: tag.style.foregroundColor || undefined,
+                      }
+                    : undefined;
+                return (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    className={`badge badge-lg cursor-pointer select-none transition-opacity h-5 ${isSelected ? 'opacity-100' : 'badge-outline opacity-50 hover:opacity-80'}`}
+                    style={isSelected && style ? style : undefined}
+                    onClick={() => {
+                      setSelectedTags(
+                        isSelected
+                          ? selectedTags.filter((t) => t !== tag.id)
+                          : [...selectedTags, tag.id]
+                      );
+                    }}
+                  >
+                    {tag.id}
+                  </button>
+                );
+              })}
+              {allTags.length > 0 && (
+                <button
+                  type="button"
+                  className="btn btn-xs ml-2"
+                  onClick={() => setSelectedTags([])}
+                  disabled={selectedTags.length === 0}
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </label>
+
+          {/* NAME INPUT WITH AUTOCOMPLETE */}
+          <label className="form-control w-full">
+            <span className="label-text mb-1">Name</span>
+            <AutocompleteInput
+              value={name}
+              onChange={setName}
+              suggestions={suggestions}
+              isLoading={isLoadingSuggestions}
+              placeholder={'New collectible name'}
+              getLabel={(g) => g.name}
+              getKey={(g) => g.name}
+            />
+          </label>
+
+          {/* DESCRIPTION */}
+          <label className="form-control w-full">
+            <span className="label-text mb-1">Description</span>
+            <textarea
+              className="textarea textarea-bordered min-h-24 w-full"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Optional collectible description"
+              disabled={isCreatingItem}
+            />
+          </label>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-3">
-            {/* TAG SELECTION */}
-            <label className="form-control w-full">
-              <span className="label-text">Tags</span>
-              <div className="flex flex-wrap gap-2 mt-1 items-center">
-                {allTags.length === 0 && (
-                  <span className="text-xs opacity-60">No tags available</span>
-                )}
-                {allTags.map((tag) => {
-                  const isSelected = selectedTags.includes(tag.id);
-                  const style =
-                    isSelected && tag.style
-                      ? {
-                          backgroundColor:
-                            tag.style.backgroundColor || undefined,
-                          color: tag.style.foregroundColor || undefined,
-                          borderColor: tag.style.foregroundColor || undefined,
-                        }
-                      : undefined;
-                  return (
-                    <button
-                      key={tag.id}
-                      type="button"
-                      className={`badge badge-lg cursor-pointer select-none transition-opacity h-5 ${isSelected ? 'opacity-100' : 'badge-outline opacity-50 hover:opacity-80'}`}
-                      style={isSelected && style ? style : undefined}
-                      onClick={() => {
-                        setSelectedTags(
-                          isSelected
-                            ? selectedTags.filter((t) => t !== tag.id)
-                            : [...selectedTags, tag.id]
-                        );
-                      }}
-                    >
-                      {tag.id}
-                    </button>
-                  );
-                })}
-                {allTags.length > 0 && (
-                  <button
-                    type="button"
-                    className="btn btn-xs ml-2"
-                    onClick={() => setSelectedTags([])}
-                    disabled={selectedTags.length === 0}
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
-            </label>
-            <label className="form-control w-full">
-              <span className="label-text mb-1">Name</span>
-              {/* <input
-                ref={nameInputRef}
-                type="text"
-                className="input input-bordered w-full"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="New collectible name"
-                disabled={isCreatingItem}
-              /> */}
-              <AutocompleteInput
-                value={name}
-                onChange={setName}
-                suggestions={suggestions}
-                isLoading={isLoadingSuggestions}
-                placeholder={'New collectible name'}
-                getLabel={(g) => g.name}
-                getKey={(g) => g.name}
-              />
-            </label>
-
-            <label className="form-control w-full">
-              <span className="label-text mb-1">Description</span>
-              <textarea
-                className="textarea textarea-bordered min-h-24 w-full"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Optional collectible description"
-                disabled={isCreatingItem}
-              />
-            </label>
-          </div>
-
-          <button
-            type="submit"
-            className="btn btn-primary mt-2"
-            disabled={isCreatingItem || !name.trim()}
-          >
-            {isCreatingItem ? 'Adding...' : 'Add Collectible'}
-          </button>
-        </form>
-      </div>
-    </div>
+        {/* SUBMIT BUTTON */}
+        <button
+          type="submit"
+          className="btn btn-primary mt-2"
+          disabled={isCreatingItem || !name.trim()}
+        >
+          {isCreatingItem ? 'Adding...' : 'Add Collectible'}
+        </button>
+      </form>
+    </CollapsePanel>
   );
 }
 
