@@ -7,6 +7,7 @@ import {
 import { useSearchGamesQuery } from '../api/games/rawgApi';
 import { useSearchQuery } from '../api/wikipedia/wikipediaApi';
 import { useRawgSettings, useWikiSettings } from '../utils/hooks';
+import AddTagInput from './AddTagInput'; // <-- Imported your new component
 import AutocompleteInput from './AutocompleteInput';
 import CollapsePanel from './CollapsePanel';
 
@@ -31,6 +32,7 @@ function NewItem({
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [tagError, setTagError] = useState<string | null>(null);
 
   const isGame = selectedTags.map((tag) => tag.toLowerCase()).includes('game');
 
@@ -91,6 +93,8 @@ function NewItem({
 
       setName('');
       setDescription('');
+      setSelectedTags([]); // Clear selected tags on successful submit
+      setTagError(null);
 
       // ✅ restore focus AFTER submit
       requestAnimationFrame(() => {
@@ -106,7 +110,7 @@ function NewItem({
       title="New Collectible"
       className="bg-base-100 shadow-xl h-fit border border-base-200"
       headerClassName="text-lg font-bold px-6 pt-5"
-      contentClassName="space-y-4 px-6"
+      contentClassName="space-y-4 px-6 pb-5"
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex flex-col gap-3">
@@ -145,17 +149,31 @@ function NewItem({
                   </button>
                 );
               })}
-              {allTags.length > 0 && (
+
+              {/* INTEGRATED REUSABLE ADD TAG MENU */}
+              <AddTagInput
+                userId={userId}
+                collectionId={collectionId}
+                isPublicItem={isPublicItem}
+                assignedTags={selectedTags}
+                userTags={allTags}
+                onTagsChange={(updatedTags) => setSelectedTags(updatedTags)}
+                onError={setTagError}
+              />
+
+              {selectedTags.length > 0 && (
                 <button
                   type="button"
                   className="btn btn-xs ml-2"
                   onClick={() => setSelectedTags([])}
-                  disabled={selectedTags.length === 0}
                 >
                   Clear
                 </button>
               )}
             </div>
+            {tagError && (
+              <div className="text-xs text-error mt-1">{tagError}</div>
+            )}
           </label>
 
           {/* NAME INPUT WITH AUTOCOMPLETE */}
