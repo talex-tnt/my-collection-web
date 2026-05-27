@@ -8,7 +8,7 @@ import { useSearchGamesQuery } from '../api/games/rawgApi';
 import { useSearchQuery } from '../api/wikipedia/wikipediaApi';
 import { useRawgSettings, useWikiSettings } from '../utils/hooks';
 import AutocompleteInput from './AutocompleteInput';
-import CollapsePanel from './CollapsePanel'; // <-- Importato il nuovo pannello
+import CollapsePanel from './CollapsePanel';
 
 interface NewItemProps {
   userId: string;
@@ -105,7 +105,7 @@ function NewItem({
     <CollapsePanel
       title="New Collectible"
       className="bg-base-100 shadow-xl h-fit border border-base-200"
-      headerClassName="text-lg font-bold px-6 pt-5" // Spaziatura allineata allo stile DaisyUI card
+      headerClassName="text-lg font-bold px-6 pt-5"
       contentClassName="space-y-4 px-6"
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">

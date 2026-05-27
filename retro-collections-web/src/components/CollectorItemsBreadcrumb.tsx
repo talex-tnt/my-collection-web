@@ -55,7 +55,7 @@ function CollectorItemsBreadcrumb({
   return (
     <div
       ref={containerRef}
-      className="bg-base-200 p-4 pt-2 px-2 rounded-xl text-sm breadcrumbs overflow-visible"
+      className="p-4 pt-2 px-2 pb-0 mb-2 text-sm breadcrumbs overflow-visible"
     >
       <ul>
         {/* 1st Segment: Category Tab */}

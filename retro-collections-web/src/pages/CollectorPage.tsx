@@ -50,7 +50,7 @@ function CollectorPage() {
   return (
     <div className="card bg-base-100 shadow-xl">
       <div className="card-body space-y-4">
-        <div>
+        <div className="mb-0">
           <h2 className="card-title text-lg">Collector</h2>
           <p className="text-sm text-base-content/70">
             {user?.nickname ? `@${user.nickname}` : user?.name || userId}
