@@ -221,7 +221,7 @@ function Header() {
               <p className="text-sm font-medium">
                 {user?.displayName || user?.email || 'Guest'}
               </p>
-              <p className="text-xs text-base-content/70">
+              <p className="text-xs text-base-content/70 whitespace-nowrap">
                 {user ? 'Signed in' : 'Not signed in'}
               </p>
             </div>
