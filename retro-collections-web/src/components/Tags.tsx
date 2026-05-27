@@ -9,6 +9,7 @@ import type { UserTag } from '../api/firestore/services/public/userTags';
 interface TagsProps {
   userId: string;
   itemId: string;
+  collectionId?: string;
   isPublicItem: boolean;
   tags: string[];
   onTagsChange?: (tags: string[]) => void;
@@ -18,6 +19,7 @@ interface TagsProps {
 export default function Tags({
   userId,
   itemId,
+  collectionId,
   isPublicItem,
   tags = [],
   onTagsChange,
@@ -52,6 +54,7 @@ export default function Tags({
           userId,
           updates: { tags: updatedTags },
           isPublicItem, // Ensure the item is treated as public for tag updates
+          collectionId,
         }).unwrap();
         onTagsChange?.(updatedTags);
       }
@@ -72,6 +75,7 @@ export default function Tags({
         userId,
         updates: { tags: updatedTags },
         isPublicItem, // Ensure the item is treated as public for tag updates
+        collectionId,
       }).unwrap();
       onTagsChange?.(updatedTags);
     } catch (err: unknown) {

@@ -895,7 +895,7 @@ service cloud.firestore {
               existingData != null &&
               hasOnlyAffectedKeys(newData, existingData, updateKeys()) &&
               hasAllRequiredAffectedKeys(newData, existingData, updateRequiredKeys()) &&
-              isUserOwner() && isOwner(data, 'userId') &&
+              isUserOwner() && isOwner(existingData, 'userId') &&
               newData.createdAt == existingData.createdAt &&
               newData.userId == existingData.userId &&
               validTimestamp(newData.updatedAt) &&

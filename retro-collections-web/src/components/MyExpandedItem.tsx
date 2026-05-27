@@ -135,6 +135,7 @@ function MyExpandedItem({
             itemId={item.id}
             tags={item.tags || []}
             isPublicItem={isPublicItem}
+            collectionId={collectionId}
           />
         )}
       </div>

@@ -152,6 +152,7 @@ function MyListItem({
             itemId={item.id}
             tags={item.tags || []}
             isPublicItem={isPublicItem}
+            collectionId={collectionId}
           />
         )}
         <button className="btn btn-ghost btn-xs" onClick={onExpand}>
