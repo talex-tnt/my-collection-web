@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   useGetPublicUserTagsQuery,
   useCreatePublicUserTagMutation,
@@ -35,14 +35,33 @@ export default function Tags({
   const [showAddTag, setShowAddTag] = useState(false);
   const [addTagError, setAddTagError] = useState<string | null>(null);
 
-  const handleAddTag = async (e?: React.FormEvent) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Close the custom dropdown when clicking outside the input or menu container
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setShowAddTag(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleAddTag = async (tagValue?: string, e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setAddTagError(null);
-    const tag = newTag.trim();
+
+    const tag = (tagValue || newTag).trim();
     if (!tag) return;
+
     const tagExists = userTags.some(
       (t) => t.id.toLowerCase() === tag.toLowerCase()
     );
+
     try {
       if (!tagExists) {
         await createTag({ userId, tag }).unwrap();
@@ -53,7 +72,7 @@ export default function Tags({
           id: itemId,
           userId,
           updates: { tags: updatedTags },
-          isPublicItem, // Ensure the item is treated as public for tag updates
+          isPublicItem,
           collectionId,
         }).unwrap();
         onTagsChange?.(updatedTags);
@@ -63,24 +82,6 @@ export default function Tags({
     } catch (err: unknown) {
       setAddTagError(
         (err as { message?: string })?.message || 'Failed to add tag'
-      );
-    }
-  };
-
-  const handleRemoveTag = async (tagToRemove: string) => {
-    const updatedTags = tags.filter((t) => t !== tagToRemove);
-    try {
-      await updateItem({
-        id: itemId,
-        userId,
-        updates: { tags: updatedTags },
-        isPublicItem, // Ensure the item is treated as public for tag updates
-        collectionId,
-      }).unwrap();
-      onTagsChange?.(updatedTags);
-    } catch (err: unknown) {
-      setAddTagError(
-        (err as { message?: string })?.message || 'Failed to remove tag'
       );
     }
   };
@@ -95,6 +96,12 @@ export default function Tags({
       return acc;
     },
     {}
+  );
+
+  // Filter out suggestions that are already assigned to this item
+  const unassignedSuggestions = userTags.filter(
+    (t) =>
+      !tags.includes(t.id) && t.id.toLowerCase().includes(newTag.toLowerCase())
   );
 
   return (
@@ -133,33 +140,60 @@ export default function Tags({
         ) : (
           <span className="text-xs text-base-content/50 italic">No tags</span>
         )}
+
         {!readOnly &&
           (showAddTag ? (
-            <form
-              className="flex gap-2 items-center"
-              onSubmit={handleAddTag}
-              tabIndex={-1}
-            >
-              <input
-                type="text"
-                className="input input-xs input-bordered"
-                placeholder="Add tag"
-                value={newTag}
-                autoFocus
-                onChange={(e) => setNewTag(e.target.value)}
-                onBlur={() => setTimeout(() => setShowAddTag(false), 100)}
-                list={`tag-suggestions-${itemId}`}
-              />
-              <datalist id={`tag-suggestions-${itemId}`}>
-                {userTags.map((t) => (
-                  <option key={t.id} value={t.id} />
-                ))}
-              </datalist>
-            </form>
+            <div ref={containerRef} className="relative inline-block text-left">
+              <form
+                className="flex gap-2 items-center"
+                onSubmit={(e) => handleAddTag(undefined, e)}
+              >
+                <input
+                  type="text"
+                  className="input input-xs input-bordered"
+                  placeholder="Add tag"
+                  value={newTag}
+                  autoFocus
+                  onChange={(e) => setNewTag(e.target.value)}
+                />
+              </form>
+
+              {/* Custom styled suggestion dropdown menu */}
+              {unassignedSuggestions.length > 0 && (
+                <ul className="absolute left-0 mt-1 z-50 p-1 shadow menu menu-compact bg-base-100 rounded-box w-48 max-h-40 overflow-y-auto border border-base-200 flex-col flex-nowrap">
+                  {unassignedSuggestions.map((t) => {
+                    const tagStyle = t.style || {
+                      backgroundColor: null,
+                      foregroundColor: null,
+                    };
+                    return (
+                      <li key={t.id} className="w-full">
+                        <button
+                          type="button"
+                          onClick={() => handleAddTag(t.id)}
+                          className="flex items-center justify-start text-xs my-0.5 w-full active:bg-base-200"
+                        >
+                          <span
+                            className="badge badge-outline truncate w-full justify-start block text-left"
+                            style={{
+                              backgroundColor:
+                                tagStyle.backgroundColor || undefined,
+                              color: tagStyle.foregroundColor || undefined,
+                            }}
+                          >
+                            {t.id}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
           ) : (
             <button
               type="button"
-              className="btn btn-xs btn-circle btn-outline flex items-center justify-center "
+              className="btn btn-xs btn-circle btn-outline flex items-center justify-center"
               aria-label="Add tag"
               onClick={() => setShowAddTag(true)}
               tabIndex={0}
@@ -173,4 +207,22 @@ export default function Tags({
       )}
     </div>
   );
+
+  async function handleRemoveTag(tagToRemove: string) {
+    const updatedTags = tags.filter((t) => t !== tagToRemove);
+    try {
+      await updateItem({
+        id: itemId,
+        userId,
+        updates: { tags: updatedTags },
+        isPublicItem,
+        collectionId,
+      }).unwrap();
+      onTagsChange?.(updatedTags);
+    } catch (err: unknown) {
+      setAddTagError(
+        (err as { message?: string })?.message || 'Failed to remove tag'
+      );
+    }
+  }
 }
