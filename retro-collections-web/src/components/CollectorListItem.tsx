@@ -41,8 +41,7 @@ function CollectorListItem({
         <p className="font-bold text-lg">{item.name}</p>
       </div>
 
-      <div className="flex flex-row gap-4 justify-between items-start w-full">
-        {/* Description (left) */}
+      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start w-full">
         <div className="flex flex-col gap-2">
           {imagePreview?.id && (
             <img
