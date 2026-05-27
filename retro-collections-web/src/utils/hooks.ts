@@ -7,6 +7,7 @@ import {
   useUpdateRawgSettingsMutation,
   useUpdateWikipediaSettingsMutation,
 } from '../api/firestore/firestoreApi';
+import { initGoogleDriveAuth } from '../api/google-drive/googleDriveAuth';
 
 export const useCurrentUser = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -74,4 +75,32 @@ export const useRawgSettings = () => {
     setRawgSettings,
     { isLoading, isUpdating, getError },
   ] as const;
+};
+
+type Google = {
+  google: { accounts: unknown };
+};
+export const useGoogleDriveAuth = () => {
+  useEffect(() => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+    if (
+      typeof (window as Google).google !== 'undefined' &&
+      (window as Google).google.accounts
+    ) {
+      initGoogleDriveAuth(clientId);
+    } else {
+      const interval = setInterval(() => {
+        if (
+          typeof (window as Google).google !== 'undefined' &&
+          (window as Google).google.accounts
+        ) {
+          initGoogleDriveAuth(clientId);
+          clearInterval(interval);
+        }
+      }, 50);
+
+      return () => clearInterval(interval);
+    }
+  }, []);
 };

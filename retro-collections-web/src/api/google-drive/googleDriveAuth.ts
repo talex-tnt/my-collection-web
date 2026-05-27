@@ -1,7 +1,6 @@
 let tokenClient: google.accounts.oauth2.TokenClient | null = null;
 let currentResolve: ((token: string) => void) | null = null;
 
-// Chiavi univoche per il sessionStorage
 const TOKEN_KEY = 'gdrive_access_token';
 const EXPIRY_KEY = 'gdrive_token_expiry';
 
@@ -48,7 +47,6 @@ export const requestDriveToken = (): Promise<string> => {
       return reject('Google Token Client not initialized');
     }
 
-    // Controlla se abbiamo un token valido nel sessionStorage
     const validToken = getDriveToken();
     if (validToken) {
       return resolve(validToken);
