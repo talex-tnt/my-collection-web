@@ -46,7 +46,7 @@ function AllMyItemsPage() {
 
   const handleVisibilityChange = (newVis: 'public' | 'private') => {
     const targetSubPath = currentCollectionId ? 'collections' : tab;
-    navigate(`/my-collectibles/${newVis}/${targetSubPath}`);
+    navigate(`/my-collections/${newVis}/${targetSubPath}`);
   };
 
   return (
@@ -88,7 +88,7 @@ function AllMyItemsPage() {
         <Route
           path="*"
           element={
-            <Navigate to="/my-collectibles/public/collections" replace />
+            <Navigate to="/my-collections/public/collections" replace />
           }
         />
       </Routes>

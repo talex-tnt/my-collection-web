@@ -133,7 +133,7 @@ function MyItemsBreadcrumb({
             ) : (
               <button
                 onClick={() =>
-                  onNavigate(`/my-collectibles/${visibility}/${tab}`)
+                  onNavigate(`/my-collections/${visibility}/${tab}`)
                 }
                 className={`link font-bold capitalize no-underline hover:no-underline bg-transparent border-none p-0 min-h-0 h-auto ${tabColor}`}
               >
@@ -155,7 +155,7 @@ function MyItemsBreadcrumb({
                   <button
                     onClick={() =>
                       handleAction(() =>
-                        onNavigate(`/my-collectibles/${visibility}/collections`)
+                        onNavigate(`/my-collections/${visibility}/collections`)
                       )
                     }
                     className="font-medium text-primary"
@@ -167,7 +167,7 @@ function MyItemsBreadcrumb({
                   <button
                     onClick={() =>
                       handleAction(() =>
-                        onNavigate(`/my-collectibles/${visibility}/spare`)
+                        onNavigate(`/my-collections/${visibility}/spare`)
                       )
                     }
                     className="font-medium text-secondary"
@@ -216,7 +216,7 @@ function MyItemsBreadcrumb({
                         onClick={() =>
                           handleAction(() =>
                             onNavigate(
-                              `/my-collectibles/${visibility}/collections/${col.id}`
+                              `/my-collections/${visibility}/collections/${col.id}`
                             )
                           )
                         }

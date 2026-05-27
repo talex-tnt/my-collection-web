@@ -72,7 +72,7 @@ function App() {
               <Routes>
                 <Route path="/" element={<AllMyItemsPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/my-collectibles/*" element={<AllMyItemsPage />} />
+                <Route path="/my-collections/*" element={<AllMyItemsPage />} />
                 <Route
                   path="/collectors/:userId/*"
                   element={<CollectorPage />}

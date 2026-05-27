@@ -134,8 +134,8 @@ function Header() {
             <select
               className="select select-bordered w-full max-w-xs"
               value={(() => {
-                if (location.pathname.startsWith('/my-collectibles'))
-                  return '/my-collectibles';
+                if (location.pathname.startsWith('/my-collections'))
+                  return '/my-collections';
                 if (location.pathname.startsWith('/tags')) return '/tags';
                 if (location.pathname.startsWith('/collectors'))
                   return '/collectors';
@@ -145,13 +145,13 @@ function Header() {
                   return '/users';
                 if (isAdmin && location.pathname.startsWith('/admin'))
                   return '/admin';
-                return '/my-collectibles';
+                return '/my-collections';
               })()}
               onChange={(e) => navigate(e.target.value)}
             >
-              <option value="/my-collectibles">All My Collectibles</option>
-              <option value="/tags">Tags</option>
+              <option value="/my-collections">My Collections</option>
               <option value="/collectors">Collectors</option>
+              <option value="/tags">Tags</option>
               <option value="/settings">Settings</option>
               {isAdmin && <option value="/users">Users</option>}
               {isAdmin && <option value="/admin">Admin</option>}
@@ -161,20 +161,12 @@ function Header() {
           {/* Desktop: tab navigation */}
           <nav className="tabs tabs-boxed flex-wrap gap-2 hidden lg:flex">
             <NavLink
-              to="/my-collectibles"
+              to="/my-collections"
               className={({ isActive }) =>
                 isActive ? 'tab tab-active' : 'tab'
               }
             >
-              All My Collectibles
-            </NavLink>
-            <NavLink
-              to="/tags"
-              className={({ isActive }) =>
-                isActive ? 'tab tab-active' : 'tab'
-              }
-            >
-              Tags
+              My Collections
             </NavLink>
             <NavLink
               to="/collectors"
@@ -184,6 +176,15 @@ function Header() {
             >
               Collectors
             </NavLink>
+            <NavLink
+              to="/tags"
+              className={({ isActive }) =>
+                isActive ? 'tab tab-active' : 'tab'
+              }
+            >
+              Tags
+            </NavLink>
+
             <NavLink
               to="/settings"
               className={({ isActive }) =>
