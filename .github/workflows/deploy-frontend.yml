@@ -63,4 +63,4 @@ jobs:
           cd gh-pages-repo
           git add ${{ env.basename }}
           git commit -m "Deploy ${{ env.basename }}" || echo "No changes"
-          git push -f
+          git push origin master --force
