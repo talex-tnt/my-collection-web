@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import type { Item } from '../api/firestore/services/misc/userItems';
 import Tags from './Tags';
 import { FiMaximize2 as Minimize } from 'react-icons/fi';
+import { PreviewImage } from './PreviewImage';
 interface CollectorListItemProps {
   item: Item;
   showTags?: boolean;
@@ -52,17 +53,11 @@ function CollectorListItem({
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start w-full">
         <div className="flex flex-col gap-2">
           {imagePreview?.id && (
-            <img
-              loading="lazy"
-              // src={imagePreview.thumbnailLink}
-              src={`https://drive.google.com/thumbnail?id=${item?.metadata?.previewImage?.id}&sz=w200`}
-              // src={'https://drive.google.com/thumbnail?authuser=0&sz=w320&id=YOUR_FILE_ID'.replace(
-              //   'YOUR_FILE_ID',
-              //   imagePreview.id
-              // )}
-              referrerPolicy={'no-referrer'}
-              alt={imagePreview.name}
-              className="w-full h-auto rounded"
+            <PreviewImage
+              driveId={imagePreview?.id}
+              size="w200"
+              alt={imagePreview.name || 'Item preview'}
+              className="w-full rounded-md" // custom styling still flows through
             />
           )}
         </div>

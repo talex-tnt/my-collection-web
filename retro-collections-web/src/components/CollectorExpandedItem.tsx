@@ -3,6 +3,7 @@ import Tags from './Tags';
 import ItemImages from './ItemImages';
 import { useDisableScroll, useUISettings } from '../utils/hooks';
 import { FiMinimize2 as Minimize } from 'react-icons/fi';
+import { PreviewImage } from './PreviewImage';
 
 interface CollectorExpandedItemProps {
   item: Item;
@@ -61,13 +62,11 @@ function CollectorExpandedItem({
         {/* Description (left) */}
         <div className="flex flex-col gap-2">
           {imagePreview?.id && (
-            <img
-              loading="lazy"
-              // src={imagePreview.thumbnailLink} --- IGNORE ---
-              src={`https://drive.google.com/thumbnail?id=${imagePreview?.id}&sz=w200`}
-              referrerPolicy={'no-referrer'}
-              alt={imagePreview.name}
-              className="w-full h-auto rounded"
+            <PreviewImage
+              driveId={imagePreview?.id}
+              size="w200"
+              alt={imagePreview.name || 'Item preview'}
+              className="w-full rounded-md" // custom styling still flows through
             />
           )}
         </div>

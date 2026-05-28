@@ -10,6 +10,7 @@ import Tags from './Tags';
 import { findPreviewImage } from '../utils/findPreviewImage';
 import type { FolderType, FileType } from '../api/firestore/types/shared';
 import { FiMaximize2 as Maximaze } from 'react-icons/fi';
+import { PreviewImage } from './PreviewImage';
 interface MyListItemProps {
   item: Item;
   userId: string;
@@ -190,17 +191,11 @@ function MyListItem({
         {/* Description (left) */}
         <div className="flex flex-col gap-2">
           {imagePreview?.id && (
-            <img
-              loading="lazy"
-              // src={imagePreview.thumbnailLink}
-              src={`https://drive.google.com/thumbnail?id=${item?.metadata?.previewImage?.id}&sz=w200`}
-              // src={'https://drive.google.com/thumbnail?authuser=0&sz=w320&id=YOUR_FILE_ID'.replace(
-              //   'YOUR_FILE_ID',
-              //   imagePreview.id
-              // )}
-              referrerPolicy={'no-referrer'}
-              alt={imagePreview.name}
-              className="w-full h-auto rounded"
+            <PreviewImage
+              driveId={imagePreview?.id}
+              size="w200"
+              alt={imagePreview?.name || 'Item preview'}
+              className="w-full h-auto rounded-md" // custom styling still flows through
             />
           )}
         </div>

@@ -10,10 +10,12 @@ const visibility = 'private' as const;
 export interface UISettingsRecord {
   userId: string;
   collapseImages: boolean;
+  enableImageProxy?: boolean;
 }
 
 interface FirestoreUISettingsDoc {
   collapseImages?: boolean;
+  enableImageProxy?: boolean;
 }
 
 const getUISettingsEndpoints = (builder: FirestoreBuilder) => ({
@@ -38,7 +40,10 @@ const getUISettingsEndpoints = (builder: FirestoreBuilder) => ({
         let snap = await getDoc(docRef);
 
         if (!snap.exists()) {
-          const defaultPayload = { collapseImages: false };
+          const defaultPayload = {
+            collapseImages: false,
+            enableImageProxy: true,
+          };
 
           await setDoc(docRef, defaultPayload, { merge: true });
 
@@ -51,6 +56,7 @@ const getUISettingsEndpoints = (builder: FirestoreBuilder) => ({
           data: {
             userId,
             collapseImages: data.collapseImages !== false,
+            enableImageProxy: data.enableImageProxy !== false,
           },
         };
       } catch (error) {
@@ -67,9 +73,10 @@ const getUISettingsEndpoints = (builder: FirestoreBuilder) => ({
     {
       userId: string;
       collapseImages: boolean;
+      enableImageProxy?: boolean;
     }
   >({
-    async queryFn({ userId, collapseImages }) {
+    async queryFn({ userId, collapseImages, enableImageProxy }) {
       const path = await resolveDataCollectionPath({
         visibility,
         resourceType: 'users',
@@ -77,6 +84,7 @@ const getUISettingsEndpoints = (builder: FirestoreBuilder) => ({
 
       const requestPayload = {
         collapseImages,
+        enableImageProxy,
       };
 
       const context = {

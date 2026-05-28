@@ -131,7 +131,10 @@ export const useUISettings = () => {
   const [updateUISettings, { isLoading: isUpdating }] =
     useUpdateUISettingsMutation();
 
-  const setUISettings = async (payload: { collapseImages: boolean }) => {
+  const setUISettings = async (payload: {
+    collapseImages: boolean;
+    enableImageProxy?: boolean;
+  }) => {
     await updateUISettings({
       userId: userId ?? '',
       ...payload,

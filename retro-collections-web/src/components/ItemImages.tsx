@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useListFilesQuery } from '../api/google-drive/googleDriveApi';
 import type { FileType, FolderType } from '../api/firestore/types/shared';
 import DriveImage from './DriveImage';
+import { PreviewImage } from './PreviewImage';
 
 type ItemImagesProps = {
   folder?: FolderType;
@@ -75,12 +76,11 @@ const ItemImages = ({ folder }: ItemImagesProps) => {
           >
             <div className="w-full bg-base-200 rounded overflow-hidden flex items-center justify-center hover:opacity-90 transition">
               {/* <DriveImage fileId={img.id ?? ''} name={img.name ?? ''} /> */}
-              <img
-                loading="lazy"
-                src={`https://drive.google.com/thumbnail?id=${img?.id}&sz=w300`}
-                referrerPolicy={'no-referrer'}
-                alt={img.name}
-                className="w-full h-auto rounded"
+              <PreviewImage
+                driveId={img?.id}
+                size="w300"
+                alt={img.name || 'Item preview'}
+                className="w-full h-auto rounded-md" // custom styling still flows through
               />
             </div>
 

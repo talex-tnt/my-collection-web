@@ -1,0 +1,15 @@
+{
+  "name": "image-proxy",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "deploy:prod": "vercel --prod"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@vercel/node": "^5.8.6"
+  }
+}

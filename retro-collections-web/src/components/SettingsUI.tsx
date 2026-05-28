@@ -12,11 +12,19 @@ export default function SettingsUI() {
     setSaveError(null);
   }, [uiSettings]);
 
-  const handleToggleSuggestions = async (checked: boolean) => {
+  const handleToggleSuggestions = async ({
+    enableImageProxy,
+    collapseImages,
+  }: {
+    enableImageProxy?: boolean;
+    collapseImages?: boolean;
+  }) => {
     setSaveError(null);
     try {
       await setUISettings({
-        collapseImages: checked,
+        collapseImages: collapseImages ?? uiSettings?.collapseImages ?? false,
+        enableImageProxy:
+          enableImageProxy ?? uiSettings?.enableImageProxy ?? true,
       });
     } catch (err: unknown) {
       setSaveError(
@@ -43,7 +51,7 @@ export default function SettingsUI() {
             <div className="flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold flex items-center gap-2">
-                  <span>🌐</span> UI Integration
+                  <span>🌐</span> Collapse Images
                 </h2>
                 <p className="text-xs text-base-content/60 mt-1">
                   Collapse images in the UI to save space and improve rendering
@@ -58,7 +66,39 @@ export default function SettingsUI() {
                     className="toggle toggle-primary"
                     checked={uiSettings?.collapseImages ?? false}
                     disabled={isUpdating}
-                    onChange={(e) => handleToggleSuggestions(e.target.checked)}
+                    onChange={(e) =>
+                      handleToggleSuggestions({
+                        collapseImages: e.target.checked,
+                      })
+                    }
+                  />
+                </label>
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold flex items-center gap-2 mt-6">
+                  <span>🌐</span> Enable Image Proxy
+                </h2>
+                <p className="text-xs text-base-content/60 mt-1">
+                  Enable the image proxy to bypass CORS issues when loading
+                  images from external sources (e.g., Google Drive, Dropbox from
+                  Safari).
+                </p>
+              </div>
+
+              <div className="form-control">
+                <label className="label cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="toggle toggle-primary"
+                    checked={uiSettings?.enableImageProxy ?? true}
+                    disabled={isUpdating}
+                    onChange={(e) =>
+                      handleToggleSuggestions({
+                        enableImageProxy: e.target.checked,
+                      })
+                    }
                   />
                 </label>
               </div>
