@@ -73,7 +73,7 @@ function CollectorItemsBreadcrumb({
             >
               <button
                 onClick={() => toggleDropdown('tab')}
-                className={`btn btn-ghost btn-xs p-0 min-h-0 h-5 w-5 rounded ${tabColor}`}
+                className={`btn btn-ghost btn-xs p-0 min-h-0 h-5 w-3 rounded ${tabColor}`}
               >
                 <FiChevronDown className="h-3 w-3" />
               </button>
@@ -119,7 +119,7 @@ function CollectorItemsBreadcrumb({
               >
                 <button
                   onClick={() => toggleDropdown('collection')}
-                  className={`btn btn-ghost btn-xs p-0 min-h-0 h-5 w-5 rounded ${tertiaryColor}`}
+                  className={`btn btn-ghost btn-xs p-0 min-h-0 h-5 w-3 rounded ${tertiaryColor}`}
                 >
                   <FiChevronDown className="h-3 w-3" />
                 </button>

@@ -217,7 +217,7 @@ function Header() {
         </div>
 
         <div className="dropdown dropdown-end">
-          <button tabIndex={0} className="btn btn-ghost gap-3 px-3">
+          <button tabIndex={0} className="btn btn-ghost gap-3 px-1 sm:px-3">
             <div className="hidden text-right sm:block">
               <p className="text-sm font-medium">
                 {user?.displayName || user?.email || 'Guest'}

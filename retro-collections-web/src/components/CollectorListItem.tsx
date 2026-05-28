@@ -26,7 +26,7 @@ function CollectorListItem({
   return (
     <motion.div
       layoutId={`expandable-${item.id}`}
-      className="flex flex-col gap-2 rounded-lg border border-base-300 bg-base-200 p-4 cursor-pointer"
+      className="flex flex-col gap-2 sm:rounded-lg sm:border sm:border-base-300 bg-base-200 p-4 cursor-pointer"
       onClick={onExpand}
     >
       {/* Tags at the top, toggleable */}

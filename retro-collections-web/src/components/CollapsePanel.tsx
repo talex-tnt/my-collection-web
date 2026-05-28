@@ -31,7 +31,7 @@ function CollapsePanel({
       */}
       <input
         type="checkbox"
-        className="peer md:hidden"
+        className="peer md:hidden px-2"
         aria-label="Toggle collapse panel"
       />
 

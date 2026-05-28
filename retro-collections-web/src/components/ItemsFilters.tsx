@@ -34,8 +34,8 @@ export default function ItemsFilters({
     <CollapsePanel
       title="Filter Collectibles"
       className="bg-base-100 shadow-md border border-base-200 h-fit"
-      headerClassName="text-lg font-bold px-6 pt-5"
-      contentClassName="space-y-6 px-6"
+      headerClassName="text-lg font-bold px2 sm:px-6 pt-5"
+      contentClassName="space-y-6 px-2sm:px-6"
     >
       {/* --- SERVER FILTERS --- */}
       <div>

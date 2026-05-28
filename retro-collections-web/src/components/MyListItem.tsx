@@ -134,7 +134,7 @@ function MyListItem({
   return (
     <motion.div
       layoutId={`expandable-${item.id}`}
-      className="flex flex-col gap-2 rounded-lg border border-base-300 bg-base-200 p-4"
+      className="flex flex-col gap-2 sm:rounded-lg sm:border sm:border-base-300 bg-base-200 p-4"
       // onClick={(e) => {
       //   const target = e.target as HTMLElement;
 

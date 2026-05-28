@@ -49,3 +49,13 @@ button,
 input {
   font: inherit;
 }
+
+/* Restrict daisyUI breadcrumb separators and collapse their layout space */
+.breadcrumbs > ul > li + *:before, 
+.breadcrumbs > ul > li::after {  
+  /* Collapse horizontal gap spacing */
+  margin-left: 0.1rem !important;  /* Controls space BEFORE the arrow */
+  margin-right: 0.5rem !important; /* Controls space AFTER the arrow */
+  
+  opacity: 0.4;
+}

@@ -98,9 +98,9 @@ function MyItemsList({
 
   return (
     <div className="card bg-base-100 shadow-xl">
-      <div className="card-body space-y-4">
+      <div className="card-body space-y-4 px-0 sm:px-4">
         {/* HEADER */}
-        <div className="flex flex-row md:justify-between gap-2">
+        <div className="flex flex-row md:justify-between gap-2 px-4 sm:px-0">
           <h2 className="card-title">My Collectibles ({totalCount})</h2>
           <div className="flex items-center gap-2">
             <button
@@ -167,7 +167,7 @@ function MyItemsList({
         </div>
 
         {/* PAGINATION */}
-        <div className="flex flex-col gap-3 pt-2">
+        <div className="flex flex-col gap-3 pt-2 px-4 sm:px-0">
           {/* NAVIGATION */}
           <div className="flex justify-end gap-2 items-center">
             {/* PAGE SIZE SELECT */}
