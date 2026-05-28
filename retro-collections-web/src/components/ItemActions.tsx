@@ -21,6 +21,7 @@ interface ItemActionsProps {
     files: FileType[];
   }) => void;
   imageFolder?: ImageFolder;
+  readonly: boolean;
 }
 
 function ItemActions({
@@ -30,6 +31,7 @@ function ItemActions({
   onDelete,
   onImageFolderSelect,
   imageFolder,
+  readonly,
 }: ItemActionsProps) {
   const itemId = itemData.id;
   const [showDrivePopup, setShowDrivePopup] = useState(false);
@@ -136,9 +138,13 @@ function ItemActions({
           data-tip="Select Drive folder"
           className="btn btn-sm btn-ghost tooltip"
           onClick={() => setShowDrivePopup(true)}
+          disabled={readonly}
         >
           {imageFolder ? (
-            <FiFolder size={18} className={'text-primary fill-current'} />
+            <FiFolder
+              size={18}
+              className={`text-primary ${readonly ? '' : 'fill-current'}`}
+            />
           ) : (
             <FiFolderPlus size={18} />
           )}
@@ -151,6 +157,7 @@ function ItemActions({
         className="btn btn-sm btn-ghost tooltip"
         data-tip="Edit name"
         onClick={onEdit}
+        disabled={readonly}
       >
         <FiEdit2 size={18} />
       </button>
@@ -159,14 +166,16 @@ function ItemActions({
       <ItemActionsDropdown
         isPublicItem={isPublicItem}
         onTriggerAction={handleActionTrigger}
+        readonly={readonly}
       />
 
       {/* 6. Destructive Actions Trigger */}
       <button
         type="button"
-        className="btn btn-sm btn-ghost text-error hover:bg-error/10 tooltip"
+        className="btn btn-sm btn-ghost btn-error hover:bg-error/10 tooltip"
         data-tip="Delete collectible"
         onClick={() => onDelete(itemId)}
+        disabled={readonly}
       >
         <FiTrash2 size={18} />
       </button>

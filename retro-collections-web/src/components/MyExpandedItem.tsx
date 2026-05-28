@@ -17,6 +17,7 @@ interface MyExpandedItemProps {
   isPublicItem?: boolean;
   onExpand?: () => void;
   collectionId?: string;
+  readonly: boolean;
 }
 
 function MyExpandedItem({
@@ -25,6 +26,7 @@ function MyExpandedItem({
   showTags = true,
   isPublicItem = true,
   collectionId,
+  readonly,
 }: MyExpandedItemProps) {
   const [editingField, setEditingField] = useState<
     'name' | 'description' | null
@@ -131,6 +133,7 @@ function MyExpandedItem({
       <div className="flex items-center gap-2">
         {showTags && (
           <Tags
+            readOnly={readonly}
             userId={item.userId}
             itemId={item.id}
             tags={item.tags || []}
@@ -250,6 +253,7 @@ function MyExpandedItem({
         </div>
         <div className="flex flex-row items-center">
           <ItemActions
+            readonly={readonly}
             itemData={item}
             isPublicItem={isPublicItem}
             onEdit={() => startEditing('name', item.name)}

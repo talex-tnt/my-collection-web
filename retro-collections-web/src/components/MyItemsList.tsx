@@ -7,6 +7,7 @@ import {
 import MyListItem from './MyListItem';
 import { ExpandableMotion } from './ExpandableMotion';
 import MyExpandedItem from './MyExpandedItem';
+import { FiLock, FiUnlock, FiEye, FiEyeOff } from 'react-icons/fi';
 
 interface Cursor {
   createdAt: string;
@@ -33,6 +34,7 @@ function MyItemsList({
   nameContainsTokens,
 }: MyItemsListProps) {
   const [showTags, setShowTags] = useState(true);
+  const [editing, setEditing] = useState(false);
 
   const [pageIndex, setPageIndex] = useState(0);
   const [pageSize, setPageSize] = useState<number | 'all'>(25);
@@ -98,15 +100,40 @@ function MyItemsList({
     <div className="card bg-base-100 shadow-xl">
       <div className="card-body space-y-4">
         {/* HEADER */}
-        <div className="flex flex-col md:flex-row md:justify-between gap-2">
+        <div className="flex flex-row md:justify-between gap-2">
           <h2 className="card-title">My Collectibles ({totalCount})</h2>
-
-          <button
-            className="btn btn-sm btn-outline"
-            onClick={() => setShowTags((v) => !v)}
-          >
-            {showTags ? 'Hide Tags' : 'Show Tags'}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              className="btn btn-xs"
+              onClick={() => setShowTags((v) => !v)}
+            >
+              {showTags ? (
+                <>
+                  <FiEye className="inline-block m-1" title="Hide Tags" />
+                  Tags
+                </>
+              ) : (
+                <>
+                  <FiEyeOff className="inline-block m-1" title="Show Tags" />
+                  Tags
+                </>
+              )}
+            </button>
+            <button
+              className="btn btn-xs"
+              onClick={() => setEditing((v) => !v)}
+            >
+              {editing ? (
+                <>
+                  <FiUnlock className="inline-block m-1" title="Editing" />
+                </>
+              ) : (
+                <>
+                  <FiLock className="inline-block m-1" title="Reading" />
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* LIST */}
@@ -126,10 +153,11 @@ function MyItemsList({
                 )}
               >
                 <MyListItem
+                  readonly={!editing}
                   key={item.id}
                   item={item}
                   userId={user?.uid || ''}
-                  showTags={true}
+                  showTags={showTags}
                   isPublicItem={isPublicItem}
                   collectionId={collectionId}
                 />

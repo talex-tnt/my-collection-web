@@ -110,7 +110,7 @@ function NewItem({
       title="New Collectible"
       className="bg-base-100 shadow-xl h-fit border border-base-200"
       headerClassName="text-lg font-bold px-6 pt-5"
-      contentClassName="space-y-4 px-6 pb-5"
+      contentClassName="space-y-4 px-6"
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex flex-col gap-3">

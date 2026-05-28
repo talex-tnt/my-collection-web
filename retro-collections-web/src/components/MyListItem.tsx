@@ -17,9 +17,11 @@ interface MyListItemProps {
   isPublicItem: boolean;
   onExpand?: () => void;
   collectionId?: string;
+  readonly: boolean;
 }
 
 function MyListItem({
+  readonly,
   item,
   userId,
   showTags = true,
@@ -148,6 +150,7 @@ function MyListItem({
       <div className="flex items-center gap-2">
         {showTags && (
           <Tags
+            readOnly={readonly}
             userId={item.userId}
             itemId={item.id}
             tags={item.tags || []}
@@ -155,9 +158,6 @@ function MyListItem({
             collectionId={collectionId}
           />
         )}
-        <button className="btn btn-ghost btn-xs" onClick={onExpand}>
-          <Maximaze />
-        </button>
       </div>
       <div className="flex items-center gap-2">
         {editing && editingField === 'name' ? (
@@ -181,6 +181,9 @@ function MyListItem({
             {item.name}
           </p>
         )}
+        <button className="btn btn-ghost btn-xs" onClick={onExpand}>
+          <Maximaze />
+        </button>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start w-full">
@@ -262,6 +265,7 @@ function MyListItem({
 
         <div className="flex flex-row items-center">
           <ItemActions
+            readonly={readonly}
             itemData={item}
             isPublicItem={isPublicItem}
             onEdit={() => startEditing('name', item.name)}

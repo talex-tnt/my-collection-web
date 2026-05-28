@@ -3,13 +3,23 @@ import { FiSettings, FiRefreshCw, FiCopy } from 'react-icons/fi';
 interface ItemActionsDropdownProps {
   isPublicItem: boolean;
   onTriggerAction: (type: 'move' | 'duplicate', targetPublic: boolean) => void;
+  readonly: boolean;
 }
 
 export default function ItemActionsDropdown({
   isPublicItem,
   onTriggerAction,
+  readonly,
 }: ItemActionsDropdownProps) {
-  return (
+  return readonly ? (
+    <button
+      disabled
+      className="btn btn-sm btn-ghost tooltip"
+      data-tip="Advanced management"
+    >
+      <FiSettings size={18} />
+    </button>
+  ) : (
     <div className="dropdown dropdown-end dropdown-bottom">
       {/* Interactive Trigger Button */}
       <div
