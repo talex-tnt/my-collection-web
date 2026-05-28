@@ -10,6 +10,8 @@ export const FIRESTORE_TAG_TYPES = [
   'PrivateUsers',
   'PrivateAuthorizedUsers',
   'RawgSettings',
+  'UISettings',
+  'RawgSettings',
   'WikipediaSettings',
   'PublicUserCollections',
   'PrivateUserCollections',

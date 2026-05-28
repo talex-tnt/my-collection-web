@@ -1,20 +1,24 @@
 import type { Item } from '../api/firestore/services/misc/userItems';
 import Tags from './Tags';
 import ItemImages from './ItemImages';
-import { useDisableScroll } from '../utils/hooks';
+import { useDisableScroll, useUISettings } from '../utils/hooks';
+import { FiMinimize2 as Minimize } from 'react-icons/fi';
 
 interface CollectorExpandedItemProps {
   item: Item;
   showTags?: boolean;
   onExpand?: () => void;
+  onClose?: () => void;
 }
 
 function CollectorExpandedItem({
   item,
   showTags = true,
+  onClose,
 }: CollectorExpandedItemProps) {
   useDisableScroll();
-
+  const [uiSettings] = useUISettings();
+  const collapseItemImages = uiSettings?.collapseImages ?? false;
   const imagePreview = item?.metadata?.previewImage as
     | {
         id: string;
@@ -44,6 +48,13 @@ function CollectorExpandedItem({
         <p className="font-bold text-lg cursor-pointer hover:underline ">
           {item.name}
         </p>
+        <button
+          type="button"
+          className="ml-auto btn btn-sm btn-ghost"
+          onClick={onClose}
+        >
+          <Minimize className="w-4 h-4" />
+        </button>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start w-full">
@@ -68,8 +79,10 @@ function CollectorExpandedItem({
         {/* End Description */}
       </div>
 
-      {imageFolder && <ItemImages folder={imageFolder} />}
-      {/* {imageFolder && (
+      {!collapseItemImages && imageFolder && (
+        <ItemImages folder={imageFolder} />
+      )}
+      {collapseItemImages && imageFolder && (
         <details className="collapse collapse-arrow bg-base-100 rounded">
           <summary className="collapse-title text-sm font-medium cursor-pointer">
             See more images...
@@ -79,7 +92,7 @@ function CollectorExpandedItem({
             <ItemImages folder={imageFolder} />
           </div>
         </details>
-      )} */}
+      )}
     </div>
   );
 }

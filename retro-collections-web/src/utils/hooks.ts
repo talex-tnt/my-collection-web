@@ -6,6 +6,8 @@ import {
   useGetRawgSettingsQuery,
   useUpdateRawgSettingsMutation,
   useUpdateWikipediaSettingsMutation,
+  useGetUISettingsQuery,
+  useUpdateUISettingsMutation,
 } from '../api/firestore/firestoreApi';
 import { initGoogleDriveAuth } from '../api/google-drive/googleDriveAuth';
 
@@ -112,4 +114,32 @@ export const useDisableScroll = (disable: boolean = true) => {
       document.body.style.overflow = '';
     };
   }, [disable]);
+};
+
+export const useUISettings = () => {
+  const user = useCurrentUser();
+
+  const userId = user?.uid;
+
+  const {
+    data: uiSettings,
+    isLoading,
+    error: getError,
+  } = useGetUISettingsQuery(userId ?? '', {
+    skip: !userId,
+  });
+  const [updateUISettings, { isLoading: isUpdating }] =
+    useUpdateUISettingsMutation();
+
+  const setUISettings = async (payload: { collapseImages: boolean }) => {
+    await updateUISettings({
+      userId: userId ?? '',
+      ...payload,
+    }).unwrap();
+  };
+  return [
+    uiSettings,
+    setUISettings,
+    { isLoading, isUpdating, getError },
+  ] as const;
 };

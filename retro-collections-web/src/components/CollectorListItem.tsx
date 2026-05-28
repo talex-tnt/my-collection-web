@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import type { Item } from '../api/firestore/services/misc/userItems';
 import Tags from './Tags';
+import { FiMaximize2 as Minimize } from 'react-icons/fi';
 interface CollectorListItemProps {
   item: Item;
   showTags?: boolean;
@@ -39,6 +40,13 @@ function CollectorListItem({
       )}
       <div className="flex items-center gap-2">
         <p className="font-bold text-lg">{item.name}</p>
+        <button
+          type="button"
+          className="ml-auto btn btn-xs btn-ghost"
+          onClick={onExpand}
+        >
+          <Minimize className="w-4 h-4" />
+        </button>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start w-full">

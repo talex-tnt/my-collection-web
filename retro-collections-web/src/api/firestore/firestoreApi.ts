@@ -11,6 +11,7 @@ import getPublicUserTagsEndpoints from './services/public/userTags';
 import getWikipediaSettingsEndpoints from './services/private/wikipediaSettings';
 import getRawgSettingsEndpoints from './services/private/rawgSettings';
 import { FIRESTORE_TAG_TYPES } from './types/firestoreBuilder';
+import getUISettingsEndpoints from './services/private/uiSettings';
 export const firestoreApi = createApi({
   reducerPath: 'firestoreApi',
 
@@ -27,6 +28,7 @@ export const firestoreApi = createApi({
     ...getPrivateUsersEndpoints(builder),
     ...getAuthorizedUsersEndpoints(builder),
     ...getWikipediaSettingsEndpoints(builder),
+    ...getUISettingsEndpoints(builder),
     ...getRawgSettingsEndpoints(builder),
   }),
 });
@@ -70,4 +72,6 @@ export const {
   useUpdateWikipediaSettingsMutation,
   useGetRawgSettingsQuery,
   useUpdateRawgSettingsMutation,
+  useGetUISettingsQuery,
+  useUpdateUISettingsMutation,
 } = firestoreApi;

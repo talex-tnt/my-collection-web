@@ -87,9 +87,7 @@ function AllMyItemsPage() {
         />
         <Route
           path="*"
-          element={
-            <Navigate to="/my-collections/public/collections" replace />
-          }
+          element={<Navigate to="/my-collections/public/collections" replace />}
         />
       </Routes>
     </div>

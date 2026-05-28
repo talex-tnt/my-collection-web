@@ -1,5 +1,6 @@
 import SettingsWiki from '../components/SettingsWiki';
 import SettingsRawg from '../components/SettingsRawg';
+import SettingsUI from '../components/SettingsUI';
 
 export default function SettingsPage() {
   return (
@@ -8,6 +9,7 @@ export default function SettingsPage() {
       <div className="space-y-4">
         <SettingsWiki />
         <SettingsRawg />
+        <SettingsUI />
       </div>
     </div>
   );

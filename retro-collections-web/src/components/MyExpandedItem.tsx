@@ -9,7 +9,8 @@ import Tags from './Tags';
 import { findPreviewImage } from '../utils/findPreviewImage';
 import type { FolderType, FileType } from '../api/firestore/types/shared';
 import ItemImages from './ItemImages';
-import { useDisableScroll } from '../utils/hooks';
+import { useDisableScroll, useUISettings } from '../utils/hooks';
+import { FiMinimize2 as Minimize } from 'react-icons/fi';
 
 interface MyExpandedItemProps {
   item: Item;
@@ -19,6 +20,7 @@ interface MyExpandedItemProps {
   onExpand?: () => void;
   collectionId?: string;
   readonly: boolean;
+  onClose?: () => void;
 }
 
 function MyExpandedItem({
@@ -28,9 +30,11 @@ function MyExpandedItem({
   isPublicItem = true,
   collectionId,
   readonly,
+  onClose,
 }: MyExpandedItemProps) {
   useDisableScroll();
-
+  const [uiSettings] = useUISettings();
+  const collapseItemImages = uiSettings?.collapseImages ?? false;
   const [editingField, setEditingField] = useState<
     'name' | 'description' | null
   >(null);
@@ -167,6 +171,13 @@ function MyExpandedItem({
             {item.name}
           </p>
         )}
+        <button
+          type="button"
+          className="ml-auto btn btn-sm btn-ghost"
+          onClick={onClose}
+        >
+          <Minimize className="w-4 h-4" />
+        </button>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start w-full">
@@ -223,8 +234,10 @@ function MyExpandedItem({
         {/* End Description */}
       </div>
 
-      {/* <ItemImages folder={imageFolder} /> */}
-      {imageFolder && (
+      {!collapseItemImages && imageFolder && (
+        <ItemImages folder={imageFolder} />
+      )}
+      {collapseItemImages && imageFolder && (
         <details className="collapse collapse-arrow bg-base-100 rounded">
           <summary className="collapse-title text-sm font-medium cursor-pointer">
             See more images...
