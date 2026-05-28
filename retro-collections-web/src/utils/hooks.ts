@@ -104,3 +104,12 @@ export const useGoogleDriveAuth = () => {
     }
   }, []);
 };
+
+export const useDisableScroll = (disable: boolean = true) => {
+  useEffect(() => {
+    document.body.style.overflow = disable ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [disable]);
+};

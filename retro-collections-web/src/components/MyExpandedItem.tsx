@@ -9,6 +9,7 @@ import Tags from './Tags';
 import { findPreviewImage } from '../utils/findPreviewImage';
 import type { FolderType, FileType } from '../api/firestore/types/shared';
 import ItemImages from './ItemImages';
+import { useDisableScroll } from '../utils/hooks';
 
 interface MyExpandedItemProps {
   item: Item;
@@ -28,6 +29,8 @@ function MyExpandedItem({
   collectionId,
   readonly,
 }: MyExpandedItemProps) {
+  useDisableScroll();
+
   const [editingField, setEditingField] = useState<
     'name' | 'description' | null
   >(null);

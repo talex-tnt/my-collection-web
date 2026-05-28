@@ -1,6 +1,7 @@
 import type { Item } from '../api/firestore/services/misc/userItems';
 import Tags from './Tags';
 import ItemImages from './ItemImages';
+import { useDisableScroll } from '../utils/hooks';
 
 interface CollectorExpandedItemProps {
   item: Item;
@@ -12,6 +13,8 @@ function CollectorExpandedItem({
   item,
   showTags = true,
 }: CollectorExpandedItemProps) {
+  useDisableScroll();
+
   const imagePreview = item?.metadata?.previewImage as
     | {
         id: string;

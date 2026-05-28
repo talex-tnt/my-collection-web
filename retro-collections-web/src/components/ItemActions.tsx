@@ -114,6 +114,7 @@ function ItemActions({
               ✕
             </button>
             <DriveBrowser
+              disableScroll
               onSelectFolder={(data) => {
                 onImageFolderSelect(data);
                 setShowDrivePopup(false);

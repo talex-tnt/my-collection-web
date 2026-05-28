@@ -1,4 +1,4 @@
-import { type ReactElement, useEffect, useState } from 'react';
+import { type ReactElement, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 type ExpandableMotionProps<P = unknown> = {
@@ -16,13 +16,6 @@ export function ExpandableMotion<P>({
 
   const open = () => setExpanded(true);
   const close = () => setExpanded(false);
-
-  useEffect(() => {
-    document.body.style.overflow = expanded ? 'hidden' : '';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [expanded]);
 
   // Inject ONLY expansion behavior, nothing else
   const normal = {

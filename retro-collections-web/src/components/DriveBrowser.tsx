@@ -2,16 +2,21 @@ import { useEffect, useState } from 'react';
 import { useListFilesQuery } from '../api/google-drive/googleDriveApi';
 import DriveImage from './DriveImage';
 import type { FileType, FolderType } from '../api/firestore/types/shared';
+import { useDisableScroll } from '../utils/hooks';
 
 type DriveBrowserProps = {
   onSelectFolder: (data: { folder: FolderType; files: FileType[] }) => void;
   selectedFolder?: FolderType;
+  disableScroll?: boolean;
 };
 
 const DriveBrowser = ({
   onSelectFolder,
   selectedFolder,
+  disableScroll = false,
 }: DriveBrowserProps) => {
+  useDisableScroll(disableScroll);
+
   // ✅ STACK instead of single folder
   const [folderStack, setFolderStack] = useState<FolderType[]>([
     selectedFolder || { id: 'root', name: 'Root' },
