@@ -64,7 +64,7 @@ function CollectorExpandedItem({
           {imagePreview?.id && (
             <PreviewImage
               driveId={imagePreview?.id}
-              size="w200"
+              // size="w200"
               alt={imagePreview.name || 'Item preview'}
               className="w-full rounded-md" // custom styling still flows through
             />

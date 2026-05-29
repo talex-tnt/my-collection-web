@@ -12,12 +12,16 @@ export interface UISettingsRecord {
   collapseImages: boolean;
   enableImageProxy?: boolean;
   defaultListPageSize?: number;
+  desktopPreviewImageSize?: number;
+  mobilePreviewImageSize?: number;
 }
 
 interface FirestoreUISettingsDoc {
   collapseImages?: boolean;
   enableImageProxy?: boolean;
   defaultListPageSize?: number;
+  desktopPreviewImageSize?: number;
+  mobilePreviewImageSize?: number;
 }
 
 const getUISettingsEndpoints = (builder: FirestoreBuilder) => ({
@@ -46,8 +50,9 @@ const getUISettingsEndpoints = (builder: FirestoreBuilder) => ({
             collapseImages: false,
             enableImageProxy: true,
             defaultListPageSize: 10,
+            desktopPreviewImageSize: 300,
+            mobilePreviewImageSize: 200,
           };
-
           await setDoc(docRef, defaultPayload, { merge: true });
 
           snap = await getDoc(docRef);
@@ -61,6 +66,8 @@ const getUISettingsEndpoints = (builder: FirestoreBuilder) => ({
             collapseImages: data.collapseImages !== false,
             enableImageProxy: data.enableImageProxy !== false,
             defaultListPageSize: data.defaultListPageSize ?? 10,
+            desktopPreviewImageSize: data.desktopPreviewImageSize ?? 300,
+            mobilePreviewImageSize: data.mobilePreviewImageSize ?? 200,
           },
         };
       } catch (error) {
@@ -79,6 +86,8 @@ const getUISettingsEndpoints = (builder: FirestoreBuilder) => ({
       collapseImages: boolean;
       enableImageProxy?: boolean;
       defaultListPageSize?: number;
+      desktopPreviewImageSize?: number;
+      mobilePreviewImageSize?: number;
     }
   >({
     async queryFn({
@@ -86,6 +95,8 @@ const getUISettingsEndpoints = (builder: FirestoreBuilder) => ({
       collapseImages,
       enableImageProxy,
       defaultListPageSize,
+      desktopPreviewImageSize,
+      mobilePreviewImageSize,
     }) {
       const path = await resolveDataCollectionPath({
         visibility,
@@ -96,6 +107,8 @@ const getUISettingsEndpoints = (builder: FirestoreBuilder) => ({
         collapseImages,
         enableImageProxy,
         defaultListPageSize,
+        desktopPreviewImageSize,
+        mobilePreviewImageSize,
       };
 
       const context = {

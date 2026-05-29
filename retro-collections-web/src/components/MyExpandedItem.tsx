@@ -195,7 +195,7 @@ function MyExpandedItem({
             // />
             <PreviewImage
               driveId={imagePreview?.id}
-              size="w200"
+              // size="w200"
               alt={imagePreview?.name || 'Item preview'}
               className="w-full h-auto rounded-md" // custom styling still flows through
             />

@@ -135,6 +135,8 @@ export const useUISettings = () => {
     collapseImages: boolean;
     enableImageProxy?: boolean;
     defaultListPageSize?: number;
+    desktopPreviewImageSize?: number;
+    mobilePreviewImageSize?: number;
   }) => {
     await updateUISettings({
       userId: userId ?? '',

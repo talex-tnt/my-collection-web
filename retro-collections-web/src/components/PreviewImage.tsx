@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useUISettings } from '../utils/hooks';
 
 interface PreviewImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
@@ -9,16 +9,41 @@ interface PreviewImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
 
 export const PreviewImage: React.FC<PreviewImageProps> = ({
   driveId,
-  size = 'w200',
+  size: sz,
   fallbackUrl = 'https://placehold.co/200x200?text=No+Image',
   className = '',
   alt = 'Preview',
   ...props
 }) => {
+  const [settings] = useUISettings();
+  const desktopSize = settings?.desktopPreviewImageSize;
+  const mobileSize = settings?.mobilePreviewImageSize;
+  const [isDesktop, setIsDesktop] = useState<boolean>(false);
+  const settingsSize = isDesktop ? desktopSize : mobileSize;
+
+  const size = sz || settingsSize ? `w${settingsSize}` : undefined;
+
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<boolean>(false);
   const [uiSettings] = useUISettings();
   const enableProxy = uiSettings?.enableImageProxy ?? true;
+
+  console.log(
+    'Using image size:',
+    size,
+    'for device type:',
+    isDesktop ? 'Desktop' : 'Mobile'
+  );
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(min-width: 768px)');
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsDesktop(mediaQuery.matches);
+
+    const handleResize = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mediaQuery.addEventListener('change', handleResize);
+
+    return () => mediaQuery.removeEventListener('change', handleResize);
+  }, []);
 
   // If there's no ID, immediately default to the fallback
   if (!driveId) {
@@ -33,27 +58,29 @@ export const PreviewImage: React.FC<PreviewImageProps> = ({
   return (
     <div className={`relative inline-block ${className}`}>
       {/* Loading Spinner Overlaid */}
-      {loading && !error && (
+      {(!size || loading) && !error && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded animate-pulse">
           <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
         </div>
       )}
 
       {/* The Actual Image */}
-      <img
-        src={error ? fallbackUrl : proxyUrl}
-        alt={alt}
-        loading="lazy"
-        onLoad={() => setLoading(false)}
-        onError={() => {
-          setError(true);
-          setLoading(false);
-        }}
-        className={`w-full h-auto object-cover transition-opacity duration-300 ${
-          loading ? 'opacity-0' : 'opacity-100'
-        }`}
-        {...props}
-      />
+      {size && (
+        <img
+          src={error ? fallbackUrl : proxyUrl}
+          alt={alt}
+          loading="lazy"
+          onLoad={() => setLoading(false)}
+          onError={() => {
+            setError(true);
+            setLoading(false);
+          }}
+          className={`w-full h-auto object-cover transition-opacity duration-300 ${
+            loading ? 'opacity-0' : 'opacity-100'
+          }`}
+          {...props}
+        />
+      )}
     </div>
   );
 };

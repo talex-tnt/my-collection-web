@@ -4,6 +4,15 @@ import { useUISettings } from '../utils/hooks';
 const allPageSizeOption = { value: Number.MAX_SAFE_INTEGER, label: 'All' };
 const defaultListPageSizeOptions = [5, 10, 25, 50, 100, 250, 500];
 
+const imageSizeOptions = [
+  { value: 100, label: '100w' },
+  { value: 200, label: '200w' },
+  { value: 250, label: '250w' },
+  { value: 300, label: '300w' },
+  { value: 400, label: '400w' },
+  { value: 500, label: '500w' },
+];
+
 export default function SettingsUI() {
   const [uiSettings, setUISettings, { isLoading, isUpdating, getError }] =
     useUISettings();
@@ -21,10 +30,14 @@ export default function SettingsUI() {
     enableImageProxy,
     collapseImages,
     defaultListPageSize,
+    desktopPreviewImageSize,
+    mobilePreviewImageSize,
   }: {
     enableImageProxy?: boolean;
     collapseImages?: boolean;
     defaultListPageSize?: number;
+    desktopPreviewImageSize?: number;
+    mobilePreviewImageSize?: number;
   }) => {
     setSaveError(null);
     try {
@@ -34,6 +47,10 @@ export default function SettingsUI() {
           enableImageProxy ?? uiSettings?.enableImageProxy ?? true,
         defaultListPageSize:
           defaultListPageSize ?? uiSettings?.defaultListPageSize ?? 10,
+        desktopPreviewImageSize:
+          desktopPreviewImageSize ?? uiSettings?.desktopPreviewImageSize ?? 300,
+        mobilePreviewImageSize:
+          mobilePreviewImageSize ?? uiSettings?.mobilePreviewImageSize ?? 200,
       });
     } catch (err: unknown) {
       setSaveError(
@@ -146,6 +163,76 @@ export default function SettingsUI() {
                     <option value={allPageSizeOption.value}>
                       {allPageSizeOption.label}
                     </option>
+                  </select>
+                </label>
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold flex items-center gap-2 mt-6">
+                  <span>🌐</span> Desktop Preview Image Size
+                </h2>
+                <p className="text-xs text-base-content/60 mt-1">
+                  Set the default size for desktop preview images.
+                </p>
+                <p className="text-xs text-base-content/60 mt-1">
+                  This setting allows you to control the size of images
+                  displayed in the desktop preview.
+                </p>
+              </div>
+
+              <div className="form-control">
+                <label className="label cursor-pointer">
+                  <select
+                    className="select select-xs select-bordered w-20"
+                    value={uiSettings?.desktopPreviewImageSize ?? 300}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      handleToggleSuggestions({
+                        desktopPreviewImageSize: val,
+                      });
+                    }}
+                  >
+                    {imageSizeOptions.map((n) => (
+                      <option key={n.value} value={n.value}>
+                        {n.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold flex items-center gap-2 mt-6">
+                  <span>🌐</span> Mobile Preview Image Size
+                </h2>
+                <p className="text-xs text-base-content/60 mt-1">
+                  Set the default size for mobile preview images.
+                </p>
+                <p className="text-xs text-base-content/60 mt-1">
+                  This setting allows you to control the size of images
+                  displayed in the mobile preview.
+                </p>
+              </div>
+
+              <div className="form-control">
+                <label className="label cursor-pointer">
+                  <select
+                    className="select select-xs select-bordered w-20"
+                    value={uiSettings?.mobilePreviewImageSize ?? 200}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      handleToggleSuggestions({
+                        mobilePreviewImageSize: val,
+                      });
+                    }}
+                  >
+                    {imageSizeOptions.map((n) => (
+                      <option key={n.value} value={n.value}>
+                        {n.label}
+                      </option>
+                    ))}
                   </select>
                 </label>
               </div>
