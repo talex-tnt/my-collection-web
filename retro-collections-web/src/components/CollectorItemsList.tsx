@@ -7,6 +7,7 @@ import {
 import CollectorListItem from './CollectorListItem';
 import { ExpandableMotion } from './ExpandableMotion';
 import CollectorExpandedItem from './CollectorExpandedItem';
+import { useSettingsUIPageSize } from '../utils/hooks';
 
 interface Cursor {
   createdAt: string;
@@ -30,10 +31,11 @@ function CollectorItemsList({
   nameContainsTokens,
   collectionId,
 }: CollectorItemsListProps) {
+  const [pageSize, setPageSize, pageOptions] = useSettingsUIPageSize();
+
   const [showTags, setShowTags] = useState(true);
 
   const [pageIndex, setPageIndex] = useState(0);
-  const [pageSize, setPageSize] = useState<number | 'all'>(25);
 
   const [cursors, setCursors] = useState<(Cursor | null)[]>([null]);
 
@@ -154,7 +156,7 @@ function CollectorItemsList({
                 setCursors([null]);
               }}
             >
-              {[1, 2, 3, 5, 10, 25].map((n) => (
+              {pageOptions.map((n) => (
                 <option key={n} value={n}>
                   {n}
                 </option>

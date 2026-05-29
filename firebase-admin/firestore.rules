@@ -693,11 +693,13 @@ service cloud.firestore {
         }
 
         function isValidSetting(data) {
-          return hasOnlyValidKeys(data, ['collapseImages', 'enableImageProxy']) 
+          return hasOnlyValidKeys(data, ['collapseImages', 'enableImageProxy', 'defaultListPageSize']) 
             && ('collapseImages' in data) 
             && data.collapseImages is bool
             && ('enableImageProxy' in data)
-            && data.enableImageProxy is bool;
+            && data.enableImageProxy is bool
+            && ('defaultListPageSize' in data)
+            && data.defaultListPageSize is int;
         }
   
         allow read: if 

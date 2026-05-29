@@ -8,6 +8,7 @@ import MyListItem from './MyListItem';
 import { ExpandableMotion } from './ExpandableMotion';
 import MyExpandedItem from './MyExpandedItem';
 import { FiLock, FiUnlock, FiEye, FiEyeOff } from 'react-icons/fi';
+import { useSettingsUIPageSize } from '../utils/hooks';
 
 interface Cursor {
   createdAt: string;
@@ -33,11 +34,12 @@ function MyItemsList({
   startWithNameFilter,
   nameContainsTokens,
 }: MyItemsListProps) {
+  const [pageSize, setPageSize, pageOptions] = useSettingsUIPageSize();
+
   const [showTags, setShowTags] = useState(true);
   const [editing, setEditing] = useState(false);
 
   const [pageIndex, setPageIndex] = useState(0);
-  const [pageSize, setPageSize] = useState<number | 'all'>(25);
 
   const [cursors, setCursors] = useState<(Cursor | null)[]>([null]);
 
@@ -184,7 +186,7 @@ function MyItemsList({
                 setCursors([null]);
               }}
             >
-              {[1, 2, 3, 5, 10, 25].map((n) => (
+              {pageOptions.map((n) => (
                 <option key={n} value={n}>
                   {n}
                 </option>

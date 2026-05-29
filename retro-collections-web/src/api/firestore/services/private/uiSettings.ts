@@ -11,11 +11,13 @@ export interface UISettingsRecord {
   userId: string;
   collapseImages: boolean;
   enableImageProxy?: boolean;
+  defaultListPageSize?: number;
 }
 
 interface FirestoreUISettingsDoc {
   collapseImages?: boolean;
   enableImageProxy?: boolean;
+  defaultListPageSize?: number;
 }
 
 const getUISettingsEndpoints = (builder: FirestoreBuilder) => ({
@@ -43,6 +45,7 @@ const getUISettingsEndpoints = (builder: FirestoreBuilder) => ({
           const defaultPayload = {
             collapseImages: false,
             enableImageProxy: true,
+            defaultListPageSize: 10,
           };
 
           await setDoc(docRef, defaultPayload, { merge: true });
@@ -57,6 +60,7 @@ const getUISettingsEndpoints = (builder: FirestoreBuilder) => ({
             userId,
             collapseImages: data.collapseImages !== false,
             enableImageProxy: data.enableImageProxy !== false,
+            defaultListPageSize: data.defaultListPageSize ?? 10,
           },
         };
       } catch (error) {
@@ -74,9 +78,15 @@ const getUISettingsEndpoints = (builder: FirestoreBuilder) => ({
       userId: string;
       collapseImages: boolean;
       enableImageProxy?: boolean;
+      defaultListPageSize?: number;
     }
   >({
-    async queryFn({ userId, collapseImages, enableImageProxy }) {
+    async queryFn({
+      userId,
+      collapseImages,
+      enableImageProxy,
+      defaultListPageSize,
+    }) {
       const path = await resolveDataCollectionPath({
         visibility,
         resourceType: 'users',
@@ -85,6 +95,7 @@ const getUISettingsEndpoints = (builder: FirestoreBuilder) => ({
       const requestPayload = {
         collapseImages,
         enableImageProxy,
+        defaultListPageSize,
       };
 
       const context = {

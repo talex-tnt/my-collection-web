@@ -134,6 +134,7 @@ export const useUISettings = () => {
   const setUISettings = async (payload: {
     collapseImages: boolean;
     enableImageProxy?: boolean;
+    defaultListPageSize?: number;
   }) => {
     await updateUISettings({
       userId: userId ?? '',
@@ -145,4 +146,40 @@ export const useUISettings = () => {
     setUISettings,
     { isLoading, isUpdating, getError },
   ] as const;
+};
+
+const getPageOptions = (defaultPageSize?: number) => {
+  const options = [5, 10, 25, 50, 100, 250, 500];
+  if (
+    defaultPageSize !== undefined &&
+    !options.includes(defaultPageSize) &&
+    defaultPageSize !== Number.MAX_SAFE_INTEGER
+  ) {
+    options.push(defaultPageSize);
+  }
+  return options.sort((a, b) => a - b);
+};
+
+export const useSettingsUIPageSize = () => {
+  const [settingsUI] = useUISettings();
+  const pageOptions = getPageOptions(settingsUI?.defaultListPageSize);
+  const [pageSize, setPageSize] = useState<number | 'all' | undefined>(
+    settingsUI?.defaultListPageSize === Number.MAX_SAFE_INTEGER
+      ? 'all'
+      : settingsUI?.defaultListPageSize
+  );
+  useEffect(() => {
+    if (
+      pageSize === undefined &&
+      settingsUI?.defaultListPageSize !== undefined
+    ) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPageSize(
+        settingsUI?.defaultListPageSize === Number.MAX_SAFE_INTEGER
+          ? 'all'
+          : settingsUI?.defaultListPageSize
+      );
+    }
+  }, [settingsUI?.defaultListPageSize, setPageSize, pageSize]);
+  return [pageSize, setPageSize, pageOptions] as const;
 };
