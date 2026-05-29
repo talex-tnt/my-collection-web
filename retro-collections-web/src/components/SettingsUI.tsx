@@ -5,6 +5,9 @@ const allPageSizeOption = { value: Number.MAX_SAFE_INTEGER, label: 'All' };
 const defaultListPageSizeOptions = [5, 10, 25, 50, 100, 250, 500];
 
 const imageSizeOptions = [
+  { value: 10, label: '10w' },
+  { value: 25, label: '25w' },
+  { value: 50, label: '50w' },
   { value: 100, label: '100w' },
   { value: 200, label: '200w' },
   { value: 250, label: '250w' },
