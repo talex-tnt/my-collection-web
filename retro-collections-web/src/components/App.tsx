@@ -70,7 +70,7 @@ function App() {
 
             <div className="space-y-6">
               <Routes>
-                <Route path="/" element={<AllMyItemsPage />} />
+                <Route path="/*" element={<AllMyItemsPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/my-collections/*" element={<AllMyItemsPage />} />
                 <Route
