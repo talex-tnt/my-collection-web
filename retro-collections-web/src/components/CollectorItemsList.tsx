@@ -36,6 +36,9 @@ function CollectorItemsList({
   const [showTags, setShowTags] = useState(true);
 
   const [pageIndex, setPageIndex] = useState(0);
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [pageIndex]);
 
   const [cursors, setCursors] = useState<(Cursor | null)[]>([null]);
 

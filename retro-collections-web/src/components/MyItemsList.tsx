@@ -40,7 +40,9 @@ function MyItemsList({
   const [editing, setEditing] = useState(false);
 
   const [pageIndex, setPageIndex] = useState(0);
-
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [pageIndex]);
   const [cursors, setCursors] = useState<(Cursor | null)[]>([null]);
 
   const currentCursor = cursors[pageIndex];
