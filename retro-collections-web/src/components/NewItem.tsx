@@ -93,7 +93,6 @@ function NewItem({
 
       setName('');
       setDescription('');
-      setSelectedTags([]); // Clear selected tags on successful submit
       setTagError(null);
 
       // ✅ restore focus AFTER submit
