@@ -7,7 +7,14 @@ import {
 import MyListItem from './MyListItem';
 import { ExpandableMotion } from './ExpandableMotion';
 import MyExpandedItem from './MyExpandedItem';
-import { FiLock, FiUnlock, FiEye, FiEyeOff } from 'react-icons/fi';
+import {
+  FiLock,
+  FiUnlock,
+  FiEye,
+  FiEyeOff,
+  FiTag,
+  FiImage,
+} from 'react-icons/fi';
 import { useSettingsUIPageSize } from '../utils/hooks';
 
 interface Cursor {
@@ -37,6 +44,7 @@ function MyItemsList({
   const [pageSize, setPageSize, pageOptions] = useSettingsUIPageSize();
 
   const [showTags, setShowTags] = useState(true);
+  const [showPreview, setShowPreview] = useState(true);
   const [editing, setEditing] = useState(false);
 
   const [pageIndex, setPageIndex] = useState(0);
@@ -102,7 +110,7 @@ function MyItemsList({
     <div className="card bg-base-100 shadow-xl">
       <div className="card-body space-y-4 px-0 sm:px-4 pb-0 sm:pb-6">
         {/* HEADER */}
-        <div className="flex flex-row md:justify-between gap-2 px-4 sm:px-0">
+        <div className="flex flex-row justify-between gap-2 px-4 sm:px-0">
           <h2 className="card-title">My Collectibles ({totalCount})</h2>
           <div className="flex items-center gap-2">
             <button
@@ -111,13 +119,26 @@ function MyItemsList({
             >
               {showTags ? (
                 <>
-                  <FiEye className="inline-block m-1" title="Hide Tags" />
-                  Tags
+                  <FiTag className="w-4 h-4" /> <FiEyeOff className="w-4 h-4" />
                 </>
               ) : (
                 <>
-                  <FiEyeOff className="inline-block m-1" title="Show Tags" />
-                  Tags
+                  <FiTag className="w-4 h-4" /> <FiEye className="w-4 h-4" />
+                </>
+              )}
+            </button>
+            <button
+              className="btn btn-xs"
+              onClick={() => setShowPreview((v) => !v)}
+            >
+              {showPreview ? (
+                <>
+                  <FiImage className="w-4 h-4" />{' '}
+                  <FiEyeOff className="w-4 h-4" />
+                </>
+              ) : (
+                <>
+                  <FiImage className="w-4 h-4" /> <FiEye className="w-4 h-4" />
                 </>
               )}
             </button>
@@ -162,6 +183,7 @@ function MyItemsList({
                   showTags={showTags}
                   isPublicItem={isPublicItem}
                   collectionId={collectionId}
+                  showPreview={showPreview}
                 />
               </ExpandableMotion>
             ))

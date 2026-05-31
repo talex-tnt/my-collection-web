@@ -19,6 +19,7 @@ interface MyListItemProps {
   onExpand?: () => void;
   collectionId?: string;
   readonly: boolean;
+  showPreview?: boolean;
 }
 
 function MyListItem({
@@ -29,6 +30,7 @@ function MyListItem({
   onExpand,
   isPublicItem,
   collectionId,
+  showPreview = true,
 }: MyListItemProps) {
   const [editingField, setEditingField] = useState<
     'name' | 'description' | null
@@ -187,18 +189,20 @@ function MyListItem({
         </button>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start w-full">
+      <div className="flex gap-4 justify-between items-start w-full">
         {/* Description (left) */}
-        <div className="flex flex-col gap-2">
-          {imagePreview?.id && (
-            <PreviewImage
-              driveId={imagePreview?.id}
-              // size="w200"
-              alt={imagePreview?.name || 'Item preview'}
-              className="w-full h-auto rounded-md" // custom styling still flows through
-            />
-          )}
-        </div>
+        {showPreview && (
+          <div className="flex flex-col gap-2">
+            {imagePreview?.id && (
+              <PreviewImage
+                driveId={imagePreview?.id}
+                // size="w200"
+                alt={imagePreview?.name || 'Item preview'}
+                className="w-full h-auto rounded-md" // custom styling still flows through
+              />
+            )}
+          </div>
+        )}
         <div className="flex-1 min-w-0">
           {editing && editingField === 'description' ? (
             <textarea

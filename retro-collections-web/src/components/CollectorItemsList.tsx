@@ -8,7 +8,7 @@ import CollectorListItem from './CollectorListItem';
 import { ExpandableMotion } from './ExpandableMotion';
 import CollectorExpandedItem from './CollectorExpandedItem';
 import { useSettingsUIPageSize } from '../utils/hooks';
-
+import { FiEye, FiEyeOff, FiTag, FiImage } from 'react-icons/fi';
 interface Cursor {
   createdAt: string;
   id: string;
@@ -34,6 +34,7 @@ function CollectorItemsList({
   const [pageSize, setPageSize, pageOptions] = useSettingsUIPageSize();
 
   const [showTags, setShowTags] = useState(true);
+  const [showPreview, setShowPreview] = useState(true);
 
   const [pageIndex, setPageIndex] = useState(0);
   useEffect(() => {
@@ -102,15 +103,40 @@ function CollectorItemsList({
       {/* MODIFIED: Adjusted padding bottom to sit flush on mobile viewport edges */}
       <div className="card-body space-y-4 px-0 sm:px-4 pb-0 sm:pb-6">
         {/* HEADER */}
-        <div className="flex flex-col md:flex-row md:justify-between gap-2 px-4 sm:px-0">
+        <div className="flex flex-row justify-between gap-2 px-4 sm:px-0">
           <h2 className="card-title">Collectibles ({totalCount})</h2>
 
-          <button
-            className="btn btn-sm btn-outline"
-            onClick={() => setShowTags((v) => !v)}
-          >
-            {showTags ? 'Hide Tags' : 'Show Tags'}
-          </button>
+          <div className="flex flex-row gap-2">
+            <button
+              className="btn btn-xs"
+              onClick={() => setShowTags((v) => !v)}
+            >
+              {showTags ? (
+                <>
+                  <FiTag className="w-4 h-4" /> <FiEyeOff className="w-4 h-4" />
+                </>
+              ) : (
+                <>
+                  <FiTag className="w-4 h-4" /> <FiEye className="w-4 h-4" />
+                </>
+              )}
+            </button>
+            <button
+              className="btn btn-xs"
+              onClick={() => setShowPreview((v) => !v)}
+            >
+              {showPreview ? (
+                <>
+                  <FiImage className="w-4 h-4" />{' '}
+                  <FiEyeOff className="w-4 h-4" />
+                </>
+              ) : (
+                <>
+                  <FiImage className="w-4 h-4" /> <FiEye className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* LIST */}
@@ -136,6 +162,7 @@ function CollectorItemsList({
                   key={item.id}
                   item={item}
                   showTags={showTags}
+                  showPreview={showPreview}
                 />
               </ExpandableMotion>
             ))

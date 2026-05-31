@@ -7,11 +7,13 @@ interface CollectorListItemProps {
   item: Item;
   showTags?: boolean;
   onExpand?: () => void;
+  showPreview?: boolean;
 }
 
 function CollectorListItem({
   item,
   showTags = true,
+  showPreview = true,
   onExpand,
 }: CollectorListItemProps) {
   const imagePreview = item?.metadata?.previewImage as
@@ -50,17 +52,19 @@ function CollectorListItem({
         </button>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start w-full">
-        <div className="flex flex-col gap-2">
-          {imagePreview?.id && (
-            <PreviewImage
-              driveId={imagePreview?.id}
-              // size="w200"
-              alt={imagePreview.name || 'Item preview'}
-              className="w-full rounded-md" // custom styling still flows through
-            />
-          )}
-        </div>
+      <div className="flex flex-col gap-4 justify-between items-start w-full">
+        {showPreview && (
+          <div className="flex flex-col gap-2">
+            {imagePreview?.id && (
+              <PreviewImage
+                driveId={imagePreview?.id}
+                // size="w200"
+                alt={imagePreview.name || 'Item preview'}
+                className="w-full rounded-md" // custom styling still flows through
+              />
+            )}
+          </div>
+        )}
         <div className="flex-1 min-w-0">
           <p className="text-sm text-base-content/80 whitespace-pre-wrap">
             {item.description}
