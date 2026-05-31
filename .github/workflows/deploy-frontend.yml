@@ -62,5 +62,17 @@ jobs:
         run: |
           cd gh-pages-repo
           git add ${{ env.basename }}
-          git commit -m "Deploy ${{ env.basename }}" || echo "No changes"
-          git push origin master --force
+          
+          # Only proceed if there are actually changes to commit
+          if git diff-index --quiet HEAD --; then
+            echo "No changes to deploy."
+          else
+            git commit -m "Deploy ${{ env.basename }}"
+            
+            # Fetch the absolute latest state from remote and rebase your local commit on top of it
+            # This avoids the "cannot lock ref" and out-of-sync issues.
+            git pull --rebase origin master
+            
+            # Push safely
+            git push origin master
+          fi
