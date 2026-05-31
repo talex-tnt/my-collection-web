@@ -9,12 +9,16 @@ import {
 import CollapsePanel from './CollapsePanel';
 import { type CollectionType } from './Collection';
 import Collection from './Collection';
+
 interface CollectionsListProps {
   userId: string;
   isPublicCollection: boolean;
   readOnly?: boolean;
   onCollectionClick?: (collection: CollectionType) => void;
 }
+
+// 1. Define sort options
+type SortOption = 'name-az' | 'name-za' | 'newest' | 'oldest';
 
 function CollectionsList({
   userId,
@@ -23,6 +27,7 @@ function CollectionsList({
   onCollectionClick,
 }: CollectionsListProps) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState<SortOption>('name-az'); // 2. Sorting state
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
 
@@ -42,12 +47,37 @@ function CollectionsList({
   const [updateCollection] = useUpdateUserCollectionMutation();
   const [deleteCollection] = useDeleteUserCollectionMutation();
 
-  // Client-side search filtering by collection name
-  const filteredCollections = useMemo(() => {
-    return (collectionsData?.collections || []).filter((col) =>
+  // 3. MODIFIED: Enhanced useMemo to handle client-side filtering AND sorting
+  const filteredAndSortedCollections = useMemo(() => {
+    const collections = collectionsData?.collections || [];
+
+    // Filter first
+    const filtered = collections.filter((col) =>
       col.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [collectionsData?.collections, searchTerm]);
+
+    // Sort the filtered results
+    return [...filtered].sort((a, b) => {
+      if (sortBy === 'name-az') {
+        return a.name.localeCompare(b.name);
+      }
+      if (sortBy === 'name-za') {
+        return b.name.localeCompare(a.name);
+      }
+
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+
+      if (sortBy === 'newest') {
+        return dateB - dateA; // Descending
+      }
+      if (sortBy === 'oldest') {
+        return dateA - dateB; // Ascending
+      }
+
+      return 0;
+    });
+  }, [collectionsData?.collections, searchTerm, sortBy]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +94,6 @@ function CollectionsList({
       setNewName('');
       setNewDesc('');
 
-      // Safely remove active focus to reset inputs
       if (document.activeElement instanceof HTMLElement) {
         document.activeElement.blur();
       }
@@ -111,25 +140,38 @@ function CollectionsList({
         title={`My Collections (${collectionsData?.collections.length || 0})`}
         className="collapse-open bg-base-100"
       >
-        <div className="flex flex-col md:flex-row md:justify-between items-center gap-2 mb-4">
+        {/* 4. MODIFIED: Repositioned inputs into a grid flex layout for desktop and mobile alignment */}
+        <div className="flex flex-row gap-2 mb-4 w-full max-w-xl">
           <input
             type="text"
             placeholder="Search collection by name..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="input input-sm input-bordered w-full max-w-sm"
+            className="input input-sm input-bordered flex-grow"
           />
+
+          {/* 5. ADDED: Sorting Selection dropdown menu element */}
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortOption)}
+            className="select select-sm select-bordered w-36 shrink-0"
+          >
+            <option value="name-az">Name (Asc.)</option>
+            <option value="name-za">Name (Desc.)</option>
+            <option value="newest">Most Recent</option>
+            <option value="oldest">Least Recent</option>
+          </select>
         </div>
 
         {error ? (
           <div className="alert alert-error">Error loading collections</div>
         ) : isLoading ? (
           <div className="alert alert-info">Loading...</div>
-        ) : filteredCollections.length === 0 ? (
+        ) : filteredAndSortedCollections.length === 0 ? (
           <div className="alert alert-info">No collections found</div>
         ) : (
           <div className="flex flex-col gap-2">
-            {filteredCollections.map((collection) => (
+            {filteredAndSortedCollections.map((collection) => (
               <Collection
                 key={collection.id}
                 collection={collection}
