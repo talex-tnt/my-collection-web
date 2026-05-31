@@ -46,7 +46,6 @@ function MyItemsList({
   const currentCursor = cursors[pageIndex];
   const isAll = pageSize === 'all';
 
-  // Total count (optional UI use)
   const { data: totalCount = 0 } = useGetUserItemsCountQuery(
     {
       userId: user?.uid || '',
@@ -84,7 +83,6 @@ function MyItemsList({
   );
   const pageInfo = itemsData?.pageInfo;
 
-  // Store cursor for next page
   useEffect(() => {
     if (!pageInfo?.endCursor) return;
 
@@ -100,7 +98,7 @@ function MyItemsList({
 
   return (
     <div className="card bg-base-100 shadow-xl">
-      <div className="card-body space-y-4 px-0 sm:px-4">
+      <div className="card-body space-y-4 px-0 sm:px-4 pb-0 sm:pb-6">
         {/* HEADER */}
         <div className="flex flex-row md:justify-between gap-2 px-4 sm:px-0">
           <h2 className="card-title">My Collectibles ({totalCount})</h2>
@@ -169,7 +167,13 @@ function MyItemsList({
         </div>
 
         {/* PAGINATION */}
-        <div className="flex flex-col gap-3 pt-2 px-4 sm:px-0">
+        {/* MODIFIED: 
+          - Added `sticky bottom-0 z-10` to stick to the mobile viewport.
+          - Added `bg-base-100 py-3` to mask list items scrolling underneath.
+          - Added `sm:relative sm:z-auto sm:bg-transparent sm:py-0` to restore standard desktop flow behavior.
+          - Added a subtle border-t on mobile for clear UI separation.
+        */}
+        <div className="sticky bottom-0 z-10 bg-base-100 py-3 border-t border-base-200 sm:border-t-0 sm:relative sm:z-auto sm:bg-transparent sm:py-0 flex flex-col gap-3 pt-2 px-4 sm:px-0">
           {/* NAVIGATION */}
           <div className="flex justify-end gap-2 items-center">
             {/* PAGE SIZE SELECT */}

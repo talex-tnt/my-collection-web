@@ -96,7 +96,8 @@ function CollectorItemsList({
 
   return (
     <div className="card bg-base-100 shadow-xl">
-      <div className="card-body space-y-4 px-0 sm:px-4">
+      {/* MODIFIED: Adjusted padding bottom to sit flush on mobile viewport edges */}
+      <div className="card-body space-y-4 px-0 sm:px-4 pb-0 sm:pb-6">
         {/* HEADER */}
         <div className="flex flex-col md:flex-row md:justify-between gap-2 px-4 sm:px-0">
           <h2 className="card-title">Collectibles ({totalCount})</h2>
@@ -139,7 +140,8 @@ function CollectorItemsList({
         </div>
 
         {/* PAGINATION */}
-        <div className="flex flex-col gap-3 pt-2 px-4 sm:px-0">
+        {/* MODIFIED: Implemented sticky tracking for mobile devices alongside desktop defaults reset */}
+        <div className="sticky bottom-0 z-10 bg-base-100 py-3 border-t border-base-200 sm:border-t-0 sm:relative sm:z-auto sm:bg-transparent sm:py-0 flex flex-col gap-3 pt-2 px-4 sm:px-0">
           {/* NAVIGATION */}
           <div className="flex justify-end gap-2 items-center">
             {/* PAGE SIZE SELECT */}
