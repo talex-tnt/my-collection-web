@@ -27,7 +27,7 @@ function CollectionsList({
   onCollectionClick,
 }: CollectionsListProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<SortOption>('name-az'); // 2. Sorting state
+  const [sortBy, setSortBy] = useState<SortOption>('name-az');
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
 
