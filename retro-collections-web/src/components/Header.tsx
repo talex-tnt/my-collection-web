@@ -55,14 +55,11 @@ function Header() {
       if (credential?.accessToken) {
         dispatch(setAccessToken(credential.accessToken));
 
-        if (credential.accessToken) {
-          console.log('Google access token obtained:', credential.accessToken);
-          const tokenResult = await result.user.getIdTokenResult();
-          const expiryTime = new Date(tokenResult.expirationTime).getTime();
+        // const tokenResult = await result.user.getIdTokenResult();
+        // const expiryTime = new Date(tokenResult.expirationTime).getTime();
 
-          sessionStorage.setItem(TOKEN_KEY, credential?.accessToken);
-          sessionStorage.setItem(EXPIRY_KEY, expiryTime.toString());
-        }
+        // sessionStorage.setItem(TOKEN_KEY, credential?.accessToken);
+        // sessionStorage.setItem(EXPIRY_KEY, expiryTime.toString());
       }
       const currentUser = result.user;
       const email = currentUser.email || '';
