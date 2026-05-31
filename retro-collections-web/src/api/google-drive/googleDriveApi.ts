@@ -15,6 +15,7 @@ type ListFilesResponse = {
     name: string;
     mimeType: string;
     thumbnailLink?: string;
+    parents?: string[];
   }>;
 };
 type GetFileResponse = {
@@ -22,6 +23,7 @@ type GetFileResponse = {
   name: string;
   mimeType: string;
   thumbnailLink?: string;
+  parents?: string[];
 };
 type GetFileDownloadResponse = Blob;
 
@@ -69,26 +71,19 @@ export const driveApi = createApi({
           q:
             query ??
             (folderId ? `'${folderId}' in parents` : "'root' in parents"),
-          fields: 'files(id,name,mimeType,thumbnailLink,webContentLink)',
+          fields:
+            'files(id,name,mimeType,thumbnailLink,webContentLink,parents)',
         },
       }),
     }),
-    // listFiles: builder.query<any, { query?: string }>({
-    //   query: ({ query }) => ({
-    //     url: '/files',
-    //     params: query
-    //       ? {
-    //           q: query,
-    //           fields: 'files(id, name, mimeType, modifiedTime)',
-    //         }
-    //       : {
-    //           fields: 'files(id, name, mimeType, modifiedTime)',
-    //         },
-    //   }),
-    // }),
 
     getFile: builder.query<GetFileResponse, string>({
-      query: (fileId) => `/files/${fileId}`,
+      query: (fileId) => ({
+        url: `/files/${fileId}`,
+        params: {
+          fields: 'id,name,mimeType,thumbnailLink,parents',
+        },
+      }),
     }),
 
     getFileDownload: builder.query<GetFileDownloadResponse, string>({

@@ -1,8 +1,16 @@
 import { useEffect, useState } from 'react';
-import { useListFilesQuery } from '../api/google-drive/googleDriveApi';
+import {
+  useGetFileQuery,
+  useListFilesQuery,
+} from '../api/google-drive/googleDriveApi';
 import DriveImage from './DriveImage';
 import type { FileType, FolderType } from '../api/firestore/types/shared';
 import { useDisableScroll } from '../utils/hooks';
+import {
+  FiArrowUp as ArrowUp,
+  FiArrowUpCircle as ArrowUpCicle,
+  FiFolder as FolderIcon,
+} from 'react-icons/fi';
 
 type DriveBrowserProps = {
   onSelectFolder: (data: { folder: FolderType; files: FileType[] }) => void;
@@ -17,23 +25,29 @@ const DriveBrowser = ({
 }: DriveBrowserProps) => {
   useDisableScroll(disableScroll);
 
-  // ✅ STACK instead of single folder
-  const [folderStack, setFolderStack] = useState<FolderType[]>([
-    selectedFolder || { id: 'root', name: 'Root' },
-  ]);
+  const [currentFolder, setCurrentFolder] = useState<FolderType>(
+    selectedFolder || { id: 'root', name: 'Root' }
+  );
 
-  const currentFolder = folderStack[folderStack.length - 1];
+  const { data: currentData } = useGetFileQuery(currentFolder?.id ?? '', {
+    skip: currentFolder?.id === undefined || currentFolder?.id === 'root',
+  });
+  const currentFolderName = currentData?.name;
+  const currentFolderParentId = currentData?.parents?.[0] || null;
 
   useEffect(() => {
     if (selectedFolder) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setFolderStack([selectedFolder]);
+      setCurrentFolder(selectedFolder);
     }
   }, [selectedFolder]);
 
-  const { data, isLoading } = useListFilesQuery({
-    folderId: currentFolder.id,
-  });
+  const { data, isLoading } = useListFilesQuery(
+    {
+      folderId: currentFolder?.id,
+    },
+    { skip: !currentFolder?.id }
+  );
 
   const files = data?.files || [];
 
@@ -54,23 +68,14 @@ const DriveBrowser = ({
             Google Drive Folder Browser
           </h3>
 
-          {/* ✅ Back button */}
-          {folderStack.length > 1 && (
-            <button
-              className="btn btn-xs btn-outline ml-4"
-              onClick={() => setFolderStack((prev) => prev.slice(0, -1))}
-            >
-              ⬅ Back
-            </button>
-          )}
-
           {/* Optional: Root shortcut */}
           {currentFolder.id !== 'root' && (
             <button
-              className="btn btn-xs btn-outline ml-2"
-              onClick={() => setFolderStack([{ id: 'root', name: 'Root' }])}
+              className="btn btn-xs ml-2"
+              onClick={() => setCurrentFolder({ id: 'root', name: 'Root' })}
             >
-              ⬅ Root
+              <FolderIcon className="w-6 h-6" />
+              <ArrowUpCicle className="w-6 h-6" />
             </button>
           )}
         </div>
@@ -81,7 +86,23 @@ const DriveBrowser = ({
         </div>
 
         {/* Actions */}
-        <div className="flex gap-2 items-center justify-between">
+        <div className="flex justify-between mb-2">
+          {currentFolderParentId && currentFolderName && (
+            <button
+              className="btn btn-xs ml-1"
+              onClick={() =>
+                setCurrentFolder({
+                  id: currentFolderParentId,
+                  name: currentFolderName,
+                })
+              }
+            >
+              {/* <span className="text-xl">📁</span> */}
+              <FolderIcon className="w-4 h-4" />
+              <ArrowUp className="w-6 h-6" />
+            </button>
+          )}
+
           <button
             className="btn btn-outline btn-xs"
             onClick={() =>
@@ -92,7 +113,7 @@ const DriveBrowser = ({
             }
           >
             {/* Select {currentFolder.name} */}
-            Select This Folder
+            Select Current
           </button>
 
           <button
@@ -117,18 +138,16 @@ const DriveBrowser = ({
         )}
 
         {folders.length > 0 && (
-          <ul className="space-y-2 mb-4">
+          <ul className="overflow-y-auto space-y-2 mb-4">
             {folders.map((folder: FolderType) => (
               <li key={folder.id} className="flex items-center gap-2">
                 <button
                   className="btn btn-ghost btn-sm flex items-center gap-1"
-                  onClick={() => setFolderStack((prev) => [...prev, folder])}
+                  onClick={() => setCurrentFolder(folder)}
                   title={`Open ${folder.name}`}
                 >
-                  <span className="text-xl">📁</span>
-                  <span className="truncate max-w-[120px] text-left">
-                    {folder.name}
-                  </span>
+                  <FolderIcon className="w-4 h-4 min-w-[16px] min-h-[16px] mr-2" />
+                  <span className="text-left">{folder.name}</span>
                 </button>
               </li>
             ))}
