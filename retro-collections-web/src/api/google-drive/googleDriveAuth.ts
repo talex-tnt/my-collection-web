@@ -1,8 +1,8 @@
 let tokenClient: google.accounts.oauth2.TokenClient | null = null;
 let currentResolve: ((token: string) => void) | null = null;
 
-const TOKEN_KEY = 'gdrive_access_token';
-const EXPIRY_KEY = 'gdrive_token_expiry';
+export const TOKEN_KEY = 'gdrive_access_token';
+export const EXPIRY_KEY = 'gdrive_token_expiry';
 
 export const initGoogleDriveAuth = (clientId: string) => {
   tokenClient = google.accounts.oauth2.initTokenClient({

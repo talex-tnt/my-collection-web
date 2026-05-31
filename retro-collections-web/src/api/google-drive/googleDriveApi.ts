@@ -34,7 +34,6 @@ export const driveApi = createApi({
 
   baseQuery: async (args, api, extraOptions) => {
     let token = getDriveToken();
-
     if (!token) {
       token = await requestDriveToken();
     }
@@ -50,12 +49,8 @@ export const driveApi = createApi({
     const result = await base(args, api, extraOptions);
 
     if (result.error?.status === 401) {
-      // Svuota il token vecchio e corrotto
       clearDriveToken();
-
-      // Richiede un nuovo token (mostrerà il pop-up solo se la sessione Google nel browser è scaduta)
       const newToken = await requestDriveToken();
-
       return fetchBaseQuery({
         baseUrl: 'https://www.googleapis.com/drive/v3',
         prepareHeaders: (headers) => {

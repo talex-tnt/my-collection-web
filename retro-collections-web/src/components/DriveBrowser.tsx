@@ -47,8 +47,8 @@ const DriveBrowser = ({
   );
 
   return (
-    <div className="card bg-transparent w-full max-w-md mx-auto">
-      <div className="card-body p-6">
+    <div className="card bg-transparent w-full max-w-md mx-auto max-h-[85vh] flex flex-col">
+      <div className="card-body p-2 sm:p-6 flex flex-col overflow-hidden">
         <div className="flex items-center justify-between mb-2">
           <h3 className="card-title text-base-content text-lg font-semibold">
             Google Drive Folder Browser
@@ -80,6 +80,34 @@ const DriveBrowser = ({
           <span className="ml-2 font-mono text-sm">{currentFolder.name}</span>
         </div>
 
+        {/* Actions */}
+        <div className="flex gap-2 items-center justify-between">
+          <button
+            className="btn btn-outline btn-xs"
+            onClick={() =>
+              onSelectFolder({
+                folder: currentFolder,
+                files,
+              })
+            }
+          >
+            {/* Select {currentFolder.name} */}
+            Select This Folder
+          </button>
+
+          <button
+            className="btn btn-xs btn-outline"
+            onClick={() =>
+              onSelectFolder({
+                folder: { id: '', name: '' },
+                files: [],
+              })
+            }
+          >
+            Unset
+          </button>
+        </div>
+
         {/* Folders */}
         {isLoading && (
           <div className="flex items-center gap-2 my-4">
@@ -88,38 +116,40 @@ const DriveBrowser = ({
           </div>
         )}
 
-        <ul className="space-y-2 mb-4">
-          {folders.map((folder: FolderType) => (
-            <li key={folder.id} className="flex items-center gap-2">
-              <button
-                className="btn btn-ghost btn-sm flex items-center gap-1"
-                onClick={() => setFolderStack((prev) => [...prev, folder])}
-                title={`Open ${folder.name}`}
-              >
-                <span className="text-xl">📁</span>
-                <span className="truncate max-w-[120px] text-left">
-                  {folder.name}
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
+        {folders.length > 0 && (
+          <ul className="space-y-2 mb-4">
+            {folders.map((folder: FolderType) => (
+              <li key={folder.id} className="flex items-center gap-2">
+                <button
+                  className="btn btn-ghost btn-sm flex items-center gap-1"
+                  onClick={() => setFolderStack((prev) => [...prev, folder])}
+                  title={`Open ${folder.name}`}
+                >
+                  <span className="text-xl">📁</span>
+                  <span className="truncate max-w-[120px] text-left">
+                    {folder.name}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
 
         {folders.length === 0 && !isLoading && (
-          <div className="text-xs opacity-60 mt-4">
+          <div className="text-xs opacity-60 mt-0">
             No folders found in this directory.
           </div>
         )}
 
         {/* Images */}
-        <div className="mt-2">
+        <div className="mt-0 flex-grow min-h-0 flex flex-col">
           <h4 className="font-semibold text-sm mb-2">Images</h4>
 
           {images.length === 0 && !isLoading && (
             <div className="text-xs opacity-60">No images in this folder.</div>
           )}
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto flex-grow pr-1">
             {images.map((img: { id: string; name: string }) => (
               <div key={img.id} className="flex flex-col items-center">
                 <div className="w-full h-[100px] bg-base-200 rounded overflow-hidden flex items-center justify-center">
@@ -136,31 +166,6 @@ const DriveBrowser = ({
             ))}
           </div>
         </div>
-
-        {/* Actions */}
-        <button
-          className="btn btn-outline btn-xs mt-4"
-          onClick={() =>
-            onSelectFolder({
-              folder: currentFolder,
-              files,
-            })
-          }
-        >
-          Select {currentFolder.name}
-        </button>
-
-        <button
-          className="btn btn-xs btn-outline mt-2"
-          onClick={() =>
-            onSelectFolder({
-              folder: { id: '', name: '' },
-              files: [],
-            })
-          }
-        >
-          Unset
-        </button>
       </div>
     </div>
   );

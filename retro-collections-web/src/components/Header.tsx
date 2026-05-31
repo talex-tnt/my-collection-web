@@ -19,6 +19,7 @@ import { useIsAdmin } from '../hooks';
 
 import { useDispatch } from 'react-redux';
 import { clearAuth, setAccessToken } from '../store/authSlice';
+import { EXPIRY_KEY, TOKEN_KEY } from '../api/google-drive/googleDriveAuth';
 
 function Header() {
   const location = useLocation();
@@ -28,8 +29,6 @@ function Header() {
   const [error, setError] = useState('');
   const isAdmin = useIsAdmin(user);
 
-  const provider = new GoogleAuthProvider();
-  provider.addScope('https://www.googleapis.com/auth/drive.readonly');
   const [checkAuthorizedUser] = useLazyIsUserAuthorizedQuery();
   const [createOrUpdateUser] = useCreateOrUpdateUserMutation();
   const [createOrUpdatePrivateUser] = useCreateOrUpdatePrivateUserMutation();
@@ -48,10 +47,22 @@ function Header() {
 
       await setPersistence(auth, browserLocalPersistence);
 
+      const provider = new GoogleAuthProvider();
+      provider.addScope('https://www.googleapis.com/auth/drive.readonly');
+
       const result = await signInWithPopup(auth, provider);
       const credential = GoogleAuthProvider.credentialFromResult(result);
       if (credential?.accessToken) {
         dispatch(setAccessToken(credential.accessToken));
+
+        if (credential.accessToken) {
+          console.log('Google access token obtained:', credential.accessToken);
+          const tokenResult = await result.user.getIdTokenResult();
+          const expiryTime = new Date(tokenResult.expirationTime).getTime();
+
+          sessionStorage.setItem(TOKEN_KEY, credential?.accessToken);
+          sessionStorage.setItem(EXPIRY_KEY, expiryTime.toString());
+        }
       }
       const currentUser = result.user;
       const email = currentUser.email || '';
