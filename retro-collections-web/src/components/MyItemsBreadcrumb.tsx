@@ -63,9 +63,8 @@ function MyItemsBreadcrumb({
       ref={containerRef}
       className="bg-base-200 p-4 pt-2 px-2 rounded-xl text-sm breadcrumbs overflow-visible"
     >
-      <ul>
-        {/* 1st Segment: Visibility */}
-        <li>
+      <ul className="flex-wrap row-gap-1">
+        <li className="whitespace-normal">
           <div className="flex items-center gap-1">
             <button
               onClick={() =>
@@ -118,11 +117,8 @@ function MyItemsBreadcrumb({
           </div>
         </li>
 
-        {/* 2nd Segment: Category Tab */}
-        <li>
-          <div className="flex items-center gap-1  hover:no-underline">
-            {/* If we're already on the 'spare' tab, or the parent 'collections' layout, 
-                render as unclickable text with standard text cursor. */}
+        <li className="whitespace-normal">
+          <div className="flex items-center gap-1 hover:no-underline">
             {tab === 'spare' ||
             (tab === 'collections' && !currentCollectionId) ? (
               <span
@@ -180,14 +176,12 @@ function MyItemsBreadcrumb({
           </div>
         </li>
 
-        {/* 3rd Segment: Collection Switcher */}
         {tab === 'collections' && currentCollectionId && (
-          <li>
+          <li className="whitespace-normal">
             <div className="flex items-center gap-1">
-              {/* Renders as unclickable static text with default text cursor, 
-                  removing the hand icon and link hovers completely. */}
               <span
-                className={`font-bold max-w-[200px] truncate block text-left select-none cursor-default ${tertiaryColor}`}
+                className={`font-bold inline-block text-left select-none cursor-default ${tertiaryColor}`}
+                title={currentCollection?.name}
               >
                 {currentCollection?.name || 'Loading...'}
               </span>

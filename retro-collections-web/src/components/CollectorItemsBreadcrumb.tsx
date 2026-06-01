@@ -57,9 +57,8 @@ function CollectorItemsBreadcrumb({
       ref={containerRef}
       className="p-4 pt-2 px-2 pb-0 mb-2 text-sm breadcrumbs overflow-visible"
     >
-      <ul>
-        {/* 1st Segment: Category Tab */}
-        <li>
+      <ul className="flex-wrap row-gap-1">
+        <li className="whitespace-normal">
           <div className="flex items-center gap-1 hover:no-underline">
             <button
               onClick={() => onNavigate(`/${tab}`)}
@@ -101,15 +100,15 @@ function CollectorItemsBreadcrumb({
           </div>
         </li>
 
-        {/* 2nd Segment: Collection Switcher */}
         {tab === 'collections' && currentCollectionId && (
-          <li>
+          <li className="whitespace-normal">
             <div className="flex items-center gap-1">
               <button
                 onClick={() =>
                   onNavigate(`/collections/${currentCollectionId}`)
                 }
-                className={`link font-bold max-w-[200px] truncate block no-underline hover:underline bg-transparent border-none p-0 min-h-0 h-auto text-left ${tertiaryColor}`}
+                className={`link font-bold inline-block no-underline hover:underline bg-transparent border-none p-0 min-h-0 h-auto text-left ${tertiaryColor}`}
+                title={currentCollection?.name}
               >
                 {currentCollection?.name || 'Loading...'}
               </button>
