@@ -52,7 +52,7 @@ export const PreviewImage: React.FC<PreviewImageProps> = ({
 
   // Construct the Vercel proxy URL
   const proxyUrl = enableProxy
-    ? `https://image-proxy-roan.vercel.app/api/drive-proxy?id=${driveId}&sz=${size}`
+    ? `https://retro-collections.vercel.app/api/drive-proxy?id=${driveId}&sz=${size}`
     : `https://drive.google.com/thumbnail?id=${driveId}&sz=${size}`;
 
   return (
