@@ -42,31 +42,6 @@ function Admin() {
     return unsubscribe;
   }, []);
 
-  // const updateClaimsForCurrentUser = async () => {
-  //   if (!currentUser) return;
-
-  //   try {
-  //     setError('');
-  //     setSuccess('');
-
-  //     const response = await manageUserClaims({
-  //       // uidToManage: currentUser.uid,
-  //       emailToManage: 'axlsd83@gmail.com2', //currentUser.email || '',
-  //       env: env === 'production' ? 'prod' : 'dev',
-  //       enable: true,
-  //     }).unwrap();
-
-  //     if (response.success) {
-  //       setSuccess('Claims updated successfully');
-  //     } else {
-  //       setError('Failed to update claims: ' + response.message);
-  //     }
-  //   } catch (err) {
-  //     console.error(err);
-  //     setError('Error updating claims');
-  //   }
-  // };
-
   const addAuthorizedUser = async () => {
     if (!newEmail.trim()) {
       setError('Please enter an email');
