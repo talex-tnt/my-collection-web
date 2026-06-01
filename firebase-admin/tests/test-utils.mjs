@@ -113,7 +113,8 @@ export const buildClientContext = async (adminApp, { uid, claims = {} }) => {
   const app = initializeClientApp(firebaseConfig, appName);
   const auth = getAuth(app);
   const db = getFirestore(app);
-  const defaultClaims = TEST_ROOT === 'test' ? { tester: true } : {};
+  const defaultClaims =
+    TEST_ROOT === 'test' ? { enabled: true, tester: true } : { enabled: true };
   const mergedClaims = { ...defaultClaims, ...claims };
 
   if (RULES_TARGET === 'emulator') {

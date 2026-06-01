@@ -11,6 +11,10 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.token.admin == true;
     }
 
+    function isEnabled() {
+      return isAuthenticated() && request.auth.token.enabled == true;
+    }
+
     function hasTesterClaim() {
       return isAuthenticated() &&
         ('tester' in request.auth.token) &&
@@ -18,11 +22,11 @@ service cloud.firestore {
     }
 
     function isTester() {
-      return isAuthenticated() && hasTesterClaim();
+      return isEnabled() && hasTesterClaim();
     }
 
     function isUser() {
-      return isAuthenticated() && !hasTesterClaim();
+      return isEnabled() && !hasTesterClaim();
     }
 
     function canAccessEnvironment(env) {
