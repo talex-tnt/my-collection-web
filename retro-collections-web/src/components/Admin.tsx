@@ -79,7 +79,7 @@ function Admin() {
 
       await manageUserClaims({
         emailToManage: newEmail,
-        env: env === 'prod' ? 'prod' : 'dev',
+        env,
         enable: true,
       }).unwrap();
       await addUser(newEmail).unwrap();
@@ -99,7 +99,7 @@ function Admin() {
 
       await manageUserClaims({
         emailToManage: email,
-        env: env === 'production' ? 'prod' : 'dev',
+        env,
         enable: false,
       }).unwrap();
       await removeUser(email).unwrap();
