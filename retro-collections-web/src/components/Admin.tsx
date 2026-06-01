@@ -3,6 +3,7 @@ import { onAuthStateChanged, type User } from 'firebase/auth';
 
 import { auth } from '../lib/firebase';
 import { useIsAdmin } from '../hooks';
+
 const env = import.meta.env.VITE_ENV;
 
 import {
@@ -78,7 +79,7 @@ function Admin() {
 
       await manageUserClaims({
         emailToManage: newEmail,
-        env: env === 'production' ? 'prod' : 'dev',
+        env: env === 'prod' ? 'prod' : 'dev',
         enable: true,
       }).unwrap();
       await addUser(newEmail).unwrap();
