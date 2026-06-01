@@ -187,7 +187,7 @@ function MyItemsBreadcrumb({
               </span>
 
               <div
-                className={`dropdown dropdown-bottom ${openDropdown === 'collection' ? 'dropdown-open' : ''}`}
+                className={`dropdown dropdown-end ${openDropdown === 'collection' ? 'dropdown-open' : ''}`}
               >
                 <button
                   onClick={() => toggleDropdown('collection')}
