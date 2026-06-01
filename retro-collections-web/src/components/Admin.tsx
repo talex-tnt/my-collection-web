@@ -3,12 +3,15 @@ import { onAuthStateChanged, type User } from 'firebase/auth';
 
 import { auth } from '../lib/firebase';
 import { useIsAdmin } from '../hooks';
+const env = import.meta.env.VITE_ENV;
 
 import {
   useGetAuthorizedUsersQuery,
   useAddAuthorizedUserMutation,
   useRemoveAuthorizedUserMutation,
 } from '../api/firestore/firestoreApi';
+
+import { useManageUserClaimsMutation } from '../api/retro-collections/retroCollectionsApi';
 
 function Admin() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -24,6 +27,7 @@ function Admin() {
 
   const [addUser] = useAddAuthorizedUserMutation();
   const [removeUser] = useRemoveAuthorizedUserMutation();
+  const [manageUserClaims] = useManageUserClaimsMutation();
 
   const [newEmail, setNewEmail] = useState('');
   const [error, setError] = useState('');
@@ -37,6 +41,31 @@ function Admin() {
     return unsubscribe;
   }, []);
 
+  // const updateClaimsForCurrentUser = async () => {
+  //   if (!currentUser) return;
+
+  //   try {
+  //     setError('');
+  //     setSuccess('');
+
+  //     const response = await manageUserClaims({
+  //       // uidToManage: currentUser.uid,
+  //       emailToManage: 'axlsd83@gmail.com2', //currentUser.email || '',
+  //       env: env === 'production' ? 'prod' : 'dev',
+  //       enable: true,
+  //     }).unwrap();
+
+  //     if (response.success) {
+  //       setSuccess('Claims updated successfully');
+  //     } else {
+  //       setError('Failed to update claims: ' + response.message);
+  //     }
+  //   } catch (err) {
+  //     console.error(err);
+  //     setError('Error updating claims');
+  //   }
+  // };
+
   const addAuthorizedUser = async () => {
     if (!newEmail.trim()) {
       setError('Please enter an email');
@@ -47,6 +76,11 @@ function Admin() {
       setError('');
       setSuccess('');
 
+      await manageUserClaims({
+        emailToManage: newEmail,
+        env: env === 'production' ? 'prod' : 'dev',
+        enable: true,
+      }).unwrap();
       await addUser(newEmail).unwrap();
 
       setNewEmail('');
@@ -62,6 +96,11 @@ function Admin() {
       setError('');
       setSuccess('');
 
+      await manageUserClaims({
+        emailToManage: email,
+        env: env === 'production' ? 'prod' : 'dev',
+        enable: false,
+      }).unwrap();
       await removeUser(email).unwrap();
 
       setSuccess(`${email} removed successfully`);
@@ -101,12 +140,18 @@ function Admin() {
                 type="email"
                 className="input input-bordered w-full"
                 value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
+                onChange={(e) => setNewEmail(e.target.value?.toLowerCase())}
                 placeholder="Enter email"
               />
 
               <button className="btn btn-secondary" onClick={addAuthorizedUser}>
                 Add User
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => removeAuthorizedUser(newEmail)}
+              >
+                Remove
               </button>
             </div>
           </div>

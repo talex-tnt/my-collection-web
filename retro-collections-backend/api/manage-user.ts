@@ -26,10 +26,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const token = authHeader.split('Bearer ')[1];
-    const { uidToManage, env } = req.body;
+    const { uidToManage, emailToManage, env } = req.body;
 
-    if (!uidToManage || typeof uidToManage !== 'string') {
-      return res.status(400).json({ error: 'Missing target user UID.' });
+    if (!uidToManage && !emailToManage) {
+      return res.status(400).json({ error: 'Missing target identifier. Provide either uidToManage or emailToManage.' });
     }
 
     const isProdSelection = env === 'prod';
@@ -50,18 +50,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const authInstance = getAuth(currentApp);
 
     const decodedToken = await authInstance.verifyIdToken(token);
-
     if (!decodedToken.admin) {
       return res.status(403).json({ error: 'Access Denied. Administrator privileges required.' });
     }
 
-    const targetUser = await authInstance.getUser(uidToManage);
-    const currentClaims = targetUser.customClaims || {};
+    let finalUid = uidToManage;
+    let targetUser;
 
+    try {
+      if (emailToManage && typeof emailToManage === 'string') {
+        targetUser = await authInstance.getUserByEmail(emailToManage);
+        finalUid = targetUser.uid;
+      } else if (uidToManage && typeof uidToManage === 'string') {
+        targetUser = await authInstance.getUser(uidToManage);
+      } else {
+        return res.status(400).json({ error: 'Invalid format for uidToManage or emailToManage.' });
+      }
+    } catch (authError: any) {
+      if (authError.code === 'auth/user-not-found') {
+        return res.status(404).json({ error: 'The requested target user could not be found.' });
+      }
+      throw authError;
+    }
+
+    const currentClaims = targetUser.customClaims || {};
     let targetStateMessage = '';
 
     if (req.method === 'POST') {
-      await authInstance.setCustomUserClaims(uidToManage, {
+      await authInstance.setCustomUserClaims(finalUid, {
         ...currentClaims,
         enabled: true,
       });
@@ -70,16 +86,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const updatedClaims = { ...currentClaims };
       delete updatedClaims.enabled;
       
-      await authInstance.setCustomUserClaims(uidToManage, updatedClaims);
+      await authInstance.setCustomUserClaims(finalUid, updatedClaims);
       targetStateMessage = `User profile configuration cleared and disabled in ${appName}.`;
     }
 
-    return res.status(200).json({ message: targetStateMessage, uid: uidToManage });
+    return res.status(200).json({ message: targetStateMessage, uid: finalUid });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Operational server failure tracking trace:', error);
-    return res.status(401).json({ 
-      error: 'Invalid/expired token signature authentication parameters, or structural processing errors.' 
+    
+    if (error.code && error.code.startsWith('auth/')) {
+      return res.status(401).json({ error: 'Invalid/expired token signature authentication parameters.' });
+    }
+
+    return res.status(500).json({ 
+      error: 'Structural processing errors or configuration mismatch on the server.' 
     });
   }
 }
