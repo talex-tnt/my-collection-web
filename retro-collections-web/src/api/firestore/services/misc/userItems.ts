@@ -16,6 +16,7 @@ import {
   getCountFromServer,
   startAfter as fsStartAfter,
   limit as fsLimit,
+  collectionGroup,
 } from 'firebase/firestore';
 
 import type {
@@ -24,7 +25,10 @@ import type {
 } from '../../types/firestoreBuilder';
 import { createFirestoreApiError } from '../../errorLogger';
 import { db } from '../../../../lib/firebase';
-import { getUserCollectionPath } from '../../runtimeConfig';
+import {
+  getUserCollectionPath,
+  resolveDataCollectionPath,
+} from '../../runtimeConfig';
 import type { ImageFolder, ImagePreview } from '../../types/shared';
 import { sanitizeFirestorePayload } from '../../utils';
 export interface Item {
@@ -62,7 +66,7 @@ interface FirestoreItemDoc {
   };
 }
 
-interface PaginationCursor {
+export interface PaginationCursor {
   id: string;
   createdAt?: string;
   nameLowercase?: string;
@@ -87,6 +91,162 @@ const mapItemDoc = (snapshot: QueryDocumentSnapshot<DocumentData>): Item => {
 };
 
 const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
+  getAllUserItems: builder.query<
+    {
+      items: Item[];
+      pageInfo: {
+        endCursor: PaginationCursor | null;
+        hasNextPage: boolean;
+      };
+    },
+    {
+      userId: string;
+      isPublicItem: boolean;
+      tags?: string[];
+      startWithNameFilter?: string;
+      nameContainsTokens?: string;
+      limit?: number;
+      startAfter?: PaginationCursor | null;
+    }
+  >({
+    async queryFn({
+      userId,
+      isPublicItem,
+      tags,
+      startWithNameFilter,
+      nameContainsTokens,
+      limit,
+      startAfter,
+    }) {
+      const resolvedVisibility = isPublicItem
+        ? ('public' as const)
+        : ('private' as const);
+
+      const basePath = await resolveDataCollectionPath({
+        visibility: resolvedVisibility,
+        resourceType: 'users',
+      });
+
+      const baseConstraints: QueryConstraint[] = [];
+
+      baseConstraints.push(where('userId', '==', userId));
+
+      if (tags?.length) {
+        baseConstraints.push(where('tags', 'array-contains-any', tags));
+      }
+
+      const prefix = startWithNameFilter?.trim().toLowerCase();
+
+      if (prefix || nameContainsTokens) {
+        if (nameContainsTokens) {
+          const tokens = tokenizeName(nameContainsTokens);
+          if (tokens.length) {
+            baseConstraints.push(
+              where('nameTokens', 'array-contains', tokens[0])
+            );
+          }
+        }
+
+        if (prefix) {
+          baseConstraints.push(
+            where('nameLowercase', '>=', prefix),
+            where('nameLowercase', '<=', `${prefix}\uf8ff`),
+            orderBy('nameLowercase')
+          );
+        } else {
+          baseConstraints.push(orderBy('createdAt', 'desc'));
+        }
+      } else {
+        baseConstraints.push(orderBy('createdAt', 'desc'));
+      }
+
+      baseConstraints.push(orderBy('__name__', 'asc'));
+
+      if (startAfter) {
+        baseConstraints.push(
+          prefix
+            ? fsStartAfter(startAfter.nameLowercase, startAfter.id)
+            : fsStartAfter(
+                Timestamp.fromDate(new Date(startAfter.createdAt!)),
+                startAfter.id
+              )
+        );
+      }
+
+      const groupQuery = Number.isInteger(limit)
+        ? query(
+            collectionGroup(db, 'items'),
+            ...baseConstraints,
+            fsLimit((limit ?? 0) + 1)
+          )
+        : query(collectionGroup(db, 'items'), ...baseConstraints);
+
+      try {
+        const snapshot = await getDocs(groupQuery);
+
+        const rawItems = snapshot.docs
+          .filter((docSnapshot) => docSnapshot.ref.path.startsWith(basePath))
+          .map(mapItemDoc);
+
+        const hasNextPage = rawItems.length > (limit ?? rawItems.length);
+        const pagedItems = hasNextPage ? rawItems.slice(0, limit) : rawItems;
+        const last = pagedItems[pagedItems.length - 1];
+
+        return {
+          data: {
+            items: pagedItems,
+            pageInfo: {
+              endCursor: last
+                ? {
+                    id: last.id,
+                    createdAt: last.createdAt,
+                    nameLowercase: last.name.toLowerCase(),
+                  }
+                : null,
+              hasNextPage,
+            },
+          },
+        };
+      } catch (error) {
+        return {
+          error: createFirestoreApiError(
+            {
+              apiEndpoint: 'getAllItemsFromGroup',
+              operation: 'QUERY',
+              firebaseFunc: 'getDocs',
+              path: `collectionGroup://items?root=${basePath}`,
+            },
+            error
+          ),
+        };
+      }
+    },
+
+    providesTags: (result, _error, request) => {
+      const tagType: FirestoreTagTypes = request.isPublicItem
+        ? 'PublicUserItems'
+        : 'PrivateUserItems';
+      const listId = `${request.userId}_LIST`;
+
+      return result && result.items
+        ? [
+            ...result.items.map(({ id }) => ({
+              type: tagType,
+              id,
+            })),
+            {
+              type: tagType,
+              id: listId,
+            },
+          ]
+        : [
+            {
+              type: tagType,
+              id: listId,
+            },
+          ];
+    },
+  }),
   getUserItems: builder.query<
     {
       items: Item[];

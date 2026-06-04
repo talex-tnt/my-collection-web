@@ -15,11 +15,12 @@ function MyCollectionItems({
   isPublicCollection: boolean;
 }) {
   const { collectionId } = useParams<{ collectionId: string }>();
+  const isAllItemsView = collectionId === 'all';
 
   const collection = useGetUserCollectionQuery(
     { id: collectionId || '', userId: user.uid, isPublicCollection },
     {
-      skip: !collectionId,
+      skip: !collectionId || isAllItemsView, // Skip fetching if it's the "All Items" virtual collection
     }
   ).data as Collection | undefined;
 
@@ -39,11 +40,13 @@ function MyCollectionItems({
       <div className="grid grid-cols-1 md:grid-cols-6 gap-6">
         {/* Left column: NewItem and filters */}
         <div className="md:col-span-2 space-y-6">
-          <NewItem
-            userId={user.uid}
-            isPublicItem={isPublicCollection}
-            collectionId={collectionId}
-          />
+          {!isAllItemsView && (
+            <NewItem
+              userId={user.uid}
+              isPublicItem={isPublicCollection}
+              collectionId={collectionId}
+            />
+          )}
           <ItemsFilters
             userId={user.uid}
             itemNameClientFilter={itemNameClientFilter}
