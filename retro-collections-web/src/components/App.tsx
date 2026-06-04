@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Header from './Header';
 import Footer from './Footer';
 import AdminPage from '../pages/AdminPage';
@@ -6,7 +6,7 @@ import SettingsPage from '../pages/SettingsPage';
 import CollectorPage from '../pages/CollectorPage';
 import CollectorsPage from '../pages/CollectorsPage';
 import UsersPage from '../pages/UsersPage';
-import AllMyItemsPage from '../pages/AllMyItemsPage';
+import MyCollectionsPage from '../pages/MyCollectionsPage';
 import ProfilePage from '../pages/ProfilePage';
 import TagsPage from '../pages/TagsPage';
 import { onAuthStateChanged, type User } from 'firebase/auth';
@@ -14,6 +14,7 @@ import { useEffect, useState } from 'react';
 import { auth } from '../lib/firebase';
 import { useGetRuntimeConfigQuery } from '../api/firestore/firestoreApi';
 import { useGoogleDriveAuth } from '../utils/hooks';
+import MyCollectiblesPage from '../pages/MyCollectiblesPage';
 
 function App() {
   useGoogleDriveAuth();
@@ -70,9 +71,16 @@ function App() {
 
             <div className="space-y-6">
               <Routes>
-                <Route path="/*" element={<AllMyItemsPage />} />
+                <Route path="/*" element={<Navigate to="/my-collectibles" />} />
                 <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/my-collections/*" element={<AllMyItemsPage />} />
+                <Route
+                  path="/my-collectibles/*"
+                  element={<MyCollectiblesPage />}
+                />
+                <Route
+                  path="/my-collections/*"
+                  element={<MyCollectionsPage />}
+                />
                 <Route
                   path="/collectors/:userId/*"
                   element={<CollectorPage />}

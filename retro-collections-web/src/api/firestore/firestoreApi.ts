@@ -37,6 +37,7 @@ export const {
   useGetRuntimeConfigQuery,
 
   useGetAllUserItemsQuery,
+  useGetAllUserItemsCountQuery,
   useGetUserItemsQuery,
   useGetUserItemsCountQuery,
   useCreateUserItemMutation,

@@ -102,27 +102,8 @@ function CollectionsList({
     }
   };
 
-  const allItemsCollection: CollectionType = {
-    id: 'all',
-    name: 'All Items',
-    description: 'View all items regardless of collection',
-    createdAt: '',
-    userId,
-  };
-
   return (
     <div className="space-y-2">
-      <Collection
-        key={`all-items-collection`}
-        collection={allItemsCollection}
-        userId={userId || ''}
-        isPublicCollection={isPublicCollection}
-        readOnly={true}
-        onUpdate={updateCollection}
-        onDelete={deleteCollection}
-        onSelect={onCollectionClick}
-      />
-      <div className="divider" />
       {/* REUSABLE COLLAPSIBLE PANEL FOR CREATION */}
       {!readOnly && (
         <CollapsePanel title="Create New Collection">

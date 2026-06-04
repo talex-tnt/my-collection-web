@@ -23,7 +23,6 @@ interface Cursor {
 
 interface MyItemsListMarkupProps {
   user: { uid: string } | null;
-  isPublicItem: boolean;
   collectionId?: string;
   setShowTags: React.Dispatch<React.SetStateAction<boolean>>;
   setShowPreview: React.Dispatch<React.SetStateAction<boolean>>;
@@ -54,7 +53,6 @@ function MyItemsListMarkup({
   user,
   collectionId,
   totalCount,
-  isPublicItem,
   setShowTags,
   setShowPreview,
   editing,
@@ -139,16 +137,20 @@ function MyItemsListMarkup({
               <ExpandableMotion
                 key={item.id}
                 renderExpanded={(props) => (
-                  <MyExpandedItem {...props} key={`expanded-${item.id}`} />
+                  <MyExpandedItem
+                    {...props}
+                    isPublicItem={item.isPublic}
+                    key={`expanded-${item.id}`}
+                  />
                 )}
               >
                 <MyListItem
                   readonly={!editing}
                   key={item.id}
                   item={item}
+                  isPublicItem={item.isPublic}
                   userId={user?.uid || ''}
                   showTags={showTags}
-                  isPublicItem={isPublicItem}
                   collectionId={collectionId}
                   showPreview={showPreview}
                 />

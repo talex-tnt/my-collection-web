@@ -31,6 +31,7 @@ import {
 } from '../../runtimeConfig';
 import type { ImageFolder, ImagePreview } from '../../types/shared';
 import { sanitizeFirestorePayload } from '../../utils';
+
 export interface Item {
   id: string;
   name: string;
@@ -43,6 +44,7 @@ export interface Item {
     imageFolder?: ImageFolder;
     previewImage?: ImagePreview;
   };
+  isPublic: boolean;
 }
 
 type ItemInput = Omit<Item, 'id' | 'createdAt' | 'updatedAt'> & {
@@ -87,6 +89,7 @@ const mapItemDoc = (snapshot: QueryDocumentSnapshot<DocumentData>): Item => {
     createdAt: data.createdAt?.toDate?.()?.toISOString?.() ?? '',
     updatedAt: data.updatedAt?.toDate?.()?.toISOString?.(),
     metadata: data.metadata,
+    isPublic: snapshot.ref.path.includes('/public/'),
   };
 };
 
@@ -101,7 +104,6 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
     },
     {
       userId: string;
-      isPublicItem: boolean;
       tags?: string[];
       startWithNameFilter?: string;
       nameContainsTokens?: string;
@@ -111,22 +113,12 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
   >({
     async queryFn({
       userId,
-      isPublicItem,
       tags,
       startWithNameFilter,
       nameContainsTokens,
       limit,
       startAfter,
     }) {
-      const resolvedVisibility = isPublicItem
-        ? ('public' as const)
-        : ('private' as const);
-
-      const basePath = await resolveDataCollectionPath({
-        visibility: resolvedVisibility,
-        resourceType: 'users',
-      });
-
       const baseConstraints: QueryConstraint[] = [];
 
       baseConstraints.push(where('userId', '==', userId));
@@ -185,7 +177,7 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
         const snapshot = await getDocs(groupQuery);
 
         const rawItems = snapshot.docs
-          .filter((docSnapshot) => docSnapshot.ref.path.startsWith(basePath))
+          // .filter((docSnapshot) => docSnapshot.ref.path.startsWith(basePath))
           .map(mapItemDoc);
 
         const hasNextPage = rawItems.length > (limit ?? rawItems.length);
@@ -214,7 +206,7 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
               apiEndpoint: 'getAllItemsFromGroup',
               operation: 'QUERY',
               firebaseFunc: 'getDocs',
-              path: `collectionGroup://items?root=${basePath}`,
+              path: `collectionGroup://items`,
             },
             error
           ),
@@ -223,11 +215,8 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
     },
 
     providesTags: (result, _error, request) => {
-      const tagType: FirestoreTagTypes = request.isPublicItem
-        ? 'PublicUserItems'
-        : 'PrivateUserItems';
+      const tagType: FirestoreTagTypes = 'UserItems';
       const listId = `${request.userId}_LIST`;
-
       return result && result.items
         ? [
             ...result.items.map(({ id }) => ({
@@ -247,6 +236,88 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
           ];
     },
   }),
+
+  getAllUserItemsCount: builder.query<
+    number,
+    {
+      userId: string;
+      tags?: string[];
+      startWithNameFilter?: string;
+      nameContainsTokens?: string;
+    }
+  >({
+    async queryFn({ userId, tags, startWithNameFilter, nameContainsTokens }) {
+      const baseConstraints: QueryConstraint[] = [];
+
+      baseConstraints.push(where('userId', '==', userId));
+
+      if (tags?.length) {
+        baseConstraints.push(where('tags', 'array-contains-any', tags));
+      }
+
+      const prefix = startWithNameFilter?.trim().toLowerCase();
+
+      if (prefix || nameContainsTokens) {
+        if (nameContainsTokens) {
+          const tokens = tokenizeName(nameContainsTokens);
+          if (tokens.length) {
+            baseConstraints.push(
+              where('nameTokens', 'array-contains', tokens[0])
+            );
+          }
+        }
+
+        if (prefix) {
+          baseConstraints.push(
+            where('nameLowercase', '>=', prefix),
+            where('nameLowercase', '<=', `${prefix}\uf8ff`)
+          );
+        }
+      }
+
+      const countQuery = query(
+        collectionGroup(db, 'items'),
+        ...baseConstraints
+      );
+
+      const context = {
+        apiEndpoint: 'getAllUserItemsCount',
+        operation: 'QUERY' as const,
+        firebaseFunc: 'getCountFromServer',
+        path: `collectionGroup://items`,
+        requestPayload: {
+          userId,
+          tags,
+          startWithNameFilter,
+          nameContainsTokens,
+        },
+      };
+
+      try {
+        const snapshot = await getCountFromServer(countQuery);
+        return {
+          data: snapshot.data().count,
+        };
+      } catch (error) {
+        return {
+          error: createFirestoreApiError(context, error),
+        };
+      }
+    },
+
+    providesTags: (result, _error, request) => {
+      const tagType: FirestoreTagTypes = 'UserItems';
+      return result !== undefined
+        ? [
+            {
+              type: tagType,
+              id: `${request.userId}_LIST`,
+            },
+          ]
+        : [];
+    },
+  }),
+
   getUserItems: builder.query<
     {
       items: Item[];
@@ -295,9 +366,6 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
 
       const prefix = startWithNameFilter?.trim().toLowerCase();
 
-      // -------------------------
-      // SEARCH MODE
-      // -------------------------
       if (prefix || nameContainsTokens) {
         if (nameContainsTokens) {
           const tokens = tokenizeName(nameContainsTokens);
@@ -564,6 +632,10 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
         : 'PrivateUserItems';
       return [
         {
+          type: 'UserItems',
+          id: `${userId}_LIST`,
+        },
+        {
           type: tagType,
           id: `${userId}_LIST`,
         },
@@ -631,6 +703,14 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
         : 'PrivateUserItems';
       return [
         {
+          type: 'UserItems',
+          id,
+        },
+        {
+          type: 'UserItems',
+          id: `${userId}_LIST`,
+        },
+        {
           type: tagType,
           id,
         },
@@ -679,6 +759,14 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
         ? 'PublicUserItems'
         : 'PrivateUserItems';
       return [
+        {
+          type: 'UserItems',
+          id,
+        },
+        {
+          type: 'UserItems',
+          id: `${userId}_LIST`,
+        },
         {
           type: tagType,
           id,

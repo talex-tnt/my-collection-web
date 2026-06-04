@@ -142,6 +142,8 @@ function Header() {
             <select
               className="select select-bordered w-full max-w-xs"
               value={(() => {
+                if (location.pathname.startsWith('/my-collectibles'))
+                  return '/my-collectibles';
                 if (location.pathname.startsWith('/my-collections'))
                   return '/my-collections';
                 if (location.pathname.startsWith('/tags')) return '/tags';
@@ -157,6 +159,7 @@ function Header() {
               })()}
               onChange={(e) => navigate(e.target.value)}
             >
+              <option value="/my-collectibles">My Collectibles</option>
               <option value="/my-collections">My Collections</option>
               <option value="/collectors">Collectors</option>
               <option value="/tags">Tags</option>
@@ -168,6 +171,14 @@ function Header() {
 
           {/* Desktop: tab navigation */}
           <nav className="tabs tabs-boxed flex-wrap gap-2 hidden lg:flex">
+            <NavLink
+              to="/my-collectibles"
+              className={({ isActive }) =>
+                isActive ? 'tab tab-active' : 'tab'
+              }
+            >
+              My Collectibles
+            </NavLink>
             <NavLink
               to="/my-collections"
               className={({ isActive }) =>
