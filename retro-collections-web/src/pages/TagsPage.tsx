@@ -88,6 +88,7 @@ const AVAILABLE_TAG_IMAGES = [
     id: 'super-famicom',
     path: '/tag-icons/super-famicom-logo.png',
     label: 'Super Famicom',
+    bgColor: 'bg-white',
   },
   { id: 'nes', path: '/tag-icons/nes.png', label: 'NES' },
   { id: 'game-boy', path: '/tag-icons/game-boy.png', label: 'Game Boy' },
