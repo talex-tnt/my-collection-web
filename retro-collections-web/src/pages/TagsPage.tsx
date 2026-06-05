@@ -187,12 +187,17 @@ const AVAILABLE_TAG_IMAGES = [
   {
     id: 'uk',
     path: '/tag-icons/uk-flag.png',
-    label: 'UK',
+    label: 'British',
   },
   {
     id: 'usa',
     path: '/tag-icons/usa-flag.png',
-    label: 'USA',
+    label: 'American',
+  },
+  {
+    id: 'french',
+    path: '/tag-icons/fr-flag.png',
+    label: 'French',
   },
 ];
 
