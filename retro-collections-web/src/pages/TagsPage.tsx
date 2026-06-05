@@ -45,6 +45,17 @@ const AVAILABLE_TAG_IMAGES = [
     label: 'Mega Drive JP',
   },
   {
+    id: 'game-gear-jp-usa',
+    path: '/tag-icons/game-gear-us.png',
+    label: 'Game Gear JP/USA',
+    bgColor: 'bg-white',
+  },
+  {
+    id: 'game-gear-eu',
+    path: '/tag-icons/game-gear-eu.png',
+    label: 'Game Gear EU',
+  },
+  {
     id: 'saturn-jp',
     path: '/tag-icons/saturn-jap.png',
     label: 'Saturn JP',
@@ -72,6 +83,11 @@ const AVAILABLE_TAG_IMAGES = [
     id: 'super-nintendo',
     path: '/tag-icons/super-nintendo-logo.png',
     label: 'Super Nintendo',
+  },
+  {
+    id: 'super-famicom',
+    path: '/tag-icons/super-famicom-logo.png',
+    label: 'Super Famicom',
   },
   { id: 'nes', path: '/tag-icons/nes.png', label: 'NES' },
   { id: 'game-boy', path: '/tag-icons/game-boy.png', label: 'Game Boy' },
@@ -167,6 +183,16 @@ const AVAILABLE_TAG_IMAGES = [
     id: 'japanese',
     path: '/tag-icons/jap.png',
     label: 'Japanese',
+  },
+  {
+    id: 'uk',
+    path: '/tag-icons/uk-flag.png',
+    label: 'UK',
+  },
+  {
+    id: 'usa',
+    path: '/tag-icons/usa-flag.png',
+    label: 'USA',
   },
 ];
 
