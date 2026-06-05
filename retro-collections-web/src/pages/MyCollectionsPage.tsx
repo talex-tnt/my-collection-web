@@ -11,7 +11,6 @@ import { useCurrentUser } from '../utils/hooks';
 import MyCollectionItems from '../components/MyCollectionItems';
 import { useGetUserCollectionsQuery } from '../api/firestore/firestoreApi';
 import MyItemsBreadcrumb from '../components/MyItemsBreadcrumb';
-import MyItemsAllGrouped from '../components/MyItemsAllGrouped';
 
 function MyCollectionsPage() {
   const user = useCurrentUser();
