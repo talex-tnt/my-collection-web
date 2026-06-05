@@ -25,10 +25,7 @@ import type {
 } from '../../types/firestoreBuilder';
 import { createFirestoreApiError } from '../../errorLogger';
 import { db } from '../../../../lib/firebase';
-import {
-  getUserCollectionPath,
-  resolveDataCollectionPath,
-} from '../../runtimeConfig';
+import { getUserCollectionPath } from '../../runtimeConfig';
 import type { ImageFolder, ImagePreview } from '../../types/shared';
 import { sanitizeFirestorePayload } from '../../utils';
 
@@ -109,6 +106,7 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
       nameContainsTokens?: string;
       limit?: number;
       startAfter?: PaginationCursor | null;
+      sortBy?: 'createdAt' | 'updatedAt' | 'name'; // Added dynamic sortBy parameter
     }
   >({
     async queryFn({
@@ -118,53 +116,79 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
       nameContainsTokens,
       limit,
       startAfter,
+      sortBy = 'updatedAt', // Defaults to 'updatedAt' as requested
     }) {
       const baseConstraints: QueryConstraint[] = [];
 
+      // 1. Enforce global scoping boundaries by binding the query to a specific user
       baseConstraints.push(where('userId', '==', userId));
 
+      // 2. Apply array filters for tags if present
       if (tags?.length) {
         baseConstraints.push(where('tags', 'array-contains-any', tags));
       }
 
       const prefix = startWithNameFilter?.trim().toLowerCase();
 
-      if (prefix || nameContainsTokens) {
-        if (nameContainsTokens) {
-          const tokens = tokenizeName(nameContainsTokens);
-          if (tokens.length) {
-            baseConstraints.push(
-              where('nameTokens', 'array-contains', tokens[0])
-            );
-          }
-        }
-
-        if (prefix) {
+      // 3. Handle partial string token matching
+      if (nameContainsTokens) {
+        const tokens = tokenizeName(nameContainsTokens);
+        if (tokens.length) {
           baseConstraints.push(
-            where('nameLowercase', '>=', prefix),
-            where('nameLowercase', '<=', `${prefix}\uf8ff`),
-            orderBy('nameLowercase')
+            where('nameTokens', 'array-contains', tokens[0])
           );
-        } else {
-          baseConstraints.push(orderBy('createdAt', 'desc'));
         }
-      } else {
-        baseConstraints.push(orderBy('createdAt', 'desc'));
       }
 
+      // 4. Handle Sorting & Range Constraints (The critical Firestore rule)
+      if (prefix) {
+        // FIRESTORE RULE: If you use a range filter (>=, <=), your primary orderBy
+        // MUST be on that exact same field. We cannot sort by date here.
+        baseConstraints.push(
+          where('nameLowercase', '>=', prefix),
+          where('nameLowercase', '<=', `${prefix}\uf8ff`),
+          orderBy('nameLowercase', 'asc')
+        );
+      } else {
+        // If there is no prefix range filter, apply the requested dynamic sorting strategy
+        if (sortBy === 'name') {
+          baseConstraints.push(orderBy('nameLowercase', 'asc'));
+        } else if (sortBy === 'createdAt') {
+          baseConstraints.push(orderBy('createdAt', 'desc'));
+        } else {
+          // Fallback default: 'updatedAt'
+          baseConstraints.push(orderBy('updatedAt', 'desc'));
+        }
+      }
+
+      // 5. Tie-breaker sorting field required for deterministic pagination cursors
       baseConstraints.push(orderBy('__name__', 'asc'));
 
+      // 6. Map and apply the cursor variables for pagination matching the active index structure
       if (startAfter) {
-        baseConstraints.push(
-          prefix
-            ? fsStartAfter(startAfter.nameLowercase, startAfter.id)
-            : fsStartAfter(
-                Timestamp.fromDate(new Date(startAfter.createdAt!)),
-                startAfter.id
-              )
-        );
+        if (prefix || sortBy === 'name') {
+          baseConstraints.push(
+            fsStartAfter(startAfter.nameLowercase, startAfter.id)
+          );
+        } else if (sortBy === 'createdAt') {
+          baseConstraints.push(
+            fsStartAfter(
+              Timestamp.fromDate(new Date(startAfter.createdAt!)),
+              startAfter.id
+            )
+          );
+        } else {
+          // Dynamic matching pagination cursor for 'updatedAt'
+          baseConstraints.push(
+            fsStartAfter(
+              Timestamp.fromDate(new Date(startAfter.updatedAt!)),
+              startAfter.id
+            )
+          );
+        }
       }
 
+      // 7. Compile the query constraints into a Collection Group execution reference
       const groupQuery = Number.isInteger(limit)
         ? query(
             collectionGroup(db, 'items'),
@@ -176,9 +200,7 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
       try {
         const snapshot = await getDocs(groupQuery);
 
-        const rawItems = snapshot.docs
-          // .filter((docSnapshot) => docSnapshot.ref.path.startsWith(basePath))
-          .map(mapItemDoc);
+        const rawItems = snapshot.docs.map(mapItemDoc);
 
         const hasNextPage = rawItems.length > (limit ?? rawItems.length);
         const pagedItems = hasNextPage ? rawItems.slice(0, limit) : rawItems;
@@ -192,6 +214,7 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
                 ? {
                     id: last.id,
                     createdAt: last.createdAt,
+                    updatedAt: last.updatedAt, // Pass down to preserve cursor values
                     nameLowercase: last.name.toLowerCase(),
                   }
                 : null,
@@ -213,7 +236,6 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
         };
       }
     },
-
     providesTags: (result, _error, request) => {
       const tagType: FirestoreTagTypes = 'UserItems';
       const listId = `${request.userId}_LIST`;
@@ -335,6 +357,7 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
       limit?: number;
       startAfter?: PaginationCursor | null;
       collectionId?: string;
+      sortBy?: 'createdAt' | 'updatedAt' | 'name';
     }
   >({
     async queryFn({
@@ -346,6 +369,7 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
       limit,
       startAfter,
       collectionId,
+      sortBy = 'updatedAt',
     }) {
       const resolvedVisibility = isPublicItem
         ? ('public' as const)
@@ -360,47 +384,67 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
 
       const baseConstraints: QueryConstraint[] = [];
 
+      // FIX 1: Removed baseConstraints.push(where('userId', '==', userId));
+      // Shallow collection queries implicitly validate ownership through the subcollection path.
+
+      // 2. Apply array filters for tags if present
       if (tags?.length) {
         baseConstraints.push(where('tags', 'array-contains-any', tags));
       }
 
       const prefix = startWithNameFilter?.trim().toLowerCase();
 
-      if (prefix || nameContainsTokens) {
-        if (nameContainsTokens) {
-          const tokens = tokenizeName(nameContainsTokens);
-
-          if (tokens.length) {
-            baseConstraints.push(
-              where('nameTokens', 'array-contains', tokens[0])
-            );
-          }
-        }
-
-        if (prefix) {
+      // 3. Handle partial string token matching
+      if (nameContainsTokens) {
+        const tokens = tokenizeName(nameContainsTokens);
+        if (tokens.length) {
           baseConstraints.push(
-            where('nameLowercase', '>=', prefix),
-            where('nameLowercase', '<=', `${prefix}\uf8ff`),
-            orderBy('nameLowercase')
+            where('nameTokens', 'array-contains', tokens[0])
           );
-        } else {
-          baseConstraints.push(orderBy('createdAt', 'desc'));
         }
-      } else {
-        baseConstraints.push(orderBy('createdAt', 'desc'));
       }
 
+      // 4. Handle Sorting & Range Constraints (The critical Firestore rule)
+      if (prefix) {
+        baseConstraints.push(
+          where('nameLowercase', '>=', prefix),
+          where('nameLowercase', '<=', `${prefix}\uf8ff`),
+          orderBy('nameLowercase', 'asc')
+        );
+      } else {
+        if (sortBy === 'name') {
+          baseConstraints.push(orderBy('nameLowercase', 'asc'));
+        } else if (sortBy === 'createdAt') {
+          baseConstraints.push(orderBy('createdAt', 'desc'));
+        } else {
+          baseConstraints.push(orderBy('updatedAt', 'desc'));
+        }
+      }
+
+      // 5. Tie-breaker sorting field required for deterministic pagination cursors
       baseConstraints.push(orderBy('__name__', 'asc'));
 
+      // FIX 2: Correctly match cursor parameters to the active sorting key sequence
       if (startAfter) {
-        baseConstraints.push(
-          prefix
-            ? fsStartAfter(startAfter.nameLowercase, startAfter.id)
-            : fsStartAfter(
-                Timestamp.fromDate(new Date(startAfter.createdAt!)),
-                startAfter.id
-              )
-        );
+        if (prefix || sortBy === 'name') {
+          baseConstraints.push(
+            fsStartAfter(startAfter.nameLowercase, startAfter.id)
+          );
+        } else if (sortBy === 'createdAt') {
+          baseConstraints.push(
+            fsStartAfter(
+              Timestamp.fromDate(new Date(startAfter.createdAt!)),
+              startAfter.id
+            )
+          );
+        } else {
+          baseConstraints.push(
+            fsStartAfter(
+              Timestamp.fromDate(new Date(startAfter.updatedAt!)),
+              startAfter.id
+            )
+          );
+        }
       }
 
       const pagedQuery = Number.isInteger(limit)
@@ -416,9 +460,7 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
         const rawItems = snapshot.docs.map(mapItemDoc);
 
         const hasNextPage = rawItems.length > (limit ?? rawItems.length);
-
         const pagedItems = hasNextPage ? rawItems.slice(0, limit) : rawItems;
-
         const last = pagedItems[pagedItems.length - 1];
 
         return {
@@ -429,6 +471,7 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
                 ? {
                     id: last.id,
                     createdAt: last.createdAt,
+                    updatedAt: last.updatedAt, // Pass down to preserve cursor values
                     nameLowercase: last.name.toLowerCase(),
                   }
                 : null,
