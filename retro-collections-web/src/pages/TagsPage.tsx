@@ -55,6 +55,12 @@ const AVAILABLE_TAG_IMAGES = [
     path: '/tag-icons/saturn-usa.png',
     label: 'Saturn USA',
   },
+  {
+    id: 'dreamcast',
+    path: '/tag-icons/sega-dreamcast.png',
+    label: 'Dreamcast',
+    bgColor: 'bg-white',
+  },
 
   // NINTENDO
   {
@@ -74,6 +80,12 @@ const AVAILABLE_TAG_IMAGES = [
     path: '/tag-icons/nintendo-64.png',
     label: 'Nintendo 64',
   },
+  {
+    id: 'nintendo-ds',
+    path: '/tag-icons/nintendo-ds.svg',
+    label: 'Nintendo DS',
+    bgColor: 'bg-white',
+  },
   { id: 'nintendo-wii', path: '/tag-icons/nintendo-wii.png', label: 'Wii' },
   { id: 'wii-u', path: '/tag-icons/wii-u.png', label: 'Wii U' },
   {
@@ -83,6 +95,12 @@ const AVAILABLE_TAG_IMAGES = [
   },
 
   // PLAYSTATION
+  {
+    id: 'sony',
+    path: '/tag-icons/sony.png',
+    label: 'SONY',
+    bgColor: 'bg-white',
+  },
   {
     id: 'playstation-retro',
     path: '/tag-icons/ps1.png',

@@ -92,7 +92,7 @@ export default function Tags({
                   <img
                     src={style.imageUrl}
                     alt=""
-                    className="w-20 h-20 object-contain shrink-0"
+                    className="max-w-[80px] max-h-[22px] object-contain shrink-0"
                     loading="lazy"
                   />
                 )}
