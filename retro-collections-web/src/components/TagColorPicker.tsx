@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 
 export interface TagColorPair {
-  name: string;
+  name?: string;
   backgroundColor: string | null;
   foregroundColor: string | null;
 }
@@ -88,7 +88,7 @@ export function TagColorPicker({
         >
           {colorPairs.map((pair, idx) => (
             <li
-              key={pair.name + idx}
+              key={(pair?.name ?? '') + idx}
               role="option"
               aria-selected={idx === valueIndex}
               className={`cursor-pointer px-2 py-1 flex items-center gap-2 ${idx === valueIndex ? 'bg-base-200' : ''}`}

@@ -33,17 +33,17 @@ export default function Tags({
   const [updateItem] = useUpdateUserItemMutation();
   const [addTagError, setAddTagError] = useState<string | null>(null);
 
-  // Build a map for fast style lookup
-  const styleMap = userTags.reduce<Record<string, UserTag['style']>>(
-    (acc, t) => {
-      acc[t.id] = t.style || {
-        backgroundColor: null,
-        foregroundColor: null,
-      };
-      return acc;
-    },
-    {}
-  );
+  // Build a map for fast style lookup, including the new imageUrl field
+  const styleMap = userTags.reduce<
+    Record<string, NonNullable<UserTag['style']> & { imageUrl?: string | null }>
+  >((acc, t) => {
+    acc[t.id] = {
+      backgroundColor: t.style?.backgroundColor || null,
+      foregroundColor: t.style?.foregroundColor || null,
+      imageUrl: (t.style as { imageUrl?: string | null })?.imageUrl || null,
+    };
+    return acc;
+  }, {});
 
   const handleRemoveTag = async (tagToRemove: string) => {
     setAddTagError(null);
@@ -73,21 +73,38 @@ export default function Tags({
             const style = styleMap[tag] || {
               backgroundColor: null,
               foregroundColor: null,
+              imageUrl: null,
             };
             return (
               <span
                 key={tag}
-                className="badge badge-outline flex items-center gap-1"
+                className={
+                  'badge badge-outline flex items-center' +
+                  (style.imageUrl ? ' p-0 px-2' : ' gap-2 py-3 px-2.5')
+                }
                 style={{
                   backgroundColor: style.backgroundColor || undefined,
                   color: style.foregroundColor || undefined,
                 }}
               >
-                {tag}
+                {/* RENDER THE IMAGE IF PRESET IN THE TAG DESIGN */}
+                {style.imageUrl && (
+                  <img
+                    src={style.imageUrl}
+                    alt=""
+                    className="w-20 h-20 object-contain shrink-0"
+                    loading="lazy"
+                  />
+                )}
+
+                {!style.imageUrl && (
+                  <span className="truncate max-w-[120px]">{tag}</span>
+                )}
+
                 {!readOnly && (
                   <button
                     type="button"
-                    className="ml-1 text-xs text-error hover:text-error-content"
+                    className="ml-1 text-xs text-error hover:text-error-content font-bold transition-colors"
                     aria-label={`Remove tag ${tag}`}
                     onClick={() => handleRemoveTag(tag)}
                     tabIndex={0}
