@@ -416,6 +416,7 @@ export default function TagsPage({ user }: TagsPageProps) {
               {/* LOGO BUTTONS ITERATION */}
               {AVAILABLE_TAG_IMAGES.map((img) => {
                 const isSelected = selectedTagImageUrl === img.path;
+                const absoluteImagePath = `${import.meta.env.BASE_URL.replace(/\/$/, '')}${img.path}`;
                 return (
                   <button
                     key={img.id}
@@ -429,7 +430,7 @@ export default function TagsPage({ user }: TagsPageProps) {
                     onClick={() => {
                       handleImageChange(
                         activeImagePickerTagId,
-                        img.path,
+                        absoluteImagePath,
                         selectedTagStyle
                       );
                     }}
@@ -439,7 +440,7 @@ export default function TagsPage({ user }: TagsPageProps) {
                       className={`w-full flex items-center justify-center bg-transparent`}
                     >
                       <img
-                        src={img.path}
+                        src={absoluteImagePath}
                         alt={img.label}
                         className={`max-w-full max-h-full object-contain mix-blend-lighten pointer-events-none  ${
                           img?.bgColor ? img?.bgColor : 'bg-transparent'
