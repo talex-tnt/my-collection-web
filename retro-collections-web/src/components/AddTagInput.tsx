@@ -165,7 +165,6 @@ export default function AddTagInput({
       </div>
     );
   }
-
   return (
     <button
       type="button"
