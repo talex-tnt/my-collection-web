@@ -12,7 +12,7 @@ import MyCollectionItems from '../components/MyCollectionItems';
 import { useGetUserCollectionsQuery } from '../api/firestore/firestoreApi';
 import MyItemsBreadcrumb from '../components/MyItemsBreadcrumb';
 
-function AllMyItemsPage() {
+function MyCollectionsPage() {
   const user = useCurrentUser();
   const navigate = useNavigate();
   const location = useLocation();
@@ -94,4 +94,4 @@ function AllMyItemsPage() {
   );
 }
 
-export default AllMyItemsPage;
+export default MyCollectionsPage;

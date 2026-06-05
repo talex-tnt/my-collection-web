@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
-  useGetUserItemsQuery,
-  useGetUserItemsCountQuery,
+  useGetAllUserItemsCountQuery,
+  useGetAllUserItemsQuery,
 } from '../api/firestore/firestoreApi';
 
 import { useSettingsUIPageSize } from '../utils/hooks';
@@ -16,18 +16,14 @@ interface MyItemsListProps {
   user: { uid: string } | null;
   itemNameClientFilter: string;
   selectedTags: string[];
-  isPublicItem: boolean;
   startWithNameFilter: string;
   nameContainsTokens: string;
-  collectionId?: string;
 }
 
-function MyItemsList({
+function MyItemsListAll({
   user,
-  collectionId,
   itemNameClientFilter,
   selectedTags,
-  isPublicItem,
   startWithNameFilter,
   nameContainsTokens,
 }: MyItemsListProps) {
@@ -46,14 +42,12 @@ function MyItemsList({
   const currentCursor = cursors[pageIndex];
   const isAll = pageSize === 'all';
 
-  const { data: totalCount = 0 } = useGetUserItemsCountQuery(
+  const { data: totalCount = 0 } = useGetAllUserItemsCountQuery(
     {
       userId: user?.uid || '',
       tags: selectedTags.length ? selectedTags : undefined,
       startWithNameFilter: startWithNameFilter || undefined,
       nameContainsTokens: nameContainsTokens || undefined,
-      isPublicItem,
-      collectionId,
     },
     {
       skip: !user?.uid,
@@ -64,20 +58,18 @@ function MyItemsList({
     data: itemsData,
     isLoading,
     error,
-  } = useGetUserItemsQuery(
+  } = useGetAllUserItemsQuery(
     {
       userId: user?.uid || '',
       tags: selectedTags.length ? selectedTags : undefined,
-      isPublicItem,
       limit: isAll ? undefined : pageSize,
       startAfter: currentCursor,
       startWithNameFilter: startWithNameFilter || undefined,
       nameContainsTokens: nameContainsTokens || undefined,
-      collectionId,
     },
     { skip: !user?.uid }
   );
-
+  // console.log('Fetched itemsData for MyItemsListAll:', itemsData, totalCount);
   const items = (itemsData?.items || []).filter((item) =>
     item.name.toLowerCase().includes(itemNameClientFilter.toLowerCase())
   );
@@ -99,7 +91,7 @@ function MyItemsList({
   return (
     <MyItemsListMarkup
       user={user}
-      collectionId={collectionId}
+      collectionId={undefined}
       totalCount={totalCount}
       setShowTags={setShowTags}
       setShowPreview={setShowPreview}
@@ -122,4 +114,4 @@ function MyItemsList({
   );
 }
 
-export default MyItemsList;
+export default MyItemsListAll;

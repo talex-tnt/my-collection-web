@@ -36,6 +36,8 @@ export const firestoreApi = createApi({
 export const {
   useGetRuntimeConfigQuery,
 
+  useGetAllUserItemsQuery,
+  useGetAllUserItemsCountQuery,
   useGetUserItemsQuery,
   useGetUserItemsCountQuery,
   useCreateUserItemMutation,
@@ -47,6 +49,7 @@ export const {
   useCreateUserCollectionMutation,
   useUpdateUserCollectionMutation,
   useDeleteUserCollectionMutation,
+  useInjectCollectionIdIntoItemsMutation,
 
   useGetUsersQuery,
   useGetPublicUsersQuery,
