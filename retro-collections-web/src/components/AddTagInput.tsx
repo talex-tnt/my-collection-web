@@ -132,13 +132,29 @@ export default function AddTagInput({
                     className="flex items-center justify-start text-xs my-0.5 w-full active:bg-base-200"
                   >
                     <span
-                      className="badge badge-outline truncate w-full justify-start block text-left"
+                      key={t.id}
+                      className={
+                        'badge badge-outline flex items-center' +
+                        (tagStyle.imageUrl ? ' p-0 px-2' : ' gap-2 py-3 px-2.5')
+                      }
                       style={{
                         backgroundColor: tagStyle.backgroundColor || undefined,
                         color: tagStyle.foregroundColor || undefined,
                       }}
                     >
-                      {t.id}
+                      {/* RENDER THE IMAGE IF PRESET IN THE TAG DESIGN */}
+                      {tagStyle.imageUrl && (
+                        <img
+                          src={tagStyle.imageUrl}
+                          alt=""
+                          className="max-w-[80px] max-h-[22px] object-contain shrink-0"
+                          loading="lazy"
+                        />
+                      )}
+
+                      {!tagStyle.imageUrl && (
+                        <span className="truncate max-w-[120px]">{t.id}</span>
+                      )}
                     </span>
                   </button>
                 </li>

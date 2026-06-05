@@ -149,6 +149,25 @@ const AVAILABLE_TAG_IMAGES = [
     path: '/tag-icons/xbox-logo-2010-2013.png',
     label: 'Xbox (2010)',
   },
+
+  // regions
+  {
+    id: 'pal',
+    path: '/tag-icons/pal-region.png',
+    label: 'PAL Region',
+  },
+
+  // flags
+  {
+    id: 'italian',
+    path: '/tag-icons/ita.png',
+    label: 'Italian',
+  },
+  {
+    id: 'japanese',
+    path: '/tag-icons/jap.png',
+    label: 'Japanese',
+  },
 ];
 
 const TAG_COLOR_PAIRS = [

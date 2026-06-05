@@ -17,7 +17,11 @@ import { createFirestoreApiError } from '../../errorLogger';
 export interface UserTag {
   id: string; // tag name
   userId: string;
-  style?: { backgroundColor: string | null; foregroundColor: string | null };
+  style?: {
+    backgroundColor: string | null;
+    foregroundColor: string | null;
+    imageUrl?: string | null;
+  };
 }
 
 const getPublicUserTagsEndpoints = (builder: FirestoreBuilder) => ({
