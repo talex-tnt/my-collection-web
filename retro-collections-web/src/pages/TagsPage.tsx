@@ -56,6 +56,21 @@ const AVAILABLE_TAG_IMAGES = [
     label: 'Game Gear EU',
   },
   {
+    id: 'mega-cd-jp',
+    path: '/tag-icons/mega-cd-jp.png',
+    label: 'Mega CD JP',
+  },
+  {
+    id: 'mega-cd-eu',
+    path: '/tag-icons/mega-cd-eu.png',
+    label: 'Mega CD EU',
+  },
+  {
+    id: 'sega-cd-us',
+    path: '/tag-icons/sega-cd-us.png',
+    label: 'Sega CD US',
+  },
+  {
     id: 'saturn-jp',
     path: '/tag-icons/saturn-jap.png',
     label: 'Saturn JP',
