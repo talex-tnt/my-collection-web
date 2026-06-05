@@ -1,10 +1,15 @@
 import { useState } from 'react';
-import { FiEdit2 as FiEdit, FiTrash2 as FiTrash } from 'react-icons/fi';
+import {
+  FiEdit2 as FiEdit,
+  FiTrash2 as FiTrash,
+  FiRefreshCw as RefreshCw,
+} from 'react-icons/fi';
 
 // Hook imported to resolve item counters using Firestore server aggregation
 import {
   useDeleteUserCollectionMutation,
   useGetUserItemsCountQuery,
+  useInjectCollectionIdIntoItemsMutation,
   useUpdateUserCollectionMutation,
 } from '../api/firestore/firestoreApi';
 
@@ -53,6 +58,8 @@ function Collection({
       },
       { skip: !userId || !collection.id }
     );
+
+  const [injectCollectionId] = useInjectCollectionIdIntoItemsMutation();
 
   const handleSave = async () => {
     if (readOnly) return;
@@ -109,6 +116,20 @@ function Collection({
   const handleEditClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsEditing(true);
+  };
+
+  const handleSync = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      // Invalidate the getUserItemsCountQuery cache for this collection to trigger a refetch of the real count from Firestore
+      injectCollectionId({
+        userId,
+        isPublicItem: isPublicCollection,
+        collectionId: collection.id,
+      }).unwrap();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
@@ -193,6 +214,12 @@ function Collection({
               className="btn btn-xs btn-error btn-ghost group-hover:opacity-100"
             >
               <FiTrash className="h-5 w-5" />
+            </button>
+            <button
+              onClick={handleSync}
+              className="btn btn-xs btn-error btn-ghost group-hover:opacity-100"
+            >
+              <RefreshCw className="h-5 w-5" />
             </button>
           </>
         )}

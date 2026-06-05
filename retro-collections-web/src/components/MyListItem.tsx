@@ -29,9 +29,11 @@ function MyListItem({
   showTags = true,
   onExpand,
   isPublicItem,
-  collectionId,
+  collectionId: collectionIdProp,
   showPreview = true,
 }: MyListItemProps) {
+  const collectionId = collectionIdProp || item.collectionId;
+  // console.log('Rendering MyListItem for item:', item.name, collectionId);
   const [editingField, setEditingField] = useState<
     'name' | 'description' | null
   >(null);

@@ -29,12 +29,13 @@ function MyExpandedItem({
   userId,
   showTags = true,
   isPublicItem = true,
-  collectionId,
+  collectionId: collectionIdProp,
   readonly,
   onClose,
 }: MyExpandedItemProps) {
   useDisableScroll();
   const [uiSettings] = useUISettings();
+  const collectionId = collectionIdProp || item.collectionId;
   const collapseItemImages = uiSettings?.collapseImages ?? false;
   const [editingField, setEditingField] = useState<
     'name' | 'description' | null

@@ -17,6 +17,7 @@ import {
   startAfter as fsStartAfter,
   limit as fsLimit,
   collectionGroup,
+  writeBatch,
 } from 'firebase/firestore';
 
 import type {
@@ -33,6 +34,7 @@ export interface Item {
   id: string;
   name: string;
   userId: string;
+  collectionId?: string;
   createdAt: string;
   updatedAt?: string;
   description?: string;
@@ -55,6 +57,7 @@ interface FirestoreItemDoc {
   nameLowercase: string;
   nameTokens: string[];
   userId: string;
+  collectionId?: string;
   createdAt: Timestamp;
   updatedAt?: Timestamp;
   description?: string;
@@ -68,6 +71,7 @@ interface FirestoreItemDoc {
 export interface PaginationCursor {
   id: string;
   createdAt?: string;
+  updatedAt?: string;
   nameLowercase?: string;
 }
 
@@ -81,6 +85,7 @@ const mapItemDoc = (snapshot: QueryDocumentSnapshot<DocumentData>): Item => {
     id: snapshot.id,
     name: data.name,
     userId: data.userId,
+    collectionId: data?.collectionId,
     description: data.description,
     tags: data.tags || [],
     createdAt: data.createdAt?.toDate?.()?.toISOString?.() ?? '',
@@ -641,6 +646,7 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
         tags: itemData.tags || [],
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
+        ...(collectionId ? { collectionId } : {}),
       };
 
       const context = {
@@ -658,6 +664,7 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
           data: {
             id: docRef.id,
             ...itemData,
+            collectionId,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           },
@@ -817,6 +824,97 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
         {
           type: tagType,
           id: `${userId}_LIST`,
+        },
+      ];
+    },
+  }),
+  injectCollectionIdIntoItems: builder.mutation<
+    { updatedCount: number; batchesCommitted: number },
+    { userId: string; isPublicItem: boolean; collectionId: string }
+  >({
+    async queryFn({ userId, isPublicItem, collectionId }) {
+      const resolvedVisibility = isPublicItem
+        ? ('public' as const)
+        : ('private' as const);
+
+      // 1. Resolve the correct path to the items subcollection
+      const subcollectionPath = await getUserCollectionPath({
+        visibility: resolvedVisibility,
+        resourceType: 'items',
+        userId,
+        collectionId,
+      });
+
+      const itemsRef = collection(db, subcollectionPath);
+
+      const context = {
+        apiEndpoint: 'injectCollectionIdIntoItems',
+        operation: 'UPDATE' as const,
+        firebaseFunc: 'writeBatch',
+        path: subcollectionPath,
+      };
+
+      try {
+        // 2. Fetch all documents currently inside this subcollection
+        const snapshot = await getDocs(itemsRef);
+
+        if (snapshot.empty) {
+          return { data: { updatedCount: 0, batchesCommitted: 0 } };
+        }
+
+        const docs = snapshot.docs;
+        const totalDocs = docs.length;
+
+        // Define a safe chunk size (Firestore max limit is 500)
+        const CHUNK_SIZE = 400;
+        let updatedCount = 0;
+        let batchesCommitted = 0;
+
+        // 3. Loop through documents in chunks of 400
+        for (let i = 0; i < totalDocs; i += CHUNK_SIZE) {
+          const chunk = docs.slice(i, i + CHUNK_SIZE);
+          const batch = writeBatch(db);
+
+          chunk.forEach((docSnapshot) => {
+            const docRef = doc(db, subcollectionPath, docSnapshot.id);
+
+            // Queue a merge update adding the collectionId and updating timestamp
+            batch.set(
+              docRef,
+              {
+                collectionId: collectionId,
+                updatedAt: serverTimestamp(),
+              },
+              { merge: true }
+            );
+
+            updatedCount++;
+          });
+
+          // 4. Commit each chunked batch sequentially
+          await batch.commit();
+          batchesCommitted++;
+        }
+
+        return { data: { updatedCount, batchesCommitted } };
+      } catch (error) {
+        return {
+          error: createFirestoreApiError(context, error),
+        };
+      }
+    },
+    invalidatesTags: (_result, _error, request) => {
+      const tagType: FirestoreTagTypes = request.isPublicItem
+        ? 'PublicUserItems'
+        : 'PrivateUserItems';
+      return [
+        {
+          type: tagType,
+          id: `${request.userId}_LIST`,
+        },
+        {
+          type: 'UserItems',
+          id: `${request.userId}_LIST`,
         },
       ];
     },

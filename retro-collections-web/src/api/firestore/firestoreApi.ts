@@ -49,6 +49,7 @@ export const {
   useCreateUserCollectionMutation,
   useUpdateUserCollectionMutation,
   useDeleteUserCollectionMutation,
+  useInjectCollectionIdIntoItemsMutation,
 
   useGetUsersQuery,
   useGetPublicUsersQuery,
