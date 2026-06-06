@@ -113,6 +113,11 @@ const AVAILABLE_TAG_IMAGES = [
     label: 'Nintendo 64',
   },
   {
+    id: 'nintendo-gamecube',
+    path: '/tag-icons/nintendo-gamecube.png',
+    label: 'Nintendo GameCube',
+  },
+  {
     id: 'nintendo-ds',
     path: '/tag-icons/nintendo-ds.svg',
     label: 'Nintendo DS',
