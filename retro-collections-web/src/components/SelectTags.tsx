@@ -73,9 +73,15 @@ export default function SelectTags({
           imageUrl: null,
         };
 
-        const absoluteImagePath = tagStyle.imageUrl
-          ? `${import.meta.env.BASE_URL.replace(/\/$/, '')}${tagStyle.imageUrl}`
-          : null;
+        let absoluteImagePath = null;
+        if (tagStyle.imageUrl) {
+          const baseUrl = import.meta.env.BASE_URL;
+          if (baseUrl !== '/' && tagStyle.imageUrl.startsWith(baseUrl)) {
+            absoluteImagePath = tagStyle.imageUrl;
+          } else {
+            absoluteImagePath = `${baseUrl.replace(/\/$/, '')}${tagStyle.imageUrl}`;
+          }
+        }
 
         return (
           <span
