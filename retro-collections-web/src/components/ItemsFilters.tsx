@@ -1,5 +1,6 @@
 import { useGetPublicUserTagsQuery } from '../api/firestore/firestoreApi';
 import CollapsePanel from './CollapsePanel';
+import SelectTags from './SelectTags';
 
 interface ItemsFiltersProps {
   userId: string;
@@ -44,42 +45,12 @@ export default function ItemsFilters({
         </div>
 
         <div className="flex flex-wrap gap-2 mb-2 items-center">
-          {allTags.map((tag) => {
-            const isSelected = selectedTags.includes(tag.id);
-            const style =
-              isSelected && tag.style
-                ? {
-                    backgroundColor: tag.style.backgroundColor || undefined,
-                    color: tag.style.foregroundColor || undefined,
-                    borderColor: tag.style.foregroundColor || undefined,
-                  }
-                : undefined;
-            return (
-              <button
-                key={tag.id}
-                className={`badge badge-lg cursor-pointer select-none transition-opacity h-5 ${isSelected ? 'opacity-100' : 'badge-outline opacity-50 hover:opacity-80'}`}
-                style={isSelected && style ? style : undefined}
-                onClick={() => {
-                  setSelectedTags(
-                    isSelected
-                      ? selectedTags.filter((t) => t !== tag.id)
-                      : [...selectedTags, tag.id]
-                  );
-                }}
-              >
-                {tag.id}
-              </button>
-            );
-          })}
-          {allTags.length > 0 && (
-            <button
-              className="btn btn-xs ml-2"
-              onClick={() => setSelectedTags([])}
-              disabled={selectedTags.length === 0}
-            >
-              Clear
-            </button>
-          )}
+          <label className="text-xs opacity-70 font-medium">Tags</label>
+          <SelectTags
+            selectedTags={selectedTags}
+            userTags={allTags}
+            onSelectedTagsChange={setSelectedTags}
+          />
         </div>
 
         {/* --- SERVER NAME FILTERS --- */}
@@ -120,10 +91,10 @@ export default function ItemsFilters({
         </div>
         <input
           type="text"
-          className="input input-bordered w-full"
+          className="input input-bordered input-xs w-full"
           value={itemNameClientFilter}
           onChange={(e) => onItemNameClientFilterChange(e.target.value)}
-          placeholder="Filter collectibles by name (client only)..."
+          placeholder="Filter collectibles by name (client)"
         />
       </div>
     </CollapsePanel>

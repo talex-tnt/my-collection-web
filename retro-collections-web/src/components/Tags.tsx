@@ -5,6 +5,7 @@ import {
 } from '../api/firestore/firestoreApi';
 import type { UserTag } from '../api/firestore/services/public/userTags';
 import AddTagInput from './AddTagInput'; // Import the newly separated input file
+import AddUserTag from './AddUserTag';
 
 interface TagsProps {
   userId: string;
@@ -121,7 +122,7 @@ export default function Tags({
 
         {/* REUSABLE INPUT SUB-COMPONENT */}
         {!readOnly && (
-          <AddTagInput
+          <AddUserTag
             userId={userId}
             itemId={itemId}
             collectionId={collectionId}

@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'; // 1. Import the navigation hook
 import { useCurrentUser } from '../utils/hooks';
 import MyItemsAllGrouped from '../components/MyItemsAllGrouped';
-
+import { FiArrowRight as Icon } from 'react-icons/fi';
 function MyCollectiblesPage() {
   const user = useCurrentUser();
   const navigate = useNavigate(); // 2. Initialize the navigate function
@@ -26,23 +26,10 @@ function MyCollectiblesPage() {
         {/* Shortcut button to switch to Collections */}
         <button
           onClick={() => navigate('/my-collections')}
-          className="btn btn-outline btn-primary btn-sm sm:btn-md gap-2"
+          className="btn btn-outline btn-primary btn-sm gap-1"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={1.5}
-            stroke="currentColor"
-            className="w-4 h-4"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm0 5.25h.007v.008H3.75V12Zm0 5.25h.007v.008H3.75v-.008Z"
-            />
-          </svg>
-          Check Collections
+          My Collections
+          <Icon className="w-4 h-4" />
         </button>
       </div>
 

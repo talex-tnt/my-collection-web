@@ -10,6 +10,8 @@ import { useRawgSettings, useWikiSettings } from '../utils/hooks';
 import AddTagInput from './AddTagInput'; // <-- Imported your new component
 import AutocompleteInput from './AutocompleteInput';
 import CollapsePanel from './CollapsePanel';
+import AddUserTag from './AddUserTag';
+import SelectTags from './SelectTags';
 
 interface NewItemProps {
   userId: string;
@@ -120,55 +122,11 @@ function NewItem({
               {allTags.length === 0 && (
                 <span className="text-xs opacity-60">No tags available</span>
               )}
-              {allTags.map((tag) => {
-                const isSelected = selectedTags.includes(tag.id);
-                const style =
-                  isSelected && tag.style
-                    ? {
-                        backgroundColor: tag.style.backgroundColor || undefined,
-                        color: tag.style.foregroundColor || undefined,
-                        borderColor: tag.style.foregroundColor || undefined,
-                      }
-                    : undefined;
-                return (
-                  <button
-                    key={tag.id}
-                    type="button"
-                    className={`badge badge-lg cursor-pointer select-none transition-opacity h-5 ${isSelected ? 'opacity-100' : 'badge-outline opacity-50 hover:opacity-80'}`}
-                    style={isSelected && style ? style : undefined}
-                    onClick={() => {
-                      setSelectedTags(
-                        isSelected
-                          ? selectedTags.filter((t) => t !== tag.id)
-                          : [...selectedTags, tag.id]
-                      );
-                    }}
-                  >
-                    {tag.id}
-                  </button>
-                );
-              })}
-
-              {/* INTEGRATED REUSABLE ADD TAG MENU */}
-              <AddTagInput
-                userId={userId}
-                collectionId={collectionId}
-                isPublicItem={isPublicItem}
-                assignedTags={selectedTags}
+              <SelectTags
+                selectedTags={selectedTags}
                 userTags={allTags}
-                onTagsChange={(updatedTags) => setSelectedTags(updatedTags)}
-                onError={setTagError}
+                onSelectedTagsChange={setSelectedTags}
               />
-
-              {selectedTags.length > 0 && (
-                <button
-                  type="button"
-                  className="btn btn-xs ml-2"
-                  onClick={() => setSelectedTags([])}
-                >
-                  Clear
-                </button>
-              )}
             </div>
             {tagError && (
               <div className="text-xs text-error mt-1">{tagError}</div>

@@ -220,7 +220,7 @@ const AVAILABLE_TAG_IMAGES = [
 const TAG_COLOR_PAIRS = [
   { name: 'Default', backgroundColor: null, foregroundColor: null },
   {
-    name: 'Logo',
+    name: 'Transparent',
     backgroundColor: 'transparent',
     foregroundColor: 'transparent',
   },
@@ -415,16 +415,16 @@ export default function TagsPage({ user }: TagsPageProps) {
                       <img
                         src={currentImageUrl}
                         alt=""
-                        className="w-16 h-8 bg-transparent mix-blend-normal object-contain"
+                        className={`w-16 h-8 mix-blend-normal object-contain`}
                         style={{
-                          backgroundColor: 'transparent !important',
-                          background: 'none !important',
+                          backgroundColor: `${style.backgroundColor || 'transparent'}`,
                         }}
                       />
                     ) : (
                       <span className="text-xs opacity-70 px-1">🖼️</span>
                     )}
                   </button>
+                  {tag.id}
                 </div>
 
                 <button
