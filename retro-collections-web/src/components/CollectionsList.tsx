@@ -138,7 +138,7 @@ function CollectionsList({
       {/* COLLECTIONS MANAGEMENT LIST */}
       <CollapsePanel
         title={`My Collections (${collectionsData?.collections.length || 0})`}
-        className="collapse-open bg-base-100"
+        open
       >
         {/* 4. MODIFIED: Repositioned inputs into a grid flex layout for desktop and mobile alignment */}
         <div className="flex flex-row gap-2 mb-4 w-full max-w-xl">
