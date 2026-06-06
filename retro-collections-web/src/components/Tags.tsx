@@ -4,7 +4,6 @@ import {
   useUpdateUserItemMutation,
 } from '../api/firestore/firestoreApi';
 import type { UserTag } from '../api/firestore/services/public/userTags';
-import AddTagInput from './AddTagInput'; // Import the newly separated input file
 import AddUserTag from './AddUserTag';
 
 interface TagsProps {

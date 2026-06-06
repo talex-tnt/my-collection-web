@@ -7,10 +7,8 @@ import {
 import { useSearchGamesQuery } from '../api/games/rawgApi';
 import { useSearchQuery } from '../api/wikipedia/wikipediaApi';
 import { useRawgSettings, useWikiSettings } from '../utils/hooks';
-import AddTagInput from './AddTagInput'; // <-- Imported your new component
 import AutocompleteInput from './AutocompleteInput';
 import CollapsePanel from './CollapsePanel';
-import AddUserTag from './AddUserTag';
 import SelectTags from './SelectTags';
 
 interface NewItemProps {
