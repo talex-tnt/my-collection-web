@@ -31,18 +31,18 @@ const AVAILABLE_TAG_IMAGES = [
   },
   {
     id: 'mega-drive-jp',
-    path: '/tag-icons/mega-drive-jp.svg',
+    path: '/tag-icons/megadrive-jap.png',
     label: 'Mega Drive JP',
   },
   {
     id: 'mega-drive-eu',
     path: '/tag-icons/sega-mega-drive-logo-png-transparent.png',
-    label: 'Mega Drive JP',
+    label: 'Mega Drive EU',
   },
   {
     id: 'mega-drive-eu-bw',
     path: '/tag-icons/sega-mega-drive-logo-black-and-white.png',
-    label: 'Mega Drive JP',
+    label: 'Mega Drive EU B&W',
   },
   {
     id: 'game-gear-jp-usa',
