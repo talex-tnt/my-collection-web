@@ -66,7 +66,7 @@ export default function Tags({
   const sortedTags = [...tags].sort((a, b) => {
     const orderA = userTags.find((t) => t.id === a)?.order ?? 0;
     const orderB = userTags.find((t) => t.id === b)?.order ?? 0;
-    return orderB - orderA;
+    return orderA - orderB;
   });
   return (
     <div className="w-full">
