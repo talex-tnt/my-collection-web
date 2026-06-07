@@ -10,6 +10,8 @@ import { useRawgSettings, useWikiSettings } from '../utils/hooks';
 import AutocompleteInput from './AutocompleteInput';
 import CollapsePanel from './CollapsePanel';
 import SelectTags from './SelectTags';
+import ImportModal from './ImportModal';
+import type { PreparedImportItem } from '../utils/hooks/useDriveImport';
 
 interface NewItemProps {
   userId: string;
@@ -29,10 +31,11 @@ function NewItem({
   const [rawgSettings] = useRawgSettings();
   const enableWikiSuggestions = wikiSettings?.enableSuggestions ?? false;
   const enableRawgSuggestions = rawgSettings?.enableSuggestions ?? false;
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
+  const [name, setName] = useState<string>('');
+  const [description, setDescription] = useState<string>('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [tagError, setTagError] = useState<string | null>(null);
+  const [tagError] = useState<string | null>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState<boolean>(false);
 
   const isGame = selectedTags.map((tag) => tag.toLowerCase()).includes('game');
 
@@ -55,7 +58,6 @@ function NewItem({
 
   const suggestions = isGame ? gameSuggestions : wikiSuggestions;
 
-  // Fetch all tags for the user
   const { data: allTags = [] } = useGetPublicUserTagsQuery(
     { userId },
     { skip: !userId }
@@ -93,14 +95,37 @@ function NewItem({
 
       setName('');
       setDescription('');
-      setTagError(null);
 
-      // ✅ restore focus AFTER submit
       requestAnimationFrame(() => {
         nameInputRef.current?.focus();
       });
     } catch (error) {
       console.error('Error adding item:', error);
+    }
+  };
+
+  const handleBulkImport = async (items: PreparedImportItem[]) => {
+    for (const item of items) {
+      try {
+        const itemData: Record<string, unknown> = {
+          name: item.name,
+          description: item.description,
+          userId,
+          metadata: item.metadata,
+        };
+
+        if (selectedTags.length > 0) {
+          itemData.tags = selectedTags;
+        }
+
+        await createItem({
+          ...itemData,
+          isPublicItem,
+          collectionId,
+        } as Parameters<typeof createItem>[0]).unwrap();
+      } catch (error) {
+        console.error(`Error importing item ${item.name}:`, error);
+      }
     }
   };
 
@@ -158,15 +183,31 @@ function NewItem({
           </label>
         </div>
 
-        {/* SUBMIT BUTTON */}
-        <button
-          type="submit"
-          className="btn btn-primary mt-2"
-          disabled={isCreatingItem || !name.trim()}
-        >
-          {isCreatingItem ? 'Adding...' : 'Add Collectible'}
-        </button>
+        {/* COMPACT INTERACTIVE ACTIONS CONTAINER */}
+        <div className="flex gap-2 mt-2 w-full">
+          <button
+            type="submit"
+            className="btn btn-primary flex-1"
+            disabled={isCreatingItem || !name.trim()}
+          >
+            {isCreatingItem ? 'Adding...' : 'Add Collectible'}
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-outline btn-secondary"
+            onClick={() => setIsImportModalOpen(true)}
+          >
+            Import Collectibles
+          </button>
+        </div>
       </form>
+
+      <ImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onConfirmImport={handleBulkImport}
+      />
     </CollapsePanel>
   );
 }

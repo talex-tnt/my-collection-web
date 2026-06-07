@@ -13,7 +13,7 @@ function CollapsePanel({
   title,
   children,
   open,
-  className = 'bg-base-100 rounded-lg',
+  className = 'bg-base-100 rounded-lg z-10',
   headerClassName = 'text-sm font-bold flex items-center',
   contentClassName = 'space-y-3',
 }: CollapsePanelProps) {

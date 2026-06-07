@@ -98,5 +98,10 @@ export const driveApi = createApi({
   }),
 });
 
-export const { useListFilesQuery, useGetFileQuery, useGetFileDownloadQuery } =
-  driveApi;
+export const {
+  useListFilesQuery,
+  useGetFileQuery,
+  useGetFileDownloadQuery,
+  useLazyListFilesQuery,
+  useLazyGetFileDownloadQuery,
+} = driveApi;
