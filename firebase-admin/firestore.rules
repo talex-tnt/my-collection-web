@@ -68,6 +68,18 @@ service cloud.firestore {
       return !(field in data) || data[field] == null || validOptionalString(data[field], maxLength);
     }
 
+    function validInteger(field, minVal, maxVal) {
+      return field is int && field >= minVal && field <= maxVal;
+    }
+
+    function validOptionalInteger(field, minVal, maxVal) {
+      return field == null || (field is int && field >= minVal && field <= maxVal);
+    }
+
+    function hasValidOptionalInteger(data, field, minVal, maxVal) {
+      return !(field in data) || data[field] == null || validOptionalInteger(data[field], minVal, maxVal);
+    }
+
     function validTimestamp(field) {
       return field is timestamp && (
         field == request.time || 
@@ -376,7 +388,7 @@ service cloud.firestore {
                 (field == 'tag.description') ? 1000 : 0;
         }
         function createTagKeys() {
-          return ['name', 'createdAt', 'updatedAt', 'description', 'style'];
+          return ['name', 'createdAt', 'updatedAt', 'description', 'style', 'order', 'priority'];
         }
         function createTagRequiredKeys() {
           return ['createdAt'];
@@ -390,7 +402,9 @@ service cloud.firestore {
               isOwner({ 'userId': userId }, 'userId') &&
               validTimestamp(data.createdAt) &&
               hasValidOptionalString(data, 'name', getLengthLimitTag('tag.name')) &&
-              hasValidOptionalString(data, 'description', getLengthLimitTag('tag.description'))
+              hasValidOptionalString(data, 'description', getLengthLimitTag('tag.description')) &&
+              hasValidOptionalInteger(data, 'order', -1000000, 1000000) &&
+              hasValidOptionalInteger(data, 'priority', -1000000, 1000000)
             );
         }
         function validOptionalStyle(data) {
@@ -402,7 +416,7 @@ service cloud.firestore {
           );
         }
         function updateTagKeys() {
-          return ['name', 'updatedAt', 'createdAt', 'description', 'style'];
+          return ['name', 'updatedAt', 'createdAt', 'description', 'style', 'order', 'priority'];
         }
         function updateTagRequiredKeys() {
           return ['updatedAt'];
@@ -419,6 +433,8 @@ service cloud.firestore {
               validTimestamp(newData.updatedAt) &&
               hasValidOptionalString(newData, 'name', getLengthLimitTag('tag.name')) &&
               hasValidOptionalString(newData, 'description', getLengthLimitTag('tag.description')) &&
+              hasValidOptionalInteger(newData, 'order', -1000000, 1000000) &&
+              hasValidOptionalInteger(newData, 'priority', -1000000, 1000000) &&
               validOptionalStyle(newData)
             );
         }

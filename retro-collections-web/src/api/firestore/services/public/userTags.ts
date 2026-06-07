@@ -22,6 +22,8 @@ export interface UserTag {
     foregroundColor: string | null;
     imageUrl?: string | null;
   };
+  order?: number;
+  priority?: number;
 }
 
 const getPublicUserTagsEndpoints = (builder: FirestoreBuilder) => ({
@@ -48,6 +50,8 @@ const getPublicUserTagsEndpoints = (builder: FirestoreBuilder) => ({
             id: doc.id,
             userId,
             style: doc.data().style,
+            order: doc.data().order,
+            priority: doc.data().priority,
           })),
         };
       } catch (error) {
@@ -111,28 +115,51 @@ const getPublicUserTagsEndpoints = (builder: FirestoreBuilder) => ({
     {
       userId: string;
       tag: string;
-      style: UserTag['style'];
+      style?: UserTag['style'];
+      order?: number;
+      priority?: number;
     }
   >({
-    async queryFn({ userId, tag, style }) {
+    async queryFn({ userId, tag, style, order, priority }) {
       const path = await getUserCollectionPath({
         visibility: 'public',
         resourceType: 'tags',
         userId,
       });
+
+      // Build initial raw updates object
+      const rawPayload: Record<string, unknown> = {
+        style,
+        order,
+        priority,
+        updatedAt: serverTimestamp(),
+      };
+
+      // Strip out keys that are explicitly undefined so updateDoc doesn't crash
+      const cleanPayload = Object.keys(rawPayload).reduce(
+        (acc, key) => {
+          if (rawPayload[key] !== undefined) {
+            acc[key] = rawPayload[key];
+          }
+          return acc;
+        },
+        {} as Record<string, unknown>
+      );
+
       const context = {
         apiEndpoint: 'updatePublicUserTag',
         operation: 'UPDATE' as const,
-        firebaseFunc: 'setDoc',
+        firebaseFunc: 'updateDoc',
         path,
         segmentPaths: [tag],
-        requestPayload: { style, updatedAt: serverTimestamp() },
+        requestPayload: cleanPayload,
       };
-      try {
-        // Use setDoc to create the tag doc with the tag name as the doc id
 
+      try {
         await updateDoc(doc(db, path, tag), context.requestPayload);
-        return { data: { id: tag, userId } };
+        return {
+          data: { id: tag, userId, style, order, priority },
+        };
       } catch (error) {
         return { error: createFirestoreApiError(context, error) };
       }

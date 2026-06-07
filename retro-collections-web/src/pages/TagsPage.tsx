@@ -308,7 +308,11 @@ export default function TagsPage({ user }: TagsPageProps) {
   const handleImageChange = (
     tagId: string,
     imagePath: string | null,
-    currentStyle: (typeof TAG_COLOR_PAIRS)[0] & { imageUrl?: string | null }
+    currentStyle: {
+      backgroundColor?: string | null;
+      foregroundColor?: string | null;
+      imageUrl?: string | null;
+    }
   ) => {
     const style = {
       backgroundColor: currentStyle.backgroundColor || null,
@@ -316,6 +320,11 @@ export default function TagsPage({ user }: TagsPageProps) {
       imageUrl: imagePath,
     };
     updateTagStyle({ userId, tag: tagId, style }).unwrap();
+  };
+
+  const handleOrderChange = (tagId: string, newOrder: number) => {
+    const order = newOrder;
+    updateTagStyle({ userId, tag: tagId, order }).unwrap();
   };
 
   const handleAddTag = async (e: React.FormEvent) => {
@@ -350,13 +359,22 @@ export default function TagsPage({ user }: TagsPageProps) {
 
   // Helper properties to find the currently focused tag inside the modal markup
   const selectedTagObject = tags.find((t) => t.id === activeImagePickerTagId);
-  const selectedTagStyle = selectedTagObject?.style || {
+  const selectedTagStyle = (selectedTagObject?.style || {
     backgroundColor: null,
     foregroundColor: null,
+  }) as {
+    backgroundColor: string | null;
+    foregroundColor: string | null;
+    imageUrl?: string | null;
   };
-  const selectedTagImageUrl =
-    (selectedTagObject?.style as { imageUrl?: string | null })?.imageUrl ||
-    null;
+  const selectedTagImageUrl = selectedTagStyle?.imageUrl || null;
+
+  // Sorting tags array by order ascending (defaulting to 0 if undefined)
+  const sortedTags = [...tags].sort((a, b) => {
+    const orderA = a.order ?? 0;
+    const orderB = b.order ?? 0;
+    return orderA - orderB;
+  });
 
   return (
     <div className="max-w-xl mx-auto mt-8 p-6 bg-base-200 rounded-lg shadow relative">
@@ -379,17 +397,21 @@ export default function TagsPage({ user }: TagsPageProps) {
         <div className="text-base-content/60">Loading tags...</div>
       ) : error ? (
         <div className="text-error">Failed to load tags</div>
-      ) : tags.length === 0 ? (
+      ) : sortedTags.length === 0 ? (
         <div className="text-base-content/60 italic">No tags found.</div>
       ) : (
         <ul className="space-y-2">
-          {tags.map((tag) => {
-            const style = tag.style || {
+          {sortedTags.map((tag) => {
+            const style = (tag.style || {
               backgroundColor: null,
               foregroundColor: null,
+            }) as {
+              backgroundColor: string | null;
+              foregroundColor: string | null;
             };
             const currentImageUrl =
               (tag.style as { imageUrl?: string | null })?.imageUrl || null;
+            const currentOrder = tag.order;
 
             return (
               <li
@@ -397,6 +419,46 @@ export default function TagsPage({ user }: TagsPageProps) {
                 className="flex items-center justify-between gap-2 bg-base-100 rounded px-3 py-2 border border-base-300 shadow-sm"
               >
                 <div className="flex items-center gap-2 flex-1">
+                  <input
+                    type="number"
+                    className="input input-bordered input-xs w-12 p-0 pl-2 font-mono font-semibold"
+                    value={currentOrder ?? ''}
+                    onChange={(e) => {
+                      if (e.target.value === '') {
+                        // handleOrderChange(tag.id, 0);
+                        // nothing to do
+                      }
+                      try {
+                        const val = parseInt(e.target.value, 10);
+                        handleOrderChange(tag.id, isNaN(val) ? 0 : val);
+                      } catch (_err) {
+                        console.error(
+                          'Invalid order input:',
+                          e.target.value,
+                          _err
+                        );
+                      }
+                    }}
+                    onBlur={(e) => {
+                      if (e.target.value === '') {
+                        // handleOrderChange(tag.id, 0);
+                        // nothing to do
+                        return;
+                      }
+                      try {
+                        const val = parseInt(e.target.value, 10);
+                        handleOrderChange(tag.id, isNaN(val) ? 0 : val);
+                      } catch (_err) {
+                        console.error(
+                          'Invalid order input on blur:',
+                          e.target.value,
+                          _err
+                        );
+                      }
+                    }}
+                    title="Order Number"
+                  />
+
                   <TagColorPicker
                     text={tag.id}
                     valueIndex={findPairIndex(

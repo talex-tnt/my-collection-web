@@ -63,13 +63,17 @@ export default function Tags({
       );
     }
   };
-
+  const sortedTags = [...tags].sort((a, b) => {
+    const orderA = userTags.find((t) => t.id === a)?.order ?? 0;
+    const orderB = userTags.find((t) => t.id === b)?.order ?? 0;
+    return orderB - orderA;
+  });
   return (
     <div className="w-full">
       <div className="flex flex-row flex-wrap gap-2 items-center justify-start">
         {/* RENDER CURRENT ITEM BADGES */}
-        {tags && tags.length > 0 ? (
-          tags.map((tag) => {
+        {sortedTags && sortedTags.length > 0 ? (
+          sortedTags.map((tag) => {
             const style = styleMap[tag] || {
               backgroundColor: null,
               foregroundColor: null,
