@@ -3,7 +3,7 @@ import { useUISettings } from '../utils/hooks';
 
 interface PreviewImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   driveId?: string;
-  size?: 'w100' | 'w200' | 'w300' | 'w400' | 'w800' | 'w1600';
+  size?: 'w25' | 'w50' | 'w100' | 'w200' | 'w300' | 'w400' | 'w800' | 'w1600';
   fallbackUrl?: string;
 }
 
@@ -15,25 +15,26 @@ export const PreviewImage: React.FC<PreviewImageProps> = ({
   alt = 'Preview',
   ...props
 }) => {
+  console.log({ sz, alt, driveId });
   const [settings] = useUISettings();
   const desktopSize = settings?.desktopPreviewImageSize;
   const mobileSize = settings?.mobilePreviewImageSize;
   const [isDesktop, setIsDesktop] = useState<boolean>(false);
   const settingsSize = isDesktop ? desktopSize : mobileSize;
 
-  const size = sz || settingsSize ? `w${settingsSize}` : undefined;
+  const size = sz ? sz : settingsSize ? `w${settingsSize}` : undefined;
 
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<boolean>(false);
   const [uiSettings] = useUISettings();
   const enableProxy = uiSettings?.enableImageProxy ?? true;
 
-  // console.log(
-  //   'Using image size:',
-  //   size,
-  //   'for device type:',
-  //   isDesktop ? 'Desktop' : 'Mobile'
-  // );
+  console.log(
+    'Using image size:',
+    size,
+    'for device type:',
+    isDesktop ? 'Desktop' : 'Mobile'
+  );
   useEffect(() => {
     const mediaQuery = window.matchMedia('(min-width: 768px)');
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -55,6 +56,12 @@ export const PreviewImage: React.FC<PreviewImageProps> = ({
     ? `https://retro-collections.vercel.app/api/drive-proxy?id=${driveId}&sz=${size}`
     : `https://drive.google.com/thumbnail?id=${driveId}&sz=${size}`;
 
+  if (!size) {
+    console.warn(
+      'PreviewImage: No size specified. Please provide a size prop or set desktop/mobile preview image sizes in UI settings.'
+    );
+    return;
+  }
   return (
     <div className={`relative inline-block ${className}`}>
       {/* Loading Spinner Overlaid */}

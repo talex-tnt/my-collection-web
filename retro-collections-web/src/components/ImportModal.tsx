@@ -6,6 +6,7 @@ import {
   type PreparedImportItem,
 } from '../utils/useDriveImport';
 import type { FolderType, FileType } from '../api/firestore/types/shared';
+import { PreviewImage } from './PreviewImage';
 
 interface ImportModalProps {
   isOpen: boolean;
@@ -133,9 +134,15 @@ export default function ImportModal({
                     className="flex items-center gap-3 bg-base-100 p-2 rounded border border-base-300 text-xs shadow-xs"
                   >
                     {previewImageId ? (
-                      <img
-                        src={`https://drive.google.com/thumbnail?id=${previewImageId}&sz=w100`}
-                        className="w-12 h-12 object-contain rounded bg-base-200 shrink-0"
+                      //   <img
+                      //     src={`https://drive.google.com/thumbnail?id=${previewImageId}&sz=w100`}
+                      //     className="w-12 h-12 object-contain rounded bg-base-200 shrink-0"
+                      //     alt={previewImageName}
+                      //   />
+                      <PreviewImage
+                        size="w50"
+                        driveId={previewImageId}
+                        className="object-contain rounded bg-base-200 shrink-0"
                         alt={previewImageName}
                       />
                     ) : (
