@@ -49,7 +49,7 @@ for ((i=0; i<$total_games; i++)); do
   local title=$(echo "$json_data" | jq -r ".[$i].title")
   local serial_code=$(echo "$json_data" | jq -r ".[$i].serial_code")
   local current_folder_name=$(echo "$json_data" | jq -r ".[$i].folderName // empty")
-  
+
   local final_folder_name=""
 
   # Condition A: Item already has a folderName configured
@@ -68,10 +68,10 @@ for ((i=0; i<$total_games; i++)); do
   # Condition B: Item needs a brand new folder generated
   # Format base names safely
   local clean_title="${title//:/ -}"
-  clean_title="${clean_title//™/}"
-  clean_title="${clean_title//®/}"
+  clean_title="${clean_title//™/ }"
+  clean_title="${clean_title//®/ }"
   clean_title="$(echo "$clean_title" | xargs)"
-  
+
   local clean_serial="${serial_code//\//-}"
   clean_serial="$(echo "$clean_serial" | xargs)"
 
@@ -84,7 +84,7 @@ for ((i=0; i<$total_games; i++)); do
     # Generate timestamp. Note: Colons are skipped since they violate macOS naming logic
     local timestamp=$(date +"%y%m%d-%H%M%S")
     final_folder_name="${base_folder_name}_${timestamp}"
-    
+
     # Tiny pause ensures that if a microsecond loop happens, timestamps tick over
     sleep 1
   done
