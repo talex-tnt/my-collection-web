@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   useLazyListFilesQuery,
-  useLazyGetFileDownloadQuery,
+  useLazyGetFileTextQuery,
 } from '../api/google-drive/googleDriveApi'; // Adjusted to your file placement
 import { findPreviewImage } from '../utils/findPreviewImage';
 import type { FolderType, FileType } from '../api/firestore/types/shared';
@@ -24,7 +24,7 @@ export interface PreparedImportItem {
 
 export const useDriveImport = () => {
   const [triggerListFiles] = useLazyListFilesQuery();
-  const [triggerDownloadFile] = useLazyGetFileDownloadQuery();
+  const [triggerDownloadFile] = useLazyGetFileTextQuery();
 
   const [isLoadingAnalysis, setIsLoadingAnalysis] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,8 +51,7 @@ export const useDriveImport = () => {
         throw new Error('The identified JSON file does not have a valid ID.');
       }
       // 2. Fetch the JSON payload using your authenticated RTK query handler
-      const fileBlob = await triggerDownloadFile(jsonFile.id).unwrap();
-      const fileText = await fileBlob.text();
+      const fileText = await triggerDownloadFile(jsonFile.id).unwrap();
       const jsonParsed: JSONItem[] = JSON.parse(fileText);
 
       // 3. Collect asset subdirectories present in this folder level

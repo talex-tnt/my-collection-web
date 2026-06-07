@@ -95,6 +95,15 @@ export const driveApi = createApi({
         responseHandler: async (response: Response) => response.blob(),
       }),
     }),
+    getFileText: builder.query<string, string>({
+      query: (fileId) => ({
+        url: `/files/${fileId}`,
+        params: {
+          alt: 'media',
+        },
+        responseHandler: async (response: Response) => response.text(),
+      }),
+    }),
   }),
 });
 
@@ -104,4 +113,5 @@ export const {
   useGetFileDownloadQuery,
   useLazyListFilesQuery,
   useLazyGetFileDownloadQuery,
+  useLazyGetFileTextQuery,
 } = driveApi;
