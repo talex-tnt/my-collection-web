@@ -104,7 +104,10 @@ function NewItem({
     }
   };
 
-  const handleBulkImport = async (items: PreparedImportItem[]) => {
+  const handleBulkImport = async (
+    items: PreparedImportItem[],
+    importTag: string
+  ) => {
     for (const item of items) {
       try {
         const itemData: Record<string, unknown> = {
@@ -115,7 +118,11 @@ function NewItem({
         };
 
         if (selectedTags.length > 0) {
-          itemData.tags = selectedTags;
+          itemData.tags = importTag
+            ? [...selectedTags, importTag]
+            : selectedTags;
+        } else if (importTag) {
+          itemData.tags = [importTag];
         }
 
         await createItem({

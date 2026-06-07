@@ -10,8 +10,27 @@ import type { FolderType, FileType } from '../api/firestore/types/shared';
 interface ImportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirmImport: (items: PreparedImportItem[]) => Promise<void>;
+  // Updated to accept the custom batch tag
+  onConfirmImport: (
+    items: PreparedImportItem[],
+    importTag: string
+  ) => Promise<void>;
 }
+
+// Helper to format date cleanly as YY-MM-DD.hh:mm:ss
+const getFormattedTimestamp = (): string => {
+  const now = new Date();
+
+  const yy = String(now.getFullYear()).slice(-2);
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+
+  const hh = String(now.getHours()).padStart(2, '0');
+  const min = String(now.getMinutes()).padStart(2, '0');
+  const ss = String(now.getSeconds()).padStart(2, '0');
+
+  return `${yy}${mm}${dd}.${hh}:${min}:${ss}`;
+};
 
 export default function ImportModal({
   isOpen,
@@ -27,6 +46,9 @@ export default function ImportModal({
   } = useDriveImport();
   const [isImporting, setIsImporting] = useState<boolean>(false);
 
+  // Track our custom tag state initialized with our formatted string
+  const [importTag, setImportTag] = useState<string>(getFormattedTimestamp);
+
   if (!isOpen) return null;
 
   const handleFolderSelect = (data: {
@@ -40,7 +62,8 @@ export default function ImportModal({
 
   const handleConfirm = async () => {
     setIsImporting(true);
-    await onConfirmImport(preparedItems);
+    // Pass the user-defined tag back up to the bulk upload loop handler
+    await onConfirmImport(preparedItems, importTag.trim());
     setIsImporting(false);
     setPreparedItems([]);
     onClose();
@@ -89,7 +112,7 @@ export default function ImportModal({
               import:
             </p>
 
-            <div className="overflow-y-auto flex-grow space-y-2 pr-1 border border-base-200 rounded p-2 bg-base-200/40">
+            <div className="overflow-y-auto flex-grow space-y-2 pr-1 border border-base-200 rounded p-2 bg-base-200/40 mb-4">
               {preparedItems.map((item, idx) => {
                 const previewImageId =
                   'id' in item.metadata.previewImage
@@ -138,7 +161,24 @@ export default function ImportModal({
               })}
             </div>
 
-            <div className="modal-action flex gap-2 mt-4">
+            {/* CUSTOM IMPORT TAG SECTION */}
+            <div className="form-control w-full mb-2 bg-base-200/50 p-3 rounded-lg border border-base-300">
+              <label className="label py-0 mb-1">
+                <span className="label-text font-semibold text-xs text-base-content/80">
+                  Assign Custom Tag to Import Batch
+                </span>
+              </label>
+              <input
+                type="text"
+                className="input input-bordered input-sm font-mono w-full text-xs"
+                placeholder="Batch tag (e.g., YY-MM-DD.hh:mm:ss)"
+                value={importTag}
+                onChange={(e) => setImportTag(e.target.value)}
+                disabled={isImporting}
+              />
+            </div>
+
+            <div className="modal-action flex gap-2 mt-2">
               <button
                 type="button"
                 className="btn btn-sm btn-ghost border border-base-300"
@@ -182,6 +222,5 @@ export default function ImportModal({
     </div>
   );
 
-  // Escapes parent DOM clipping contexts safely by attaching directly to the body node
   return createPortal(modalContent, document.body);
 }
