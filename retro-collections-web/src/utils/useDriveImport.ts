@@ -65,7 +65,7 @@ export const useDriveImport = () => {
       // 4. Resolve sub-assets sequentially using your custom findPreviewImage logic
       for (const entry of jsonParsed) {
         const matchedFolder = subFolders.find(
-          (f) => f?.name?.toLowerCase() === entry.folderName.toLowerCase()
+          (f) => f?.name?.toLowerCase() === entry?.folderName?.toLowerCase()
         );
 
         let previewImageObj: FileType | Record<string, never> = {};
@@ -97,7 +97,13 @@ export const useDriveImport = () => {
 
         itemsToImport.push({
           name: entry.title,
-          description: `Platform: ${entry.platform}\nSerial: ${entry.serial_code}`,
+          description: entry.platform
+            ? `Platform: ${entry.platform}`
+            : '' + entry.platform
+              ? '\n'
+              : '' + entry.serial_code
+                ? `Serial: ${entry.serial_code}`
+                : '',
           metadata: {
             imageFolder: folderMeta,
             previewImage: previewImageObj,
