@@ -30,7 +30,7 @@ export const useDriveImport = () => {
   const [error, setError] = useState<string | null>(null);
   const [preparedItems, setPreparedItems] = useState<PreparedImportItem[]>([]);
 
-  const analyzeFolder = async (rootFolderId: string, allFiles: FileType[]) => {
+  const analyzeFolder = async (_rootFolderId: string, allFiles: FileType[]) => {
     setIsLoadingAnalysis(true);
     setError(null);
     setPreparedItems([]);
@@ -38,7 +38,7 @@ export const useDriveImport = () => {
     try {
       // 1. Locate the JSON file matching new-items-*.json
       const jsonFile = allFiles.find(
-        (f) => f.name.startsWith('new-items-') && f.name.endsWith('.json')
+        (f) => f?.name?.startsWith('new-items-') && f?.name?.endsWith('.json')
       );
 
       if (!jsonFile) {
@@ -47,6 +47,9 @@ export const useDriveImport = () => {
         );
       }
 
+      if (!jsonFile.id) {
+        throw new Error('The identified JSON file does not have a valid ID.');
+      }
       // 2. Fetch the JSON payload using your authenticated RTK query handler
       const fileBlob = await triggerDownloadFile(jsonFile.id).unwrap();
       const fileText = await fileBlob.text();
@@ -62,7 +65,7 @@ export const useDriveImport = () => {
       // 4. Resolve sub-assets sequentially using your custom findPreviewImage logic
       for (const entry of jsonParsed) {
         const matchedFolder = subFolders.find(
-          (f) => f.name.toLowerCase() === entry.folderName.toLowerCase()
+          (f) => f?.name?.toLowerCase() === entry.folderName.toLowerCase()
         );
 
         let previewImageObj: FileType | Record<string, never> = {};

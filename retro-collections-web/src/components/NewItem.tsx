@@ -11,7 +11,7 @@ import AutocompleteInput from './AutocompleteInput';
 import CollapsePanel from './CollapsePanel';
 import SelectTags from './SelectTags';
 import ImportModal from './ImportModal';
-import type { PreparedImportItem } from '../utils/hooks/useDriveImport';
+import type { PreparedImportItem } from '../utils/useDriveImport';
 
 interface NewItemProps {
   userId: string;
