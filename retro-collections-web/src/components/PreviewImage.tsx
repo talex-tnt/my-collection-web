@@ -15,7 +15,6 @@ export const PreviewImage: React.FC<PreviewImageProps> = ({
   alt = 'Preview',
   ...props
 }) => {
-  console.log({ sz, alt, driveId });
   const [settings] = useUISettings();
   const desktopSize = settings?.desktopPreviewImageSize;
   const mobileSize = settings?.mobilePreviewImageSize;
@@ -29,12 +28,12 @@ export const PreviewImage: React.FC<PreviewImageProps> = ({
   const [uiSettings] = useUISettings();
   const enableProxy = uiSettings?.enableImageProxy ?? true;
 
-  console.log(
-    'Using image size:',
-    size,
-    'for device type:',
-    isDesktop ? 'Desktop' : 'Mobile'
-  );
+  // console.log(
+  //   'Using image size:',
+  //   size,
+  //   'for device type:',
+  //   isDesktop ? 'Desktop' : 'Mobile'
+  // );
   useEffect(() => {
     const mediaQuery = window.matchMedia('(min-width: 768px)');
     // eslint-disable-next-line react-hooks/set-state-in-effect
