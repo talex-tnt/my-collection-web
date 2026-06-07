@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 import {
   useCreateUserItemMutation,
   useGetPublicUserTagsQuery,
+  useCreatePublicUserTagMutation,
 } from '../api/firestore/firestoreApi';
 import { useSearchGamesQuery } from '../api/games/rawgApi';
 import { useSearchQuery } from '../api/wikipedia/wikipediaApi';
@@ -67,6 +68,7 @@ function NewItem({
 
   const [createItem, { isLoading: isCreatingItem }] =
     useCreateUserItemMutation();
+  const [createPublicUserTag] = useCreatePublicUserTagMutation();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -108,6 +110,18 @@ function NewItem({
     items: PreparedImportItem[],
     importTag: string
   ) => {
+    const cleanedTag = importTag.trim();
+
+    if (!cleanedTag) return;
+
+    try {
+      // 2. Create the tag in Firestore first so it registers in your tag collection
+      await createPublicUserTag({ userId, tag: cleanedTag }).unwrap();
+    } catch (error) {
+      console.error(`Failed to register batch tag "${cleanedTag}":`, error);
+      // Optional: return or continue depending on whether you want to proceed if tag creation fails
+    }
+
     for (const item of items) {
       try {
         const itemData: Record<string, unknown> = {
