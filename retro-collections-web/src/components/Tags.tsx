@@ -68,6 +68,7 @@ export default function Tags({
     const orderB = userTags.find((t) => t.id === b)?.order ?? 0;
     return orderA - orderB;
   });
+
   return (
     <div className="w-full">
       <div className="flex flex-row flex-wrap gap-2 items-center justify-start">
