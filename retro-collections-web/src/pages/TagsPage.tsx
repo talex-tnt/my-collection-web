@@ -377,7 +377,7 @@ export default function TagsPage({ user }: TagsPageProps) {
   });
 
   return (
-    <div className="max-w-xl mx-auto mt-8 p-6 bg-base-200 rounded-lg shadow relative">
+    <div className="max-w-5xl mx-auto mt-8 p-6 bg-base-200 rounded-lg shadow relative">
       <h1 className="text-2xl font-bold mb-4">Manage Tags</h1>
       <form className="flex gap-2 mb-6" onSubmit={handleAddTag}>
         <input
