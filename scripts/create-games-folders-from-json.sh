@@ -1,13 +1,39 @@
 #!/bin/zsh
 
+# Initialize the pretend mode flag as false
+PRETEND_MODE=false
+JSON_FILE=""
+
+# Parse flags and arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -p|--pretend)
+      PRETEND_MODE=true
+      shift
+      ;;
+    -*)
+      echo "❌ Error: Unknown option '$1'"
+      echo "Usage: $0 [-p|--pretend] <path_to_json_file>"
+      exit 1
+      ;;
+    *)
+      if [[ -n "$JSON_FILE" ]]; then
+        echo "❌ Error: Multiple file arguments provided."
+        echo "Usage: $0 [-p|--pretend] <path_to_json_file>"
+        exit 1
+      fi
+      JSON_FILE="$1"
+      shift
+      ;;
+  esac
+done
+
 # Check if an input file argument was provided
-if [[ -z "$1" ]]; then
+if [[ -z "$JSON_FILE" ]]; then
   echo "❌ Error: Missing JSON file argument."
-  echo "Usage: $0 <path_to_json_file>"
+  echo "Usage: $0 [-p|--pretend] <path_to_json_file>"
   exit 1
 fi
-
-JSON_FILE="$1"
 
 # Check if the specified JSON file actually exists
 if [[ ! -f "$JSON_FILE" ]]; then
@@ -23,6 +49,11 @@ fi
 
 # Get the absolute parent directory of the JSON file
 TARGET_DIR="${JSON_FILE:a:h}"
+
+if $PRETEND_MODE; then
+  echo "🔍 RUNNING IN PRETEND MODE (Dry Run - No changes will be written)"
+  echo "------------------------------------------------"
+fi
 
 echo "Processing JSON: $JSON_FILE"
 echo "Target directory: $TARGET_DIR"
@@ -59,8 +90,12 @@ for ((i=0; i<$total_games; i++)); do
       echo "  ℹ️ Already exists and configured: $current_folder_name"
       continue
     else
-      echo "  ⚠️ Configured folder missing on drive. Re-creating: $current_folder_name"
-      mkdir -p "$full_path"
+      if $PRETEND_MODE; then
+        echo "  🔮 [PRETEND] Configured folder missing on drive. Would re-create: $current_folder_name"
+      else
+        echo "  ⚠️ Configured folder missing on drive. Re-creating: $current_folder_name"
+        mkdir -p "$full_path"
+      fi
       continue
     fi
   fi
@@ -86,15 +121,21 @@ for ((i=0; i<$total_games; i++)); do
     final_folder_name="${base_folder_name}_${timestamp}"
 
     # Tiny pause ensures that if a microsecond loop happens, timestamps tick over
-    sleep 1
+    if ! $PRETEND_MODE; then
+      sleep 1
+    fi
   done
 
   # Secure the folder name globally in memory
   allocated_folders[$final_folder_name]=1
 
-  # Create the directory physically
-  mkdir -p "$TARGET_DIR/$final_folder_name"
-  echo "  ➕ Created unique folder: $final_folder_name"
+  # Create the directory physically or simulate it
+  if $PRETEND_MODE; then
+    echo "  🔮 [PRETEND] Would create unique folder: $final_folder_name"
+  else
+    mkdir -p "$TARGET_DIR/$final_folder_name"
+    echo "  ➕ Created unique folder: $final_folder_name"
+  fi
 
   # Inject the generated folderName back into the temporary JSON block
   json_data=$(echo "$json_data" | jq ".[$i].folderName = \"$final_folder_name\"")
@@ -102,9 +143,12 @@ done
 
 # --- THIRD PASS: Commit changes securely back to disk ---
 echo "------------------------------------------------"
-echo "💾 Writing updates back to JSON file..."
-
-# Save using a safe atomical write pattern
-echo "$json_data" | jq '.' > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
-
-echo "✅ Process complete! JSON updated and database folders synchronized safely."
+if $PRETEND_MODE; then
+  echo "🔮 [PRETEND] Would write safe atomic updates back to: $JSON_FILE"
+  echo "✅ Pretend execution complete! No data was touched."
+else
+  echo "💾 Writing updates back to JSON file..."
+  # Save using a safe atomical write pattern
+  echo "$json_data" | jq '.' > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
+  echo "✅ Process complete! JSON updated and database folders synchronized safely."
+fi
