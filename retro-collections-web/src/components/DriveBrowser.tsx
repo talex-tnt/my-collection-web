@@ -104,7 +104,7 @@ const DriveBrowser = ({
           )}
 
           <button
-            className="btn btn-outline btn-xs"
+            className="btn btn-outline btn-xs btn-primary"
             onClick={() =>
               onSelectFolder({
                 folder: currentFolder,
