@@ -421,7 +421,7 @@ export default function TagsPage({ user }: TagsPageProps) {
                 <div className="flex items-center gap-2 flex-1">
                   <input
                     type="number"
-                    className="input input-bordered input-xs w-12 p-0 pl-2 font-mono font-semibold"
+                    className="input input-bordered input-xs w-18 p-0 pl-2 font-mono font-semibold"
                     value={currentOrder ?? ''}
                     onChange={(e) => {
                       if (e.target.value === '') {
