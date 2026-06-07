@@ -93,16 +93,16 @@ export const useDriveImport = () => {
             }
           }
         }
-
+        const descriptionParts = [];
+        if (entry.platform)
+          descriptionParts.push(`Platform: ${entry.platform}`);
+        if (entry.serial_code)
+          descriptionParts.push(`Serial: ${entry.serial_code}`);
+        const description = descriptionParts.join('\n');
         itemsToImport.push({
           name: entry.title,
-          description: entry.platform
-            ? `Platform: ${entry.platform}`
-            : '' + entry.platform
-              ? '\n'
-              : '' + entry.serial_code
-                ? `Serial: ${entry.serial_code}`
-                : '',
+          description,
+
           metadata: {
             imageFolder: folderMeta,
             previewImage: previewImageObj,
