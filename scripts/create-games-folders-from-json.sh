@@ -110,8 +110,14 @@ for ((i=0; i<$total_games; i++)); do
   local clean_serial="${serial_code//\//-}"
   clean_serial="$(echo "$clean_serial" | xargs)"
 
-  local base_folder_name="$clean_title - $clean_serial"
-  final_folder_name="$base_folder_name"
+#   echo "  ➡️ Processing: '$title' (Serial: '$serial_code')"
+  if [[ -z "$clean_serial" || "$clean_serial" == "null" ]]; then
+    local base_folder_name="$clean_title"
+    final_folder_name="$base_folder_name"
+  else
+    local base_folder_name="$clean_title - $clean_serial"
+    final_folder_name="$base_folder_name"
+  fi
 
   # Collision resolution loop:
   # Check if the folder name is either taken in the JSON logic OR physically present on the disk
