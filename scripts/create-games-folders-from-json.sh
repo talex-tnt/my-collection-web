@@ -105,12 +105,13 @@ for ((i=0; i<$total_games; i++)); do
   local clean_title="${title//:/ -}"
   clean_title="${clean_title//™/ }"
   clean_title="${clean_title//®/ }"
-  clean_title="$(echo "$clean_title" | xargs)"
+  
+  # Safe macOS Trimming using sed instead of xargs (ignores quotes/apostrophes completely)
+  clean_title="$(echo "$clean_title" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
 
   local clean_serial="${serial_code//\//-}"
-  clean_serial="$(echo "$clean_serial" | xargs)"
+  clean_serial="$(echo "$clean_serial" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
 
-#   echo "  ➡️ Processing: '$title' (Serial: '$serial_code')"
   if [[ -z "$clean_serial" || "$clean_serial" == "null" ]]; then
     local base_folder_name="$clean_title"
     final_folder_name="$base_folder_name"
@@ -120,13 +121,10 @@ for ((i=0; i<$total_games; i++)); do
   fi
 
   # Collision resolution loop:
-  # Check if the folder name is either taken in the JSON logic OR physically present on the disk
   while [[ -n "${allocated_folders[$final_folder_name]}" || -d "$TARGET_DIR/$final_folder_name" ]]; do
-    # Generate timestamp. Note: Colons are skipped since they violate macOS naming logic
     local timestamp=$(date +"%y%m%d-%H%M%S")
     final_folder_name="${base_folder_name}_${timestamp}"
 
-    # Tiny pause ensures that if a microsecond loop happens, timestamps tick over
     if ! $PRETEND_MODE; then
       sleep 1
     fi
@@ -154,7 +152,6 @@ if $PRETEND_MODE; then
   echo "✅ Pretend execution complete! No data was touched."
 else
   echo "💾 Writing updates back to JSON file..."
-  # Save using a safe atomical write pattern
   echo "$json_data" | jq '.' > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
   echo "✅ Process complete! JSON updated and database folders synchronized safely."
 fi
