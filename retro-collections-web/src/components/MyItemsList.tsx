@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import {
   useGetUserItemsQuery,
   useGetUserItemsCountQuery,
@@ -17,8 +17,6 @@ import {
 import { useSettingsUIPageSize } from '../utils/hooks';
 import MyItemsListMarkup from './MyItemsListMarkup';
 import BulkDeleteFeedbackToast from './BulkDeleteFeedbackToast';
-import SelectTags from './SelectTags';
-import { FiTag, FiTrash2, FiLayers, FiChevronDown } from 'react-icons/fi';
 
 interface Cursor {
   createdAt: string;
@@ -61,7 +59,6 @@ function MyItemsList({
     type: null,
     message: '',
   });
-  const tagActionsDropdownRef = useRef<HTMLDetailsElement | null>(null);
 
   const [batchDeleteUserItems, { isLoading: isDeleting }] =
     useBatchDeleteUserItemsMutation();
@@ -205,91 +202,6 @@ function MyItemsList({
         onDismiss={() => setBulkDeleteNotice({ type: null, message: '' })}
       />
 
-      {editing && selectedItemIds.length > 0 && (
-        <div className="alert alert-warning shadow-lg flex flex-col lg:flex-row gap-3 lg:justify-between lg:items-center py-2 px-4">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-semibold">
-              {selectedItemIds.length} item(s) selected
-            </span>
-            <div className="flex items-center gap-2 flex-wrap">
-              <details ref={tagActionsDropdownRef} className="dropdown">
-                <summary
-                  className={`btn btn-secondary btn-sm text-base-content ${deleteProgress.active || bulkTagsToUpdate.length === 0 ? 'btn-disabled opacity-60' : ''}`}
-                  aria-label="Tag actions"
-                  title="Tag actions"
-                  aria-disabled={
-                    deleteProgress.active || bulkTagsToUpdate.length === 0
-                  }
-                  onClick={(event) => {
-                    if (
-                      deleteProgress.active ||
-                      bulkTagsToUpdate.length === 0
-                    ) {
-                      event.preventDefault();
-                    }
-                  }}
-                >
-                  <FiTag className="h-4 w-4" />
-                  <FiChevronDown className="h-3.5 w-3.5" />
-                </summary>
-                <ul className="menu dropdown-content bg-base-100 rounded-box z-20 mt-2 w-40 p-2 shadow border border-base-300">
-                  <li>
-                    <button
-                      onClick={() => {
-                        tagActionsDropdownRef.current?.removeAttribute('open');
-                        void runBulkTagsUpdate('add');
-                      }}
-                      disabled={
-                        deleteProgress.active || bulkTagsToUpdate.length === 0
-                      }
-                    >
-                      Bulk Add Tags
-                    </button>
-                  </li>
-                  <li>
-                    <button
-                      onClick={() => {
-                        tagActionsDropdownRef.current?.removeAttribute('open');
-                        void runBulkTagsUpdate('remove');
-                      }}
-                      disabled={
-                        deleteProgress.active || bulkTagsToUpdate.length === 0
-                      }
-                    >
-                      Bulk Remove Tags
-                    </button>
-                  </li>
-                </ul>
-              </details>
-              <SelectTags
-                selectedTags={bulkTagsToUpdate}
-                userTags={userTags}
-                onSelectedTagsChange={setBulkTagsToUpdate}
-              />
-              {bulkTagsToUpdate.length === 0 && (
-                <span className="text-xs opacity-70">Select Tags</span>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              className={`btn btn-error btn-sm btn-square text-base-content ${isDeleting ? 'loading' : ''}`}
-              onClick={() => {
-                void runBulkDelete();
-              }}
-              disabled={isDeleting || deleteProgress.active}
-              title="Delete selected items"
-              aria-label="Delete selected items"
-            >
-              <span className="relative inline-flex h-4 w-4 items-center justify-center">
-                <FiTrash2 className="h-4 w-4" />
-                <FiLayers className="h-3 w-3 absolute -right-1.5 -top-1.5 bg-base-100 rounded-full p-[1px]" />
-              </span>
-            </button>
-          </div>
-        </div>
-      )}
-
       <MyItemsListMarkup
         user={user}
         collectionId={collectionId}
@@ -313,6 +225,13 @@ function MyItemsList({
         setCursors={setCursors}
         selectedItemIds={selectedItemIds}
         onSelectionChange={handleSelectionChange}
+        bulkTagsToUpdate={bulkTagsToUpdate}
+        userTags={userTags}
+        onBulkTagsToUpdateChange={setBulkTagsToUpdate}
+        onBulkTagsUpdate={runBulkTagsUpdate}
+        onBulkDelete={runBulkDelete}
+        bulkActionsDisabled={deleteProgress.active}
+        isBulkDeleting={isDeleting}
       />
     </div>
   );
