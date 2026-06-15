@@ -3,11 +3,14 @@ import {
   useGetAllUserItemsCountQuery,
   useGetAllUserItemsQuery,
   useBatchDeleteUserItemsMutation,
+  useGetPublicUserTagsQuery,
+  useUpdateUserItemMutation,
 } from '../api/firestore/firestoreApi';
 
 import { useSettingsUIPageSize } from '../utils/hooks';
 import MyItemsListMarkup from './MyItemsListMarkup';
 import BulkDeleteFeedbackToast from './BulkDeleteFeedbackToast';
+import SelectTags from './SelectTags';
 
 interface Cursor {
   createdAt: string;
@@ -26,6 +29,7 @@ interface SelectedItem {
   id: string;
   isPublicItem: boolean;
   collectionId?: string;
+  tags: string[];
 }
 
 interface DeleteProgress {
@@ -59,6 +63,8 @@ function MyItemsListAll({
   const [showTags, setShowTags] = useState(true);
   const [showPreview, setShowPreview] = useState(true);
   const [editing, setEditing] = useState(false);
+  const [bulkTagsToUpdate, setBulkTagsToUpdate] = useState<string[]>([]);
+  const [progressLabel, setProgressLabel] = useState('Deleting items...');
 
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
   const [deleteProgress, setDeleteProgress] = useState<DeleteProgress>({
@@ -73,6 +79,12 @@ function MyItemsListAll({
 
   const [batchDeleteUserItems, { isLoading: isDeleting }] =
     useBatchDeleteUserItemsMutation();
+  const [updateUserItem] = useUpdateUserItemMutation();
+
+  const { data: userTags = [] } = useGetPublicUserTagsQuery(
+    { userId: user?.uid || '' },
+    { skip: !user?.uid }
+  );
 
   const [pageIndex, setPageIndex] = useState(0);
   useEffect(() => {
@@ -151,6 +163,7 @@ function MyItemsListAll({
           id: item.id,
           isPublicItem: item.isPublic,
           collectionId: normalizeCollectionId(item.collectionId),
+          tags: item.tags || [],
         },
       ])
     );
@@ -173,6 +186,7 @@ function MyItemsListAll({
     if (!confirmDelete) return;
 
     try {
+      setProgressLabel('Deleting items...');
       const groups = new Map<
         string,
         { itemIds: string[]; isPublicItem: boolean; collectionId?: string }
@@ -262,30 +276,155 @@ function MyItemsListAll({
     }
   };
 
+  const handleBulkTagsUpdate = async (mode: 'add' | 'remove') => {
+    if (
+      !user?.uid ||
+      selectedItems.length === 0 ||
+      bulkTagsToUpdate.length === 0
+    )
+      return;
+
+    const actionLabel = mode === 'add' ? 'add' : 'remove';
+    const confirmUpdate = window.confirm(
+      `Are you sure you want to ${actionLabel} ${bulkTagsToUpdate.length} tag(s) on ${selectedItems.length} selected item(s)?`
+    );
+    if (!confirmUpdate) return;
+
+    const tagsSet = new Set(
+      bulkTagsToUpdate.map((tag) => tag.trim()).filter(Boolean)
+    );
+    if (tagsSet.size === 0) return;
+
+    const tagsToApply = Array.from(tagsSet);
+    const totalItems = selectedItems.length;
+    let completedItems = 0;
+    let updatedItems = 0;
+    const failedIds = new Set<string>();
+
+    setProgressLabel('Updating tags...');
+    setDeleteProgress({
+      active: true,
+      completed: 0,
+      total: totalItems,
+    });
+    setBulkDeleteNotice({ type: null, message: '' });
+
+    for (const item of selectedItems) {
+      const currentTags = item.tags || [];
+      const nextTags =
+        mode === 'add'
+          ? Array.from(new Set([...currentTags, ...tagsToApply]))
+          : currentTags.filter((tag) => !tagsSet.has(tag));
+
+      try {
+        if (nextTags.join('|') !== currentTags.join('|')) {
+          await updateUserItem({
+            id: item.id,
+            userId: user.uid,
+            isPublicItem: item.isPublicItem,
+            collectionId: item.collectionId,
+            updates: { tags: nextTags },
+          }).unwrap();
+        }
+        updatedItems++;
+      } catch {
+        failedIds.add(item.id);
+      } finally {
+        completedItems++;
+        setDeleteProgress((prev) => ({
+          ...prev,
+          completed: Math.min(completedItems, totalItems),
+        }));
+      }
+    }
+
+    if (failedIds.size > 0) {
+      setBulkDeleteNotice({
+        type: 'error',
+        message: `Updated ${updatedItems}/${totalItems} item(s). ${failedIds.size} item(s) failed.`,
+      });
+    } else {
+      setBulkDeleteNotice({
+        type: 'success',
+        message: `Updated tags on ${updatedItems} item(s) successfully.`,
+      });
+      setBulkTagsToUpdate([]);
+    }
+
+    setSelectedItems((prev) =>
+      prev.map((item) => {
+        if (failedIds.has(item.id)) {
+          return item;
+        }
+        const nextTags =
+          mode === 'add'
+            ? Array.from(new Set([...(item.tags || []), ...tagsToApply]))
+            : (item.tags || []).filter((tag) => !tagsSet.has(tag));
+        return {
+          ...item,
+          tags: nextTags,
+        };
+      })
+    );
+
+    setDeleteProgress((prev) => ({
+      ...prev,
+      active: false,
+    }));
+  };
+
   return (
     <div className="space-y-4">
-      {(deleteProgress.active || bulkDeleteNotice.type) && (
-        <BulkDeleteFeedbackToast
-          deleteProgress={deleteProgress}
-          bulkDeleteNotice={bulkDeleteNotice}
-          onDismiss={() => setBulkDeleteNotice({ type: null, message: '' })}
-        />
-      )}
+      <BulkDeleteFeedbackToast
+        deleteProgress={deleteProgress}
+        bulkDeleteNotice={bulkDeleteNotice}
+        progressLabel={progressLabel}
+        onDismiss={() => setBulkDeleteNotice({ type: null, message: '' })}
+      />
 
       {editing && selectedItemIds.length > 0 && (
-        <div className="alert alert-warning shadow-lg flex flex-row justify-between items-center py-2 px-4">
-          <div className="flex items-center gap-2">
+        <div className="alert alert-warning shadow-lg flex flex-col lg:flex-row gap-3 lg:justify-between lg:items-center py-2 px-4">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-semibold">
               {selectedItemIds.length} item(s) selected
             </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs opacity-70">Tags to modify:</span>
+              <SelectTags
+                selectedTags={bulkTagsToUpdate}
+                userTags={userTags}
+                onSelectedTagsChange={setBulkTagsToUpdate}
+              />
+              {bulkTagsToUpdate.length === 0 && (
+                <span className="text-xs opacity-70">
+                  Click + to choose tags
+                </span>
+              )}
+            </div>
           </div>
-          <button
-            className={`btn btn-error btn-sm ${isDeleting ? 'loading' : ''}`}
-            onClick={handleBulkDelete}
-            disabled={isDeleting || deleteProgress.active}
-          >
-            Delete Selected
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => handleBulkTagsUpdate('add')}
+              disabled={deleteProgress.active || bulkTagsToUpdate.length === 0}
+            >
+              Add Tags
+            </button>
+            <button
+              className="btn btn-outline btn-sm"
+              onClick={() => handleBulkTagsUpdate('remove')}
+              disabled={deleteProgress.active || bulkTagsToUpdate.length === 0}
+            >
+              Remove Tags
+            </button>
+            <button
+              className={`btn btn-error btn-sm ${isDeleting ? 'loading' : ''}`}
+              onClick={handleBulkDelete}
+              disabled={isDeleting || deleteProgress.active}
+            >
+              Delete Selected
+            </button>
+          </div>
         </div>
       )}
 

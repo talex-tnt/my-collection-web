@@ -12,12 +12,14 @@ interface BulkDeleteNotice {
 interface BulkDeleteFeedbackToastProps {
   deleteProgress: DeleteProgress;
   bulkDeleteNotice: BulkDeleteNotice;
+  progressLabel?: string;
   onDismiss: () => void;
 }
 
 function BulkDeleteFeedbackToast({
   deleteProgress,
   bulkDeleteNotice,
+  progressLabel = 'Deleting items...',
   onDismiss,
 }: BulkDeleteFeedbackToastProps) {
   if (!deleteProgress.active && !bulkDeleteNotice.type) {
@@ -30,7 +32,7 @@ function BulkDeleteFeedbackToast({
         <div className="alert alert-info shadow-lg">
           <div className="w-full space-y-2">
             <div className="text-sm font-semibold">
-              Deleting items... {deleteProgress.completed}/{deleteProgress.total}
+              {progressLabel} {deleteProgress.completed}/{deleteProgress.total}
             </div>
             <progress
               className="progress progress-primary w-full"
