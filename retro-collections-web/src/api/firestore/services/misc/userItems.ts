@@ -828,6 +828,97 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
       ];
     },
   }),
+
+  batchDeleteUserItems: builder.mutation<
+    { deletedCount: number; batchesCommitted: number },
+    {
+      itemIds: string[];
+      userId: string;
+      isPublicItem: boolean;
+      collectionId?: string;
+    }
+  >({
+    async queryFn({ itemIds, userId, isPublicItem, collectionId }) {
+      if (!itemIds || itemIds.length === 0) {
+        return { data: { deletedCount: 0, batchesCommitted: 0 } };
+      }
+
+      const resolvedVisibility = isPublicItem
+        ? ('public' as const)
+        : ('private' as const);
+
+      // 1. Resolve the correct path to the items subcollection
+      const subcollectionPath = await getUserCollectionPath({
+        visibility: resolvedVisibility,
+        resourceType: 'items',
+        userId,
+        collectionId,
+      });
+
+      const context = {
+        apiEndpoint: 'batchDeleteUserItems',
+        operation: 'DELETE' as const,
+        firebaseFunc: 'writeBatch',
+        path: subcollectionPath,
+        requestPayload: { itemIds },
+      };
+
+      try {
+        const CHUNK_SIZE = 400;
+        let deletedCount = 0;
+        let batchesCommitted = 0;
+
+        for (let i = 0; i < itemIds.length; i += CHUNK_SIZE) {
+          const chunk = itemIds.slice(i, i + CHUNK_SIZE);
+          const batch = writeBatch(db);
+
+          chunk.forEach((id) => {
+            const docRef = doc(db, subcollectionPath, id);
+            batch.delete(docRef);
+            deletedCount++;
+          });
+
+          await batch.commit();
+          batchesCommitted++;
+        }
+
+        return { data: { deletedCount, batchesCommitted } };
+      } catch (error) {
+        return {
+          error: createFirestoreApiError(context, error),
+        };
+      }
+    },
+    invalidatesTags: (_result, _error, request) => {
+      const tagType: FirestoreTagTypes = request.isPublicItem
+        ? 'PublicUserItems'
+        : 'PrivateUserItems';
+
+      const itemTags = request.itemIds.map((id) => ({
+        type: 'UserItems' as FirestoreTagTypes,
+        id,
+      }));
+
+      const auxiliaryTags = request.itemIds.map((id) => ({
+        type: tagType,
+        id,
+      }));
+
+      return [
+        ...itemTags,
+        ...auxiliaryTags,
+        {
+          type: 'UserItems',
+          id: `${request.userId}_LIST`,
+        },
+        {
+          type: tagType,
+          id: `${request.userId}_LIST`,
+        },
+      ];
+    },
+  }),
+
   injectCollectionIdIntoItems: builder.mutation<
     { updatedCount: number; batchesCommitted: number },
     { userId: string; isPublicItem: boolean; collectionId: string }

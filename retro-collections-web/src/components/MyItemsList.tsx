@@ -2,10 +2,21 @@ import { useState, useEffect } from 'react';
 import {
   useGetUserItemsQuery,
   useGetUserItemsCountQuery,
+  useBatchDeleteUserItemsMutation,
+  useGetPublicUserTagsQuery,
+  useUpdateUserItemMutation,
 } from '../api/firestore/firestoreApi';
+import {
+  useBulkDeleteItems,
+  useBulkUpdateItemTags,
+  type BulkDeleteNotice,
+  type BulkSelectableItem,
+  type DeleteProgress,
+} from '../hooks';
 
 import { useSettingsUIPageSize } from '../utils/hooks';
 import MyItemsListMarkup from './MyItemsListMarkup';
+import BulkDeleteFeedbackToast from './BulkDeleteFeedbackToast';
 
 interface Cursor {
   createdAt: string;
@@ -36,6 +47,28 @@ function MyItemsList({
   const [showTags, setShowTags] = useState(true);
   const [showPreview, setShowPreview] = useState(true);
   const [editing, setEditing] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<BulkSelectableItem[]>([]);
+  const [bulkTagsToUpdate, setBulkTagsToUpdate] = useState<string[]>([]);
+  const [progressLabel, setProgressLabel] = useState('Deleting items...');
+  const [deleteProgress, setDeleteProgress] = useState<DeleteProgress>({
+    active: false,
+    completed: 0,
+    total: 0,
+  });
+  const [bulkDeleteNotice, setBulkDeleteNotice] = useState<BulkDeleteNotice>({
+    type: null,
+    message: '',
+  });
+
+  const [batchDeleteUserItems, { isLoading: isDeleting }] =
+    useBatchDeleteUserItemsMutation();
+  const [updateUserItem] = useUpdateUserItemMutation();
+  const normalizedCollectionId = collectionId?.trim() || undefined;
+
+  const { data: userTags = [] } = useGetPublicUserTagsQuery(
+    { userId: user?.uid || '' },
+    { skip: !user?.uid }
+  );
 
   const [pageIndex, setPageIndex] = useState(0);
   useEffect(() => {
@@ -96,29 +129,111 @@ function MyItemsList({
     });
   }, [pageInfo?.endCursor, pageIndex]);
 
+  useEffect(() => {
+    if (bulkDeleteNotice.type !== 'success') return;
+
+    const timeoutId = window.setTimeout(() => {
+      setBulkDeleteNotice({ type: null, message: '' });
+    }, 3500);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [bulkDeleteNotice.type]);
+
+  const selectedItemIds = selectedItems.map((item) => item.id);
+  const { runBulkDelete } = useBulkDeleteItems({
+    userId: user?.uid,
+    selectedItems,
+    setSelectedItems,
+    batchDeleteUserItems,
+    isDeleting,
+    setProgressLabel,
+    setDeleteProgress,
+    setBulkDeleteNotice,
+    defaultScope: {
+      isPublicItem,
+      collectionId: normalizedCollectionId,
+    },
+  });
+
+  const { runBulkTagsUpdate } = useBulkUpdateItemTags({
+    userId: user?.uid,
+    selectedItems,
+    setSelectedItems,
+    bulkTagsToUpdate,
+    setBulkTagsToUpdate,
+    updateUserItem,
+    setProgressLabel,
+    setDeleteProgress,
+    setBulkDeleteNotice,
+    defaultScope: {
+      isPublicItem,
+      collectionId: normalizedCollectionId,
+    },
+  });
+
+  const handleSelectionChange = (selectedIds: string[]) => {
+    const currentItemsById = new Map<string, BulkSelectableItem>(
+      items.map((item) => [
+        item.id,
+        {
+          id: item.id,
+          tags: item.tags || [],
+        },
+      ])
+    );
+
+    setSelectedItems((previous) => {
+      const previousById = new Map(previous.map((item) => [item.id, item]));
+
+      return selectedIds
+        .map((id) => currentItemsById.get(id) || previousById.get(id))
+        .filter((item): item is BulkSelectableItem => Boolean(item));
+    });
+  };
+
   return (
-    <MyItemsListMarkup
-      user={user}
-      collectionId={collectionId}
-      totalCount={totalCount}
-      setShowTags={setShowTags}
-      setShowPreview={setShowPreview}
-      editing={editing}
-      setEditing={setEditing}
-      showTags={showTags}
-      showPreview={showPreview}
-      items={items}
-      isLoading={isLoading}
-      error={error}
-      pageIndex={pageIndex}
-      setPageIndex={setPageIndex}
-      pageInfo={pageInfo}
-      pageSize={pageSize}
-      setPageSize={setPageSize}
-      pageOptions={pageOptions}
-      isAll={isAll}
-      setCursors={setCursors}
-    />
+    <div className="space-y-4">
+      <BulkDeleteFeedbackToast
+        deleteProgress={deleteProgress}
+        bulkDeleteNotice={bulkDeleteNotice}
+        progressLabel={progressLabel}
+        onDismiss={() => setBulkDeleteNotice({ type: null, message: '' })}
+      />
+
+      <MyItemsListMarkup
+        user={user}
+        collectionId={collectionId}
+        totalCount={totalCount}
+        setShowTags={setShowTags}
+        setShowPreview={setShowPreview}
+        editing={editing}
+        setEditing={setEditing}
+        showTags={showTags}
+        showPreview={showPreview}
+        items={items}
+        isLoading={isLoading}
+        error={error}
+        pageIndex={pageIndex}
+        setPageIndex={setPageIndex}
+        pageInfo={pageInfo}
+        pageSize={pageSize}
+        setPageSize={setPageSize}
+        pageOptions={pageOptions}
+        isAll={isAll}
+        setCursors={setCursors}
+        selectedItemIds={selectedItemIds}
+        onSelectionChange={handleSelectionChange}
+        bulkTagsToUpdate={bulkTagsToUpdate}
+        userTags={userTags}
+        onBulkTagsToUpdateChange={setBulkTagsToUpdate}
+        onBulkTagsUpdate={runBulkTagsUpdate}
+        onBulkDelete={runBulkDelete}
+        bulkActionsDisabled={deleteProgress.active}
+        isBulkDeleting={isDeleting}
+      />
+    </div>
   );
 }
 

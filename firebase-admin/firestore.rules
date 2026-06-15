@@ -919,10 +919,10 @@ service cloud.firestore {
                 (field == 'item.description') ? 1000 : 0;
         }
         function createKeys() {
-          return ['name', 'nameLowercase', 'nameTokens', 'createdAt', 'updatedAt', 'description', 'tags', 'metadata', 'userId'];
+          return ['name', 'nameLowercase', 'nameTokens', 'createdAt', 'updatedAt', 'description', 'tags', 'metadata', 'userId', 'collectionId'];
         }
         function createRequiredKeys() {
-          return ['name', 'nameLowercase', 'nameTokens', 'createdAt', 'userId'];
+          return ['name', 'nameLowercase', 'nameTokens', 'createdAt', 'userId', 'collectionId'];
         }
         function validCreate(data) {
           return 
@@ -937,7 +937,7 @@ service cloud.firestore {
             );
         }
         function updateKeys() {
-          return ['name', 'nameLowercase', 'nameTokens', 'updatedAt', 'description', 'tags', 'metadata', 'userId'];
+          return ['name', 'nameLowercase', 'nameTokens', 'updatedAt', 'description', 'tags', 'metadata', 'userId', 'collectionId'];
         }
         function updateRequiredKeys() {
           return ['updatedAt'];
