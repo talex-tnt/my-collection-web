@@ -69,12 +69,19 @@ export const getUserCollectionPath = async ({
   resourceType,
   userId,
   collectionId,
+  wishlistId,
 }: {
   visibility: string;
   resourceType: string;
   userId: string;
   collectionId?: string;
+  wishlistId?: string;
 }) => {
-  const collectionSegment = collectionId ? `collections/${collectionId}/` : '';
-  return `${await resolveDataCollectionPath({ visibility, resourceType: 'users' })}/${userId}/${collectionSegment}${resourceType}`;
+  const parentSegment = collectionId
+    ? `collections/${collectionId}/`
+    : wishlistId
+      ? `wishlists/${wishlistId}/`
+      : '';
+
+  return `${await resolveDataCollectionPath({ visibility, resourceType: 'users' })}/${userId}/${parentSegment}${resourceType}`;
 };

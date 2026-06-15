@@ -4,6 +4,8 @@ import type { FirestoreApiError } from './errorLogger';
 import getRuntimeConfigEndpoints from './services/runtime-config';
 import getUserItemsEndpoints from './services/misc/userItems';
 import getUserCollectionsEndpoints from './services/misc/userCollections';
+import getUserWishlistsEndpoints from './services/misc/userWishlists';
+import getUserWishesEndpoints from './services/misc/userWishes';
 import getUsersEndpoints from './services/public/users';
 import getAuthorizedUsersEndpoints from './services/private/authorized-users';
 import getPrivateUsersEndpoints from './services/private/users';
@@ -23,6 +25,8 @@ export const firestoreApi = createApi({
     ...getRuntimeConfigEndpoints(builder),
     ...getUserItemsEndpoints(builder),
     ...getUserCollectionsEndpoints(builder),
+    ...getUserWishlistsEndpoints(builder),
+    ...getUserWishesEndpoints(builder),
     ...getPublicUserTagsEndpoints(builder),
     ...getUsersEndpoints(builder),
     ...getPrivateUsersEndpoints(builder),
@@ -51,6 +55,22 @@ export const {
   useUpdateUserCollectionMutation,
   useDeleteUserCollectionMutation,
   useInjectCollectionIdIntoItemsMutation,
+
+  useGetUserWishlistsQuery,
+  useGetUserWishlistQuery,
+  useCreateUserWishlistMutation,
+  useUpdateUserWishlistMutation,
+  useDeleteUserWishlistMutation,
+
+  useGetAllUserWishesQuery,
+  useGetAllUserWishesCountQuery,
+  useGetUserWishesQuery,
+  useGetUserWishesCountQuery,
+  useCreateUserWishMutation,
+  useUpdateUserWishMutation,
+  useDeleteUserWishMutation,
+  useBatchDeleteUserWishesMutation,
+  useInjectWishlistIdIntoWishesMutation,
 
   useGetUsersQuery,
   useGetPublicUsersQuery,

@@ -7,6 +7,7 @@ import CollectorPage from '../pages/CollectorPage';
 import CollectorsPage from '../pages/CollectorsPage';
 import UsersPage from '../pages/UsersPage';
 import MyCollectionsPage from '../pages/MyCollectionsPage';
+import MyWishlistsPage from '../pages/MyWishlistsPage';
 import ProfilePage from '../pages/ProfilePage';
 import TagsPage from '../pages/TagsPage';
 import { onAuthStateChanged, type User } from 'firebase/auth';
@@ -15,6 +16,7 @@ import { auth } from '../lib/firebase';
 import { useGetRuntimeConfigQuery } from '../api/firestore/firestoreApi';
 import { useGoogleDriveAuth } from '../utils/hooks';
 import MyCollectiblesPage from '../pages/MyCollectiblesPage';
+import CollectorWishlistsPage from '../pages/CollectorWishlistsPage';
 
 function App() {
   useGoogleDriveAuth();
@@ -80,6 +82,14 @@ function App() {
                 <Route
                   path="/my-collections/*"
                   element={<MyCollectionsPage />}
+                />
+                <Route
+                  path="/my-wishlists/*"
+                  element={<MyWishlistsPage />}
+                />
+                <Route
+                  path="/collectors/:userId/wishlists/*"
+                  element={<CollectorWishlistsPage />}
                 />
                 <Route
                   path="/collectors/:userId/*"

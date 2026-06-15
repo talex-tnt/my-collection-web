@@ -146,6 +146,8 @@ function Header() {
                   return '/my-collectibles';
                 if (location.pathname.startsWith('/my-collections'))
                   return '/my-collections';
+                if (location.pathname.startsWith('/my-wishlists'))
+                  return '/my-wishlists';
                 if (location.pathname.startsWith('/tags')) return '/tags';
                 if (location.pathname.startsWith('/collectors'))
                   return '/collectors';
@@ -161,6 +163,7 @@ function Header() {
             >
               <option value="/my-collectibles">My Collectibles</option>
               <option value="/my-collections">My Collections</option>
+              <option value="/my-wishlists">My Wishlists</option>
               <option value="/collectors">Collectors</option>
               <option value="/tags">Tags</option>
               <option value="/settings">Settings</option>
@@ -186,6 +189,14 @@ function Header() {
               }
             >
               My Collections
+            </NavLink>
+            <NavLink
+              to="/my-wishlists"
+              className={({ isActive }) =>
+                isActive ? 'tab tab-active' : 'tab'
+              }
+            >
+              My Wishlists
             </NavLink>
             <NavLink
               to="/collectors"
