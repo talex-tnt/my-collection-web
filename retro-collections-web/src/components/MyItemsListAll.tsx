@@ -21,6 +21,31 @@ interface MyItemsListProps {
   nameContainsTokens: string;
 }
 
+interface SelectedItem {
+  id: string;
+  isPublicItem: boolean;
+  collectionId?: string;
+}
+
+interface DeleteProgress {
+  active: boolean;
+  completed: number;
+  total: number;
+}
+
+interface BulkDeleteNotice {
+  type: 'success' | 'error' | null;
+  message: string;
+}
+
+const normalizeCollectionId = (collectionId?: string) => {
+  const normalized = collectionId?.trim();
+  if (!normalized || normalized === 'null' || normalized === 'undefined') {
+    return undefined;
+  }
+  return normalized;
+};
+
 function MyItemsListAll({
   user,
   itemNameClientFilter,
@@ -34,7 +59,16 @@ function MyItemsListAll({
   const [showPreview, setShowPreview] = useState(true);
   const [editing, setEditing] = useState(false);
 
-  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
+  const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
+  const [deleteProgress, setDeleteProgress] = useState<DeleteProgress>({
+    active: false,
+    completed: 0,
+    total: 0,
+  });
+  const [bulkDeleteNotice, setBulkDeleteNotice] = useState<BulkDeleteNotice>({
+    type: null,
+    message: '',
+  });
 
   const [batchDeleteUserItems, { isLoading: isDeleting }] =
     useBatchDeleteUserItemsMutation();
@@ -94,14 +128,43 @@ function MyItemsListAll({
     });
   }, [pageInfo?.endCursor, pageIndex]);
 
-  const handleBulkDelete = async () => {
-    if (!user?.uid || selectedItemIds.length === 0) return;
+  useEffect(() => {
+    if (bulkDeleteNotice.type !== 'success') return;
 
-    const selectedItems = items.filter((item) =>
-      selectedItemIds.includes(item.id)
+    const timeoutId = window.setTimeout(() => {
+      setBulkDeleteNotice({ type: null, message: '' });
+    }, 3500);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [bulkDeleteNotice.type]);
+
+  const selectedItemIds = selectedItems.map((item) => item.id);
+
+  const handleSelectionChange = (selectedIds: string[]) => {
+    const currentItemsById = new Map<string, SelectedItem>(
+      items.map((item) => [
+        item.id,
+        {
+          id: item.id,
+          isPublicItem: item.isPublic,
+          collectionId: normalizeCollectionId(item.collectionId),
+        },
+      ])
     );
 
-    if (selectedItems.length === 0) return;
+    setSelectedItems((previous) => {
+      const previousById = new Map(previous.map((item) => [item.id, item]));
+
+      return selectedIds
+        .map((id) => currentItemsById.get(id) || previousById.get(id))
+        .filter((item): item is SelectedItem => Boolean(item));
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (!user?.uid || selectedItems.length === 0) return;
 
     const confirmDelete = window.confirm(
       `Are you sure you want to delete the ${selectedItems.length} selected item(s)?`
@@ -115,8 +178,9 @@ function MyItemsListAll({
       >();
 
       selectedItems.forEach((item) => {
-        const key = `${item.isPublic ? 'public' : 'private'}::${
-          item.collectionId || ''
+        const normalizedCollectionId = normalizeCollectionId(item.collectionId);
+        const key = `${item.isPublicItem ? 'public' : 'private'}::${
+          normalizedCollectionId || ''
         }`;
 
         const existing = groups.get(key);
@@ -127,30 +191,121 @@ function MyItemsListAll({
 
         groups.set(key, {
           itemIds: [item.id],
-          isPublicItem: item.isPublic,
-          collectionId: item.collectionId,
+          isPublicItem: item.isPublicItem,
+          collectionId: normalizedCollectionId,
         });
       });
 
-      await Promise.all(
-        Array.from(groups.values()).map((group) =>
-          batchDeleteUserItems({
+      const groupedRequests = Array.from(groups.values());
+      const totalItems = selectedItems.length;
+      let completedItems = 0;
+      let deletedItems = 0;
+      const failedItemIds = new Set<string>();
+
+      setDeleteProgress({
+        active: true,
+        completed: 0,
+        total: totalItems,
+      });
+      setBulkDeleteNotice({
+        type: null,
+        message: '',
+      });
+
+      for (const group of groupedRequests) {
+        try {
+          const result = await batchDeleteUserItems({
             itemIds: group.itemIds,
             userId: user.uid,
             isPublicItem: group.isPublicItem,
             collectionId: group.collectionId,
-          }).unwrap()
-        )
-      );
+          }).unwrap();
+          deletedItems += result.deletedCount;
+        } catch {
+          group.itemIds.forEach((id) => failedItemIds.add(id));
+        } finally {
+          completedItems += group.itemIds.length;
+          setDeleteProgress((prev) => ({
+            ...prev,
+            completed: Math.min(completedItems, totalItems),
+          }));
+        }
+      }
 
-      setSelectedItemIds([]);
+      if (failedItemIds.size > 0) {
+        setBulkDeleteNotice({
+          type: 'error',
+          message: `Deleted ${deletedItems}/${totalItems} item(s). ${failedItemIds.size} item(s) failed.`,
+        });
+      } else {
+        setBulkDeleteNotice({
+          type: 'success',
+          message: `Deleted ${deletedItems} item(s) successfully.`,
+        });
+      }
+
+      setSelectedItems((prev) =>
+        prev.filter((item) => failedItemIds.has(item.id))
+      );
     } catch (err) {
       console.error('Failed to complete batch deletion request:', err);
+      setBulkDeleteNotice({
+        type: 'error',
+        message: 'Bulk delete failed before completion. Please try again.',
+      });
+    } finally {
+      setDeleteProgress((prev) => ({
+        ...prev,
+        active: false,
+      }));
     }
   };
 
   return (
     <div className="space-y-4">
+      {(deleteProgress.active || bulkDeleteNotice.type) && (
+        <div className="toast toast-top toast-end z-50 w-80 max-w-[calc(100vw-2rem)]">
+          {deleteProgress.active && (
+            <div className="alert alert-info shadow-lg">
+              <div className="w-full space-y-2">
+                <div className="text-sm font-semibold">
+                  Deleting items... {deleteProgress.completed}/
+                  {deleteProgress.total}
+                </div>
+                <progress
+                  className="progress progress-primary w-full"
+                  value={deleteProgress.completed}
+                  max={deleteProgress.total || 1}
+                />
+              </div>
+            </div>
+          )}
+
+          {bulkDeleteNotice.type && !deleteProgress.active && (
+            <div
+              className={`alert shadow-lg mb-2 ${
+                bulkDeleteNotice.type === 'success'
+                  ? 'alert-success'
+                  : 'alert-error'
+              }`}
+            >
+              <div className="flex w-full items-start justify-between gap-3">
+                <span className="text-sm">{bulkDeleteNotice.message}</span>
+                <button
+                  className="btn btn-ghost btn-xs"
+                  onClick={() =>
+                    setBulkDeleteNotice({ type: null, message: '' })
+                  }
+                  aria-label="Dismiss notification"
+                >
+                  x
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {editing && selectedItemIds.length > 0 && (
         <div className="alert alert-warning shadow-lg flex flex-row justify-between items-center py-2 px-4">
           <div className="flex items-center gap-2">
@@ -161,7 +316,7 @@ function MyItemsListAll({
           <button
             className={`btn btn-error btn-sm ${isDeleting ? 'loading' : ''}`}
             onClick={handleBulkDelete}
-            disabled={isDeleting}
+            disabled={isDeleting || deleteProgress.active}
           >
             Delete Selected
           </button>
@@ -190,7 +345,7 @@ function MyItemsListAll({
         isAll={isAll}
         setCursors={setCursors}
         selectedItemIds={selectedItemIds}
-        onSelectionChange={setSelectedItemIds}
+        onSelectionChange={handleSelectionChange}
       />
     </div>
   );
