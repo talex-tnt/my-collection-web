@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   useGetUserItemsQuery,
   useGetUserItemsCountQuery,
@@ -11,6 +11,7 @@ import { useSettingsUIPageSize } from '../utils/hooks';
 import MyItemsListMarkup from './MyItemsListMarkup';
 import BulkDeleteFeedbackToast from './BulkDeleteFeedbackToast';
 import SelectTags from './SelectTags';
+import { FiTag, FiTrash2, FiLayers, FiChevronDown } from 'react-icons/fi';
 
 interface Cursor {
   createdAt: string;
@@ -69,6 +70,7 @@ function MyItemsList({
     type: null,
     message: '',
   });
+  const tagActionsDropdownRef = useRef<HTMLDetailsElement | null>(null);
 
   const [batchDeleteUserItems, { isLoading: isDeleting }] =
     useBatchDeleteUserItemsMutation();
@@ -334,40 +336,77 @@ function MyItemsList({
               {selectedItemIds.length} item(s) selected
             </span>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs opacity-70">Tags to modify:</span>
+              <details ref={tagActionsDropdownRef} className="dropdown">
+                <summary
+                  className={`btn btn-secondary btn-sm text-base-content ${deleteProgress.active || bulkTagsToUpdate.length === 0 ? 'btn-disabled opacity-60' : ''}`}
+                  aria-label="Tag actions"
+                  title="Tag actions"
+                  aria-disabled={
+                    deleteProgress.active || bulkTagsToUpdate.length === 0
+                  }
+                  onClick={(event) => {
+                    if (
+                      deleteProgress.active ||
+                      bulkTagsToUpdate.length === 0
+                    ) {
+                      event.preventDefault();
+                    }
+                  }}
+                >
+                  <FiTag className="h-4 w-4" />
+                  <FiChevronDown className="h-3.5 w-3.5" />
+                </summary>
+                <ul className="menu dropdown-content bg-base-100 rounded-box z-20 mt-2 w-40 p-2 shadow border border-base-300">
+                  <li>
+                    <button
+                      onClick={() => {
+                        tagActionsDropdownRef.current?.removeAttribute('open');
+                        void handleBulkTagsUpdate('add');
+                      }}
+                      disabled={
+                        deleteProgress.active || bulkTagsToUpdate.length === 0
+                      }
+                    >
+                      Bulk Add Tags
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      onClick={() => {
+                        tagActionsDropdownRef.current?.removeAttribute('open');
+                        void handleBulkTagsUpdate('remove');
+                      }}
+                      disabled={
+                        deleteProgress.active || bulkTagsToUpdate.length === 0
+                      }
+                    >
+                      Bulk Remove Tags
+                    </button>
+                  </li>
+                </ul>
+              </details>
               <SelectTags
                 selectedTags={bulkTagsToUpdate}
                 userTags={userTags}
                 onSelectedTagsChange={setBulkTagsToUpdate}
               />
               {bulkTagsToUpdate.length === 0 && (
-                <span className="text-xs opacity-70">
-                  Click + to choose tags
-                </span>
+                <span className="text-xs opacity-70">Select Tags</span>
               )}
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button
-              className="btn btn-secondary btn-sm"
-              onClick={() => handleBulkTagsUpdate('add')}
-              disabled={deleteProgress.active || bulkTagsToUpdate.length === 0}
-            >
-              Add Tags
-            </button>
-            <button
-              className="btn btn-outline btn-sm"
-              onClick={() => handleBulkTagsUpdate('remove')}
-              disabled={deleteProgress.active || bulkTagsToUpdate.length === 0}
-            >
-              Remove Tags
-            </button>
-            <button
-              className={`btn btn-error btn-sm ${isDeleting ? 'loading' : ''}`}
+              className={`btn btn-error btn-sm btn-square text-base-content ${isDeleting ? 'loading' : ''}`}
               onClick={handleBulkDelete}
               disabled={isDeleting || deleteProgress.active}
+              title="Delete selected items"
+              aria-label="Delete selected items"
             >
-              Delete Selected
+              <span className="relative inline-flex h-4 w-4 items-center justify-center">
+                <FiTrash2 className="h-4 w-4" />
+                <FiLayers className="h-3 w-3 absolute -right-1.5 -top-1.5 bg-base-100 rounded-full p-[1px]" />
+              </span>
             </button>
           </div>
         </div>
