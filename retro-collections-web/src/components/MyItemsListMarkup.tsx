@@ -2,8 +2,8 @@ import MyListItem from './MyListItem';
 import { ExpandableMotion } from './ExpandableMotion';
 import MyExpandedItem from './MyExpandedItem';
 import {
-  FiLock,
-  FiUnlock,
+  FiEdit as FiLock,
+  FiEdit2 as FiUnlock,
   FiEye,
   FiEyeOff,
   FiTag,
@@ -160,7 +160,7 @@ function MyItemsListMarkup({
               )}
             </button>
             <button
-              className="btn btn-xs"
+              className={`btn btn-xs ${editing ? 'btn-primary' : ''}`}
               onClick={() => {
                 setEditing((v) => !v);
                 if (editing) onSelectionChange([]);
