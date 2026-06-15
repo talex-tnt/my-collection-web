@@ -1,18 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   useGetUserItemsQuery,
   useGetUserItemsCountQuery,
   useBatchDeleteUserItemsMutation,
   useGetPublicUserTagsQuery,
   useUpdateUserItemMutation,
+  useCreateUserItemMutation,
+  useGetUserCollectionsQuery,
+  useCreatePublicUserTagMutation,
 } from '../api/firestore/firestoreApi';
 import {
   useBulkDeleteItems,
   useBulkUpdateItemTags,
+  useBulkCopyItems,
   type BulkDeleteNotice,
   type BulkSelectableItem,
   type DeleteProgress,
 } from '../hooks';
+import type { Item } from '../api/firestore/services/misc/userItems';
 
 import { useSettingsUIPageSize } from '../utils/hooks';
 import MyItemsListMarkup from './MyItemsListMarkup';
@@ -63,7 +68,54 @@ function MyItemsList({
   const [batchDeleteUserItems, { isLoading: isDeleting }] =
     useBatchDeleteUserItemsMutation();
   const [updateUserItem] = useUpdateUserItemMutation();
+  const [createUserItem] = useCreateUserItemMutation();
+  const [createPublicUserTag] = useCreatePublicUserTagMutation();
   const normalizedCollectionId = collectionId?.trim() || undefined;
+
+  const createItemForBulkCopy = (args: {
+    userId: string;
+    name: string;
+    description?: string;
+    tags?: string[];
+    metadata?: Item['metadata'];
+    isPublicItem: boolean;
+    collectionId?: string;
+  }) => createUserItem(args as Parameters<typeof createUserItem>[0]);
+
+  const { data: privateCollectionsData } = useGetUserCollectionsQuery(
+    { userId: user?.uid || '', isPublicCollection: false },
+    { skip: !user?.uid }
+  );
+
+  const { data: publicCollectionsData } = useGetUserCollectionsQuery(
+    { userId: user?.uid || '', isPublicCollection: true },
+    { skip: !user?.uid }
+  );
+
+  const destinationCollections = useMemo(
+    () => [
+      ...(privateCollectionsData?.collections || []).map((collection) => ({
+        ...collection,
+        isPublicCollection: false,
+      })),
+      ...(publicCollectionsData?.collections || []).map((collection) => ({
+        ...collection,
+        isPublicCollection: true,
+      })),
+    ].filter(
+      (collection) =>
+        !(
+          collection.id === normalizedCollectionId &&
+          collection.isPublicCollection === isPublicItem
+        )
+    ),
+    [
+      privateCollectionsData?.collections,
+      publicCollectionsData?.collections,
+      normalizedCollectionId,
+      isPublicItem,
+    ]
+  );
 
   const { data: userTags = [] } = useGetPublicUserTagsQuery(
     { userId: user?.uid || '' },
@@ -173,6 +225,23 @@ function MyItemsList({
     },
   });
 
+  const { runBulkCopy } = useBulkCopyItems({
+    userId: user?.uid,
+    selectedItems,
+    setSelectedItems,
+    createUserItem: createItemForBulkCopy,
+    updateUserItem,
+    batchDeleteUserItems,
+    createUserTag: createPublicUserTag,
+    setProgressLabel,
+    setDeleteProgress,
+    setBulkDeleteNotice,
+    defaultScope: {
+      isPublicItem,
+      collectionId: normalizedCollectionId,
+    },
+  });
+
   const handleSelectionChange = (selectedIds: string[]) => {
     const currentItemsById = new Map<string, BulkSelectableItem>(
       items.map((item) => [
@@ -180,6 +249,9 @@ function MyItemsList({
         {
           id: item.id,
           tags: item.tags || [],
+          name: item.name,
+          description: item.description,
+          metadata: item.metadata,
         },
       ])
     );
@@ -230,6 +302,10 @@ function MyItemsList({
         onBulkTagsToUpdateChange={setBulkTagsToUpdate}
         onBulkTagsUpdate={runBulkTagsUpdate}
         onBulkDelete={runBulkDelete}
+        onBulkCopy={runBulkCopy}
+        destinationCollections={destinationCollections}
+        currentCollectionId={normalizedCollectionId}
+        currentIsPublicItem={isPublicItem}
         bulkActionsDisabled={deleteProgress.active}
         isBulkDeleting={isDeleting}
       />
