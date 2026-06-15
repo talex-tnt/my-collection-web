@@ -137,7 +137,7 @@ function CollectionsList({
 
       {/* COLLECTIONS MANAGEMENT LIST */}
       <CollapsePanel
-        title={`My Collections (${collectionsData?.collections.length || 0})`}
+        title={`${readOnly ? 'Collections' : 'My Collections'} (${collectionsData?.collections.length || 0})`}
         open
       >
         {/* 4. MODIFIED: Repositioned inputs into a grid flex layout for desktop and mobile alignment */}

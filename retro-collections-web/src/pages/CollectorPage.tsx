@@ -55,6 +55,18 @@ function CollectorPage() {
           <p className="text-sm text-base-content/70">
             {user?.nickname ? `@${user.nickname}` : user?.name || userId}
           </p>
+          <div className="mt-3 inline-flex gap-2">
+            <button className="btn btn-xs btn-primary" type="button">
+              Collections
+            </button>
+            <button
+              className="btn btn-xs"
+              type="button"
+              onClick={() => navigate(`/collectors/${userId}/wishlists/wishlists`)}
+            >
+              Wishlists
+            </button>
+          </div>
         </div>
 
         <CollectorItemsBreadcrumb

@@ -4,7 +4,6 @@ import type { Wishlist } from '../api/firestore/services/misc/userWishlists';
 
 interface BreadcrumbProps {
   visibility: 'public' | 'private';
-  tab: 'wishlists' | 'spare';
   currentWishlistId: string | null;
   wishlists: Wishlist[];
   onVisibilityChange: (newVis: 'public' | 'private') => void;
@@ -13,7 +12,6 @@ interface BreadcrumbProps {
 
 function MyWishesBreadcrumb({
   visibility,
-  tab,
   currentWishlistId,
   wishlists,
   onVisibilityChange,
@@ -25,12 +23,10 @@ function MyWishesBreadcrumb({
 
   const visibilityColor =
     visibility === 'public' ? 'text-primary' : 'text-secondary';
-  const tabColor = tab === 'wishlists' ? 'text-primary' : 'text-secondary';
+  const tabColor = 'text-primary';
   const tertiaryColor = 'text-accent';
 
-  const [openDropdown, setOpenDropdown] = useState<
-    'visibility' | 'tab' | 'wishlist' | null
-  >(null);
+  const [openDropdown, setOpenDropdown] = useState<'visibility' | 'wishlist' | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -46,7 +42,7 @@ function MyWishesBreadcrumb({
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, []);
 
-  const toggleDropdown = (menu: 'visibility' | 'tab' | 'wishlist') => {
+  const toggleDropdown = (menu: 'visibility' | 'wishlist') => {
     setOpenDropdown((prev) => (prev === menu ? null : menu));
   };
 
@@ -119,64 +115,15 @@ function MyWishesBreadcrumb({
 
         <li className="whitespace-normal">
           <div className="flex items-center gap-1 hover:no-underline">
-            {tab === 'spare' ||
-            (tab === 'wishlists' && !currentWishlistId) ? (
-              <span
-                className={`font-bold capitalize select-none cursor-default ${tabColor} hover:no-underline`}
-              >
-                {tab === 'wishlists' ? 'Wishlists' : 'Spare Collectibles'}
-              </span>
-            ) : (
-              <button
-                onClick={() =>
-                  onNavigate(`/my-wishlists/${visibility}/${tab}`)
-                }
-                className={`link font-bold capitalize no-underline hover:no-underline bg-transparent border-none p-0 min-h-0 h-auto ${tabColor}`}
-              >
-                {tab === 'wishlists' ? 'Wishlists' : 'Spare Collectibles'}
-              </button>
-            )}
-
-            <div
-              className={`dropdown dropdown-bottom ${openDropdown === 'tab' ? 'dropdown-open' : ''}`}
+            <span
+              className={`font-bold capitalize select-none cursor-default ${tabColor} hover:no-underline`}
             >
-              <button
-                onClick={() => toggleDropdown('tab')}
-                className={`btn btn-ghost btn-xs p-0 min-h-0 h-5 w-3 rounded ${tabColor}`}
-              >
-                <FiChevronDown className="h-3 w-3" />
-              </button>
-              <ul className="dropdown-content z-[50] menu p-2 shadow bg-base-100 rounded-box w-44 mt-2">
-                <li>
-                  <button
-                    onClick={() =>
-                      handleAction(() =>
-                        onNavigate(`/my-wishlists/${visibility}/wishlists`)
-                      )
-                    }
-                    className="font-medium text-primary"
-                  >
-                    Wishlists
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() =>
-                      handleAction(() =>
-                        onNavigate(`/my-wishlists/${visibility}/spare`)
-                      )
-                    }
-                    className="font-medium text-secondary"
-                  >
-                    Spare Collectibles
-                  </button>
-                </li>
-              </ul>
-            </div>
+              Wishlists
+            </span>
           </div>
         </li>
 
-        {tab === 'wishlists' && currentWishlistId && (
+        {currentWishlistId && (
           <li className="whitespace-normal">
             <div className="flex items-center gap-1">
               <span

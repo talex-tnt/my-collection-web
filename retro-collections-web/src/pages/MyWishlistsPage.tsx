@@ -9,7 +9,6 @@ import { useCurrentUser } from '../utils/hooks';
 import { useGetUserWishlistsQuery } from '../api/firestore/firestoreApi';
 import MyWishlists from '../components/MyWishlists';
 import MyWishlistWishes from '../components/MyWishlistWishes';
-import MySpareWishes from '../components/MySpareWishes';
 import MyWishesBreadcrumb from '../components/MyWishesBreadcrumb';
 
 function MyWishlistsPage() {
@@ -36,13 +35,12 @@ function MyWishlistsPage() {
     );
   }
 
-  const tab = location.pathname.includes('/wishlists') ? 'wishlists' : 'spare';
   const pathSegments = location.pathname.split('/');
   const isDeepView = pathSegments.length > 4 && pathSegments[3] === 'wishlists';
   const currentWishlistId = isDeepView ? pathSegments[4] : null;
 
   const handleVisibilityChange = (newVis: 'public' | 'private') => {
-    const targetSubPath = currentWishlistId ? 'wishlists' : tab;
+    const targetSubPath = currentWishlistId ? `wishlists/${currentWishlistId}` : 'wishlists';
     navigate(`/my-wishlists/${newVis}/${targetSubPath}`);
   };
 
@@ -50,7 +48,6 @@ function MyWishlistsPage() {
     <div>
       <MyWishesBreadcrumb
         visibility={visibility}
-        tab={tab}
         currentWishlistId={currentWishlistId}
         wishlists={wishlistsData?.wishlists || []}
         onVisibilityChange={handleVisibilityChange}
@@ -58,10 +55,6 @@ function MyWishlistsPage() {
       />
 
       <Routes>
-        <Route
-          path="/:visibility/spare"
-          element={<MySpareWishes user={user} isPublicWish={visibility === 'public'} />}
-        />
         <Route
           path="/:visibility/wishlists"
           element={<MyWishlists user={user} isPublicWishlist={visibility === 'public'} />}

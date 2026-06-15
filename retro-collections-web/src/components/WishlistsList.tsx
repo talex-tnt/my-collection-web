@@ -137,7 +137,7 @@ function WishlistsList({
 
       {/* COLLECTIONS MANAGEMENT LIST */}
       <CollapsePanel
-        title={`My Wishlists (${wishlistsData?.wishlists.length || 0})`}
+        title={`${readOnly ? 'Wishlists' : 'My Wishlists'} (${wishlistsData?.wishlists.length || 0})`}
         open
       >
         {/* 4. MODIFIED: Repositioned inputs into a grid flex layout for desktop and mobile alignment */}
