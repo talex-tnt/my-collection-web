@@ -7,6 +7,7 @@ import {
 
 import { useSettingsUIPageSize } from '../utils/hooks';
 import MyItemsListMarkup from './MyItemsListMarkup';
+import BulkDeleteFeedbackToast from './BulkDeleteFeedbackToast';
 
 interface Cursor {
   createdAt: string;
@@ -264,46 +265,11 @@ function MyItemsListAll({
   return (
     <div className="space-y-4">
       {(deleteProgress.active || bulkDeleteNotice.type) && (
-        <div className="toast toast-top toast-end z-50 w-80 max-w-[calc(100vw-2rem)]">
-          {deleteProgress.active && (
-            <div className="alert alert-info shadow-lg">
-              <div className="w-full space-y-2">
-                <div className="text-sm font-semibold">
-                  Deleting items... {deleteProgress.completed}/
-                  {deleteProgress.total}
-                </div>
-                <progress
-                  className="progress progress-primary w-full"
-                  value={deleteProgress.completed}
-                  max={deleteProgress.total || 1}
-                />
-              </div>
-            </div>
-          )}
-
-          {bulkDeleteNotice.type && !deleteProgress.active && (
-            <div
-              className={`alert shadow-lg mb-2 ${
-                bulkDeleteNotice.type === 'success'
-                  ? 'alert-success'
-                  : 'alert-error'
-              }`}
-            >
-              <div className="flex w-full items-start justify-between gap-3">
-                <span className="text-sm">{bulkDeleteNotice.message}</span>
-                <button
-                  className="btn btn-ghost btn-xs"
-                  onClick={() =>
-                    setBulkDeleteNotice({ type: null, message: '' })
-                  }
-                  aria-label="Dismiss notification"
-                >
-                  x
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+        <BulkDeleteFeedbackToast
+          deleteProgress={deleteProgress}
+          bulkDeleteNotice={bulkDeleteNotice}
+          onDismiss={() => setBulkDeleteNotice({ type: null, message: '' })}
+        />
       )}
 
       {editing && selectedItemIds.length > 0 && (

@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import {
   useGetUserItemsQuery,
   useGetUserItemsCountQuery,
+  useBatchDeleteUserItemsMutation,
 } from '../api/firestore/firestoreApi';
 
 import { useSettingsUIPageSize } from '../utils/hooks';
 import MyItemsListMarkup from './MyItemsListMarkup';
+import BulkDeleteFeedbackToast from './BulkDeleteFeedbackToast';
 
 interface Cursor {
   createdAt: string;
@@ -22,6 +24,17 @@ interface MyItemsListProps {
   collectionId?: string;
 }
 
+interface DeleteProgress {
+  active: boolean;
+  completed: number;
+  total: number;
+}
+
+interface BulkDeleteNotice {
+  type: 'success' | 'error' | null;
+  message: string;
+}
+
 function MyItemsList({
   user,
   collectionId,
@@ -36,6 +49,19 @@ function MyItemsList({
   const [showTags, setShowTags] = useState(true);
   const [showPreview, setShowPreview] = useState(true);
   const [editing, setEditing] = useState(false);
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
+  const [deleteProgress, setDeleteProgress] = useState<DeleteProgress>({
+    active: false,
+    completed: 0,
+    total: 0,
+  });
+  const [bulkDeleteNotice, setBulkDeleteNotice] = useState<BulkDeleteNotice>({
+    type: null,
+    message: '',
+  });
+
+  const [batchDeleteUserItems, { isLoading: isDeleting }] =
+    useBatchDeleteUserItemsMutation();
 
   const [pageIndex, setPageIndex] = useState(0);
   useEffect(() => {
@@ -96,29 +122,115 @@ function MyItemsList({
     });
   }, [pageInfo?.endCursor, pageIndex]);
 
+  useEffect(() => {
+    if (bulkDeleteNotice.type !== 'success') return;
+
+    const timeoutId = window.setTimeout(() => {
+      setBulkDeleteNotice({ type: null, message: '' });
+    }, 3500);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [bulkDeleteNotice.type]);
+
+  const handleBulkDelete = async () => {
+    if (!user?.uid || selectedItemIds.length === 0) return;
+
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete the ${selectedItemIds.length} selected item(s)?`
+    );
+    if (!confirmDelete) return;
+
+    const normalizedCollectionId = collectionId?.trim() || undefined;
+
+    setDeleteProgress({
+      active: true,
+      completed: 0,
+      total: selectedItemIds.length,
+    });
+    setBulkDeleteNotice({ type: null, message: '' });
+
+    try {
+      const result = await batchDeleteUserItems({
+        itemIds: selectedItemIds,
+        userId: user.uid,
+        isPublicItem,
+        collectionId: normalizedCollectionId,
+      }).unwrap();
+
+      setDeleteProgress((prev) => ({
+        ...prev,
+        completed: selectedItemIds.length,
+      }));
+      setSelectedItemIds([]);
+      setBulkDeleteNotice({
+        type: 'success',
+        message: `Deleted ${result.deletedCount} item(s) successfully.`,
+      });
+    } catch {
+      setBulkDeleteNotice({
+        type: 'error',
+        message: 'Failed to delete selected items. Please try again.',
+      });
+    } finally {
+      setDeleteProgress((prev) => ({
+        ...prev,
+        active: false,
+      }));
+    }
+  };
+
   return (
-    <MyItemsListMarkup
-      user={user}
-      collectionId={collectionId}
-      totalCount={totalCount}
-      setShowTags={setShowTags}
-      setShowPreview={setShowPreview}
-      editing={editing}
-      setEditing={setEditing}
-      showTags={showTags}
-      showPreview={showPreview}
-      items={items}
-      isLoading={isLoading}
-      error={error}
-      pageIndex={pageIndex}
-      setPageIndex={setPageIndex}
-      pageInfo={pageInfo}
-      pageSize={pageSize}
-      setPageSize={setPageSize}
-      pageOptions={pageOptions}
-      isAll={isAll}
-      setCursors={setCursors}
-    />
+    <div className="space-y-4">
+      <BulkDeleteFeedbackToast
+        deleteProgress={deleteProgress}
+        bulkDeleteNotice={bulkDeleteNotice}
+        onDismiss={() => setBulkDeleteNotice({ type: null, message: '' })}
+      />
+
+      {editing && selectedItemIds.length > 0 && (
+        <div className="alert alert-warning shadow-lg flex flex-row justify-between items-center py-2 px-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold">
+              {selectedItemIds.length} item(s) selected
+            </span>
+          </div>
+          <button
+            className={`btn btn-error btn-sm ${isDeleting ? 'loading' : ''}`}
+            onClick={handleBulkDelete}
+            disabled={isDeleting || deleteProgress.active}
+          >
+            Delete Selected
+          </button>
+        </div>
+      )}
+
+      <MyItemsListMarkup
+        user={user}
+        collectionId={collectionId}
+        totalCount={totalCount}
+        setShowTags={setShowTags}
+        setShowPreview={setShowPreview}
+        editing={editing}
+        setEditing={setEditing}
+        showTags={showTags}
+        showPreview={showPreview}
+        items={items}
+        isLoading={isLoading}
+        error={error}
+        pageIndex={pageIndex}
+        setPageIndex={setPageIndex}
+        pageInfo={pageInfo}
+        pageSize={pageSize}
+        setPageSize={setPageSize}
+        pageOptions={pageOptions}
+        isAll={isAll}
+        setCursors={setCursors}
+        selectedItemIds={selectedItemIds}
+        onSelectionChange={setSelectedItemIds}
+      />
+    </div>
   );
 }
 
