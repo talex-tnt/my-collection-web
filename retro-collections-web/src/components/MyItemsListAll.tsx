@@ -6,6 +6,13 @@ import {
   useGetPublicUserTagsQuery,
   useUpdateUserItemMutation,
 } from '../api/firestore/firestoreApi';
+import {
+  useBulkDeleteItems,
+  useBulkUpdateItemTags,
+  type BulkDeleteNotice,
+  type BulkSelectableItem,
+  type DeleteProgress,
+} from '../hooks';
 
 import { useSettingsUIPageSize } from '../utils/hooks';
 import MyItemsListMarkup from './MyItemsListMarkup';
@@ -24,24 +31,6 @@ interface MyItemsListProps {
   selectedTags: string[];
   startWithNameFilter: string;
   nameContainsTokens: string;
-}
-
-interface SelectedItem {
-  id: string;
-  isPublicItem: boolean;
-  collectionId?: string;
-  tags: string[];
-}
-
-interface DeleteProgress {
-  active: boolean;
-  completed: number;
-  total: number;
-}
-
-interface BulkDeleteNotice {
-  type: 'success' | 'error' | null;
-  message: string;
 }
 
 const normalizeCollectionId = (collectionId?: string) => {
@@ -67,7 +56,7 @@ function MyItemsListAll({
   const [bulkTagsToUpdate, setBulkTagsToUpdate] = useState<string[]>([]);
   const [progressLabel, setProgressLabel] = useState('Deleting items...');
 
-  const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
+  const [selectedItems, setSelectedItems] = useState<BulkSelectableItem[]>([]);
   const [deleteProgress, setDeleteProgress] = useState<DeleteProgress>({
     active: false,
     completed: 0,
@@ -156,9 +145,33 @@ function MyItemsListAll({
   }, [bulkDeleteNotice.type]);
 
   const selectedItemIds = selectedItems.map((item) => item.id);
+  const { runBulkDelete } = useBulkDeleteItems({
+    userId: user?.uid,
+    selectedItems,
+    setSelectedItems,
+    batchDeleteUserItems,
+    isDeleting,
+    setProgressLabel,
+    setDeleteProgress,
+    setBulkDeleteNotice,
+    groupByItemScope: true,
+  });
+
+  const { runBulkTagsUpdate } = useBulkUpdateItemTags({
+    userId: user?.uid,
+    selectedItems,
+    setSelectedItems,
+    bulkTagsToUpdate,
+    setBulkTagsToUpdate,
+    updateUserItem,
+    setProgressLabel,
+    setDeleteProgress,
+    setBulkDeleteNotice,
+    groupByItemScope: true,
+  });
 
   const handleSelectionChange = (selectedIds: string[]) => {
-    const currentItemsById = new Map<string, SelectedItem>(
+    const currentItemsById = new Map<string, BulkSelectableItem>(
       items.map((item) => [
         item.id,
         {
@@ -175,204 +188,8 @@ function MyItemsListAll({
 
       return selectedIds
         .map((id) => currentItemsById.get(id) || previousById.get(id))
-        .filter((item): item is SelectedItem => Boolean(item));
+        .filter((item): item is BulkSelectableItem => Boolean(item));
     });
-  };
-
-  const handleBulkDelete = async () => {
-    if (!user?.uid || selectedItems.length === 0) return;
-
-    const confirmDelete = window.confirm(
-      `Are you sure you want to delete the ${selectedItems.length} selected item(s)?`
-    );
-    if (!confirmDelete) return;
-
-    try {
-      setProgressLabel('Deleting items...');
-      const groups = new Map<
-        string,
-        { itemIds: string[]; isPublicItem: boolean; collectionId?: string }
-      >();
-
-      selectedItems.forEach((item) => {
-        const normalizedCollectionId = normalizeCollectionId(item.collectionId);
-        const key = `${item.isPublicItem ? 'public' : 'private'}::${
-          normalizedCollectionId || ''
-        }`;
-
-        const existing = groups.get(key);
-        if (existing) {
-          existing.itemIds.push(item.id);
-          return;
-        }
-
-        groups.set(key, {
-          itemIds: [item.id],
-          isPublicItem: item.isPublicItem,
-          collectionId: normalizedCollectionId,
-        });
-      });
-
-      const groupedRequests = Array.from(groups.values());
-      const totalItems = selectedItems.length;
-      let completedItems = 0;
-      let deletedItems = 0;
-      const failedItemIds = new Set<string>();
-
-      setDeleteProgress({
-        active: true,
-        completed: 0,
-        total: totalItems,
-      });
-      setBulkDeleteNotice({
-        type: null,
-        message: '',
-      });
-
-      for (const group of groupedRequests) {
-        try {
-          const result = await batchDeleteUserItems({
-            itemIds: group.itemIds,
-            userId: user.uid,
-            isPublicItem: group.isPublicItem,
-            collectionId: group.collectionId,
-          }).unwrap();
-          deletedItems += result.deletedCount;
-        } catch {
-          group.itemIds.forEach((id) => failedItemIds.add(id));
-        } finally {
-          completedItems += group.itemIds.length;
-          setDeleteProgress((prev) => ({
-            ...prev,
-            completed: Math.min(completedItems, totalItems),
-          }));
-        }
-      }
-
-      if (failedItemIds.size > 0) {
-        setBulkDeleteNotice({
-          type: 'error',
-          message: `Deleted ${deletedItems}/${totalItems} item(s). ${failedItemIds.size} item(s) failed.`,
-        });
-      } else {
-        setBulkDeleteNotice({
-          type: 'success',
-          message: `Deleted ${deletedItems} item(s) successfully.`,
-        });
-      }
-
-      setSelectedItems((prev) =>
-        prev.filter((item) => failedItemIds.has(item.id))
-      );
-    } catch (err) {
-      console.error('Failed to complete batch deletion request:', err);
-      setBulkDeleteNotice({
-        type: 'error',
-        message: 'Bulk delete failed before completion. Please try again.',
-      });
-    } finally {
-      setDeleteProgress((prev) => ({
-        ...prev,
-        active: false,
-      }));
-    }
-  };
-
-  const handleBulkTagsUpdate = async (mode: 'add' | 'remove') => {
-    if (
-      !user?.uid ||
-      selectedItems.length === 0 ||
-      bulkTagsToUpdate.length === 0
-    )
-      return;
-
-    const actionLabel = mode === 'add' ? 'add' : 'remove';
-    const confirmUpdate = window.confirm(
-      `Are you sure you want to ${actionLabel} ${bulkTagsToUpdate.length} tag(s) on ${selectedItems.length} selected item(s)?`
-    );
-    if (!confirmUpdate) return;
-
-    const tagsSet = new Set(
-      bulkTagsToUpdate.map((tag) => tag.trim()).filter(Boolean)
-    );
-    if (tagsSet.size === 0) return;
-
-    const tagsToApply = Array.from(tagsSet);
-    const totalItems = selectedItems.length;
-    let completedItems = 0;
-    let updatedItems = 0;
-    const failedIds = new Set<string>();
-
-    setProgressLabel('Updating tags...');
-    setDeleteProgress({
-      active: true,
-      completed: 0,
-      total: totalItems,
-    });
-    setBulkDeleteNotice({ type: null, message: '' });
-
-    for (const item of selectedItems) {
-      const currentTags = item.tags || [];
-      const nextTags =
-        mode === 'add'
-          ? Array.from(new Set([...currentTags, ...tagsToApply]))
-          : currentTags.filter((tag) => !tagsSet.has(tag));
-
-      try {
-        if (nextTags.join('|') !== currentTags.join('|')) {
-          await updateUserItem({
-            id: item.id,
-            userId: user.uid,
-            isPublicItem: item.isPublicItem,
-            collectionId: item.collectionId,
-            updates: { tags: nextTags },
-          }).unwrap();
-        }
-        updatedItems++;
-      } catch {
-        failedIds.add(item.id);
-      } finally {
-        completedItems++;
-        setDeleteProgress((prev) => ({
-          ...prev,
-          completed: Math.min(completedItems, totalItems),
-        }));
-      }
-    }
-
-    if (failedIds.size > 0) {
-      setBulkDeleteNotice({
-        type: 'error',
-        message: `Updated ${updatedItems}/${totalItems} item(s). ${failedIds.size} item(s) failed.`,
-      });
-    } else {
-      setBulkDeleteNotice({
-        type: 'success',
-        message: `Updated tags on ${updatedItems} item(s) successfully.`,
-      });
-      setBulkTagsToUpdate([]);
-    }
-
-    setSelectedItems((prev) =>
-      prev.map((item) => {
-        if (failedIds.has(item.id)) {
-          return item;
-        }
-        const nextTags =
-          mode === 'add'
-            ? Array.from(new Set([...(item.tags || []), ...tagsToApply]))
-            : (item.tags || []).filter((tag) => !tagsSet.has(tag));
-        return {
-          ...item,
-          tags: nextTags,
-        };
-      })
-    );
-
-    setDeleteProgress((prev) => ({
-      ...prev,
-      active: false,
-    }));
   };
 
   return (
@@ -416,7 +233,7 @@ function MyItemsListAll({
                     <button
                       onClick={() => {
                         tagActionsDropdownRef.current?.removeAttribute('open');
-                        void handleBulkTagsUpdate('add');
+                        void runBulkTagsUpdate('add');
                       }}
                       disabled={
                         deleteProgress.active || bulkTagsToUpdate.length === 0
@@ -429,7 +246,7 @@ function MyItemsListAll({
                     <button
                       onClick={() => {
                         tagActionsDropdownRef.current?.removeAttribute('open');
-                        void handleBulkTagsUpdate('remove');
+                        void runBulkTagsUpdate('remove');
                       }}
                       disabled={
                         deleteProgress.active || bulkTagsToUpdate.length === 0
@@ -453,7 +270,9 @@ function MyItemsListAll({
           <div className="flex items-center gap-2">
             <button
               className={`btn btn-error btn-sm btn-square text-base-content ${isDeleting ? 'loading' : ''}`}
-              onClick={handleBulkDelete}
+              onClick={() => {
+                void runBulkDelete();
+              }}
               disabled={isDeleting || deleteProgress.active}
               title="Delete selected items"
               aria-label="Delete selected items"
