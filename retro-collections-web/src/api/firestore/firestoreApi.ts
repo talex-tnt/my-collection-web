@@ -43,6 +43,7 @@ export const {
   useCreateUserItemMutation,
   useUpdateUserItemMutation,
   useDeleteUserItemMutation,
+  useBatchDeleteUserItemsMutation,
 
   useGetUserCollectionsQuery,
   useGetUserCollectionQuery,

@@ -47,6 +47,8 @@ interface MyItemsListMarkupProps {
   isAll: boolean;
   totalCount: number;
   setCursors: React.Dispatch<React.SetStateAction<(Cursor | null)[]>>;
+  selectedItemIds?: string[];
+  onSelectionChange?: (selectedIds: string[]) => void;
 }
 
 function MyItemsListMarkup({
@@ -70,13 +72,63 @@ function MyItemsListMarkup({
   pageOptions,
   isAll,
   setCursors,
+  selectedItemIds = [],
+  onSelectionChange = () => {},
 }: MyItemsListMarkupProps) {
+  const visibleItemsCount = items.length;
+  const selectedVisibleItems = items.filter((item) =>
+    selectedItemIds.includes(item.id)
+  );
+  const isAllVisibleSelected =
+    visibleItemsCount > 0 && selectedVisibleItems.length === visibleItemsCount;
+  const isSomeVisibleSelected =
+    selectedVisibleItems.length > 0 &&
+    selectedVisibleItems.length < visibleItemsCount;
+
+  const handleToggleSelectAll = () => {
+    if (isAllVisibleSelected) {
+      const visibleIds = items.map((i) => i.id);
+      onSelectionChange(
+        selectedItemIds.filter((id) => !visibleIds.includes(id))
+      );
+    } else {
+      const newSelections = [...selectedItemIds];
+      items.forEach((item) => {
+        if (!newSelections.includes(item.id)) {
+          newSelections.push(item.id);
+        }
+      });
+      onSelectionChange(newSelections);
+    }
+  };
+
+  const handleToggleSelectItem = (itemId: string) => {
+    if (selectedItemIds.includes(itemId)) {
+      onSelectionChange(selectedItemIds.filter((id) => id !== itemId));
+    } else {
+      onSelectionChange([...selectedItemIds, itemId]);
+    }
+  };
+
   return (
     <div className="card bg-base-100 shadow-xl">
       <div className="card-body space-y-4 px-0 sm:px-4 pb-0 sm:pb-6">
         {/* HEADER */}
         <div className="flex flex-row justify-between gap-2 px-4 sm:px-0">
-          <h2 className="card-title">My Collectibles ({totalCount})</h2>
+          <div className="flex items-center gap-3">
+            {editing && !isLoading && !error && items.length > 0 && (
+              <input
+                type="checkbox"
+                className="checkbox checkbox-sm checkbox-primary"
+                checked={isAllVisibleSelected}
+                ref={(el) => {
+                  if (el) el.indeterminate = isSomeVisibleSelected;
+                }}
+                onChange={handleToggleSelectAll}
+              />
+            )}
+            <h2 className="card-title">My Collectibles ({totalCount})</h2>
+          </div>
           <div className="flex items-center gap-2">
             <button
               className="btn btn-xs"
@@ -109,7 +161,10 @@ function MyItemsListMarkup({
             </button>
             <button
               className="btn btn-xs"
-              onClick={() => setEditing((v) => !v)}
+              onClick={() => {
+                setEditing((v) => !v);
+                if (editing) onSelectionChange([]);
+              }}
             >
               {editing ? (
                 <>
@@ -134,27 +189,42 @@ function MyItemsListMarkup({
             <div className="alert alert-info">No items found</div>
           ) : (
             items.map((item) => (
-              <ExpandableMotion
+              <div
                 key={item.id}
-                renderExpanded={(props) => (
-                  <MyExpandedItem
-                    {...props}
-                    isPublicItem={item.isPublic}
-                    key={`expanded-${item.id}`}
+                className="flex items-center gap-3 px-4 sm:px-0"
+              >
+                {editing && (
+                  <input
+                    type="checkbox"
+                    className="checkbox checkbox-sm checkbox-primary flex-shrink-0"
+                    checked={selectedItemIds.includes(item.id)}
+                    onChange={() => handleToggleSelectItem(item.id)}
                   />
                 )}
-              >
-                <MyListItem
-                  readonly={!editing}
-                  key={item.id}
-                  item={item}
-                  isPublicItem={item.isPublic}
-                  userId={user?.uid || ''}
-                  showTags={showTags}
-                  collectionId={collectionId}
-                  showPreview={showPreview}
-                />
-              </ExpandableMotion>
+                <div className="flex-1 min-w-0">
+                  <ExpandableMotion
+                    key={item.id}
+                    renderExpanded={(props) => (
+                      <MyExpandedItem
+                        {...props}
+                        isPublicItem={item.isPublic}
+                        key={`expanded-${item.id}`}
+                      />
+                    )}
+                  >
+                    <MyListItem
+                      readonly={!editing}
+                      key={item.id}
+                      item={item}
+                      isPublicItem={item.isPublic}
+                      userId={user?.uid || ''}
+                      showTags={showTags}
+                      collectionId={collectionId}
+                      showPreview={showPreview}
+                    />
+                  </ExpandableMotion>
+                </div>
+              </div>
             ))
           )}
         </div>
@@ -181,6 +251,7 @@ function MyItemsListMarkup({
                 setPageSize(val as number | 'all');
                 setPageIndex(0);
                 setCursors([null]);
+                onSelectionChange([]);
               }}
             >
               {pageOptions.map((n) => (
@@ -193,7 +264,10 @@ function MyItemsListMarkup({
 
             <button
               className="btn btn-xs"
-              onClick={() => setPageIndex((p) => Math.max(0, p - 1))}
+              onClick={() => {
+                setPageIndex((p) => Math.max(0, p - 1));
+                onSelectionChange([]);
+              }}
               disabled={pageIndex === 0 || isAll}
             >
               Prev
@@ -205,6 +279,7 @@ function MyItemsListMarkup({
                 if (isAll) return;
                 if (!pageInfo?.hasNextPage) return;
                 setPageIndex((p) => p + 1);
+                onSelectionChange([]);
               }}
               disabled={isAll || !pageInfo?.hasNextPage}
             >
