@@ -73,7 +73,9 @@ function MyWishesList({
     <div className="card bg-base-100 shadow-xl">
       <div className="card-body">
         <h2 className="card-title">Wishes ({totalCount})</h2>
-        {error ? <div className="alert alert-error">Error loading wishes</div> : null}
+        {error ? (
+          <div className="alert alert-error">Error loading wishes</div>
+        ) : null}
         {isLoading ? <div className="alert alert-info">Loading...</div> : null}
         {!isLoading && wishes.length === 0 ? (
           <div className="alert alert-info">No wishes found</div>

@@ -93,22 +93,23 @@ function MyItemsList({
   );
 
   const destinationCollections = useMemo(
-    () => [
-      ...(privateCollectionsData?.collections || []).map((collection) => ({
-        ...collection,
-        isPublicCollection: false,
-      })),
-      ...(publicCollectionsData?.collections || []).map((collection) => ({
-        ...collection,
-        isPublicCollection: true,
-      })),
-    ].filter(
-      (collection) =>
-        !(
-          collection.id === normalizedCollectionId &&
-          collection.isPublicCollection === isPublicItem
-        )
-    ),
+    () =>
+      [
+        ...(privateCollectionsData?.collections || []).map((collection) => ({
+          ...collection,
+          isPublicCollection: false,
+        })),
+        ...(publicCollectionsData?.collections || []).map((collection) => ({
+          ...collection,
+          isPublicCollection: true,
+        })),
+      ].filter(
+        (collection) =>
+          !(
+            collection.id === normalizedCollectionId &&
+            collection.isPublicCollection === isPublicItem
+          )
+      ),
     [
       privateCollectionsData?.collections,
       publicCollectionsData?.collections,

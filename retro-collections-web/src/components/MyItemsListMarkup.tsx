@@ -113,7 +113,8 @@ function MyItemsListMarkup({
   const makeDestinationKey = (collection: {
     id: string;
     isPublicCollection: boolean;
-  }) => `${collection.isPublicCollection ? 'public' : 'private'}::${collection.id}`;
+  }) =>
+    `${collection.isPublicCollection ? 'public' : 'private'}::${collection.id}`;
 
   const availableCopyCollections = destinationCollections.filter(
     (collection) =>
@@ -321,8 +322,12 @@ function MyItemsListMarkup({
               <select
                 className="select select-bordered select-sm min-w-[10rem]"
                 value={copyTargetCollectionId}
-                onChange={(event) => setCopyTargetCollectionId(event.target.value)}
-                disabled={bulkActionsDisabled || availableCopyCollections.length === 0}
+                onChange={(event) =>
+                  setCopyTargetCollectionId(event.target.value)
+                }
+                disabled={
+                  bulkActionsDisabled || availableCopyCollections.length === 0
+                }
               >
                 {availableCopyCollections.length === 0 ? (
                   <option value="">No destination collections</option>
@@ -332,7 +337,8 @@ function MyItemsListMarkup({
                       key={makeDestinationKey(collection)}
                       value={makeDestinationKey(collection)}
                     >
-                      {collection.name} ({collection.isPublicCollection ? 'Public' : 'Private'})
+                      {collection.name} (
+                      {collection.isPublicCollection ? 'Public' : 'Private'})
                     </option>
                   ))
                 )}
