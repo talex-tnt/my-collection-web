@@ -19,6 +19,7 @@ import { useIsAdmin } from '../hooks';
 
 import { useDispatch } from 'react-redux';
 import { clearAuth, setAccessToken } from '../store/authSlice';
+import retroCollectionsLogo from '../assets/retro-collections-logo.png';
 // import { EXPIRY_KEY, TOKEN_KEY } from '../api/google-drive/googleDriveAuth';
 
 function Header() {
@@ -128,9 +129,11 @@ function Header() {
       <div className="navbar p-0 mb-4">
         <div className="flex flex-col lg:flex-row items-start gap-3 lg:items-center mr-4 w-full">
           <div>
-            <h1 className="text-2xl font-bold mb-2 ml-2 mt-2 mr-4">
-              Retro Collections
-            </h1>
+            <img
+              src={retroCollectionsLogo}
+              alt="Retro Collections"
+              className="h-18 w-auto mb-2 ml-0 mt-2 mr-4"
+            />
             {/* <p className="text-sm text-base-content/70 mb-2 ml-2">
               Organize, tag, and share your retro collections. Manage
               collectibles, track items, customize tags, and control visibility.

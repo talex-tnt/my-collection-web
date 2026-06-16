@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import MyListItem from './MyListItem';
 import { ExpandableMotion } from './ExpandableMotion';
 import MyExpandedItem from './MyExpandedItem';
@@ -18,6 +18,7 @@ import type {
   Item,
   PaginationCursor,
 } from '../api/firestore/services/misc/userItems';
+import type { Collection } from '../api/firestore/services/misc/userCollections';
 import type { UserTag } from '../api/firestore/services/public/userTags';
 import type { FirestoreApiError } from '../api/firestore/errorLogger';
 import type { SerializedError } from '@reduxjs/toolkit';
@@ -60,6 +61,13 @@ interface MyItemsListMarkupProps {
   onBulkTagsToUpdateChange?: (tags: string[]) => void;
   onBulkTagsUpdate?: (mode: 'add' | 'remove') => void | Promise<void>;
   onBulkDelete?: () => void | Promise<void>;
+  onBulkCopy?: (target: {
+    collectionId: string;
+    isPublicItem: boolean;
+  }) => void | Promise<void>;
+  destinationCollections?: Array<Collection & { isPublicCollection: boolean }>;
+  currentCollectionId?: string;
+  currentIsPublicItem?: boolean;
   bulkActionsDisabled?: boolean;
   isBulkDeleting?: boolean;
 }
@@ -92,10 +100,47 @@ function MyItemsListMarkup({
   onBulkTagsToUpdateChange,
   onBulkTagsUpdate,
   onBulkDelete,
+  onBulkCopy,
+  destinationCollections = [],
+  currentCollectionId,
+  currentIsPublicItem,
   bulkActionsDisabled = false,
   isBulkDeleting = false,
 }: MyItemsListMarkupProps) {
   const tagActionsDropdownRef = useRef<HTMLDetailsElement | null>(null);
+  const [copyTargetCollectionId, setCopyTargetCollectionId] = useState('');
+
+  const makeDestinationKey = (collection: {
+    id: string;
+    isPublicCollection: boolean;
+  }) => `${collection.isPublicCollection ? 'public' : 'private'}::${collection.id}`;
+
+  const availableCopyCollections = destinationCollections.filter(
+    (collection) =>
+      !(
+        collection.id === currentCollectionId &&
+        collection.isPublicCollection === currentIsPublicItem
+      )
+  );
+
+  useEffect(() => {
+    if (availableCopyCollections.length === 0) {
+      setCopyTargetCollectionId('');
+      return;
+    }
+
+    setCopyTargetCollectionId((prev) => {
+      if (
+        prev &&
+        availableCopyCollections.some(
+          (collection) => makeDestinationKey(collection) === prev
+        )
+      ) {
+        return prev;
+      }
+      return makeDestinationKey(availableCopyCollections[0]);
+    });
+  }, [availableCopyCollections]);
   const visibleItemsCount = items.length;
   const selectedVisibleItems = items.filter((item) =>
     selectedItemIds.includes(item.id)
@@ -273,6 +318,54 @@ function MyItemsListMarkup({
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <select
+                className="select select-bordered select-sm min-w-[10rem]"
+                value={copyTargetCollectionId}
+                onChange={(event) => setCopyTargetCollectionId(event.target.value)}
+                disabled={bulkActionsDisabled || availableCopyCollections.length === 0}
+              >
+                {availableCopyCollections.length === 0 ? (
+                  <option value="">No destination collections</option>
+                ) : (
+                  availableCopyCollections.map((collection) => (
+                    <option
+                      key={makeDestinationKey(collection)}
+                      value={makeDestinationKey(collection)}
+                    >
+                      {collection.name} ({collection.isPublicCollection ? 'Public' : 'Private'})
+                    </option>
+                  ))
+                )}
+              </select>
+              <button
+                className="btn btn-info btn-sm"
+                onClick={() => {
+                  if (!copyTargetCollectionId) return;
+                  const selectedTarget = availableCopyCollections.find(
+                    (collection) =>
+                      makeDestinationKey(collection) === copyTargetCollectionId
+                  );
+                  if (!selectedTarget) return;
+                  void onBulkCopy?.({
+                    collectionId: selectedTarget.id,
+                    isPublicItem: selectedTarget.isPublicCollection,
+                  });
+                }}
+                disabled={
+                  bulkActionsDisabled ||
+                  availableCopyCollections.length === 0 ||
+                  !copyTargetCollectionId
+                }
+                title="Copy selected items to another collection"
+                aria-label="Copy selected items"
+              >
+                Copy
+              </button>
+              {availableCopyCollections.length === 0 && (
+                <span className="text-xs opacity-70">
+                  Create another collection to enable copy
+                </span>
+              )}
               <button
                 className={`btn btn-error btn-sm btn-square text-base-content ${isBulkDeleting ? 'loading' : ''}`}
                 onClick={() => {

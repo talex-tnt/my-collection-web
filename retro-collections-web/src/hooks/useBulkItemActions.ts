@@ -1,4 +1,5 @@
 import type { Dispatch, SetStateAction } from 'react';
+import type { Item } from '../api/firestore/services/misc/userItems';
 
 export interface DeleteProgress {
   active: boolean;
@@ -16,6 +17,9 @@ export interface BulkSelectableItem {
   tags: string[];
   isPublicItem?: boolean;
   collectionId?: string;
+  name?: string;
+  description?: string;
+  metadata?: Item['metadata'];
 }
 
 interface ScopeInfo {
@@ -46,6 +50,18 @@ type UpdateItemMutation = (args: {
   unwrap: () => Promise<unknown>;
 };
 
+type CreateItemMutation = (args: {
+  userId: string;
+  name: string;
+  description?: string;
+  tags?: string[];
+  metadata?: Item['metadata'];
+  isPublicItem: boolean;
+  collectionId?: string;
+}) => {
+  unwrap: () => Promise<Item>;
+};
+
 interface SharedActionState {
   setProgressLabel: Dispatch<SetStateAction<string>>;
   setDeleteProgress: Dispatch<SetStateAction<DeleteProgress>>;
@@ -72,6 +88,36 @@ interface UseBulkUpdateItemTagsParams extends SharedActionState {
   defaultScope?: ScopeInfo;
   groupByItemScope?: boolean;
 }
+
+interface UseBulkCopyItemsParams extends SharedActionState {
+  userId?: string;
+  selectedItems: BulkSelectableItem[];
+  setSelectedItems: Dispatch<SetStateAction<BulkSelectableItem[]>>;
+  createUserItem: CreateItemMutation;
+  updateUserItem: UpdateItemMutation;
+  batchDeleteUserItems: BatchDeleteMutation;
+  createUserTag?: (args: { userId: string; tag: string }) => {
+    unwrap: () => Promise<unknown>;
+  };
+  defaultScope?: ScopeInfo;
+  groupByItemScope?: boolean;
+}
+
+interface BulkCopyDestination {
+  collectionId: string;
+  isPublicItem: boolean;
+}
+
+const formatCopyTag = () => {
+  const now = new Date();
+  const yy = String(now.getFullYear()).slice(-2);
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mi = String(now.getMinutes()).padStart(2, '0');
+  const ss = String(now.getSeconds()).padStart(2, '0');
+  return `copied-at-${yy}${mm}${dd}:${hh}${mi}${ss}`;
+};
 
 const normalizeCollectionId = (collectionId?: string) => {
   const normalized = collectionId?.trim();
@@ -344,4 +390,213 @@ export const useBulkUpdateItemTags = ({
   return {
     runBulkTagsUpdate,
   };
+};
+
+export const useBulkCopyItems = ({
+  userId,
+  selectedItems,
+  setSelectedItems,
+  createUserItem,
+  updateUserItem,
+  batchDeleteUserItems,
+  createUserTag,
+  setProgressLabel,
+  setDeleteProgress,
+  setBulkDeleteNotice,
+  defaultScope,
+  groupByItemScope,
+}: UseBulkCopyItemsParams) => {
+  const runBulkCopy = async ({
+    collectionId: targetCollectionId,
+    isPublicItem: targetIsPublicItem,
+  }: BulkCopyDestination) => {
+    if (!userId || selectedItems.length === 0) return;
+
+    const trimmedTargetCollectionId = normalizeCollectionId(targetCollectionId);
+    if (!trimmedTargetCollectionId) {
+      setBulkDeleteNotice({
+        type: 'error',
+        message: 'Please select a destination collection before copying.',
+      });
+      return;
+    }
+
+    const firstScope = resolveScope(selectedItems[0], defaultScope, groupByItemScope);
+    if (!firstScope) {
+      setBulkDeleteNotice({
+        type: 'error',
+        message: 'Unable to resolve source collection scope.',
+      });
+      return;
+    }
+
+    const copyTag = formatCopyTag();
+    const totalItems = selectedItems.length;
+    let completedItems = 0;
+    const copiedIds: string[] = [];
+    let tagRegistered = false;
+
+    setDeleteProgress({ active: true, completed: 0, total: totalItems });
+    setBulkDeleteNotice({ type: null, message: '' });
+
+    try {
+      // Register the copy tag in user tags so it becomes selectable in tag pickers.
+      if (createUserTag) {
+        try {
+          await createUserTag({ userId, tag: copyTag }).unwrap();
+          tagRegistered = true;
+        } catch {
+          tagRegistered = false;
+        }
+      }
+
+      // Phase 1: copy items first. This avoids mutating originals when destination writes fail.
+      completedItems = 0;
+      setDeleteProgress({ active: true, completed: 0, total: totalItems });
+      setProgressLabel('Copying items...');
+
+      for (const item of selectedItems) {
+        if (!item.name || !item.name.trim()) {
+          throw new Error('One or more selected items have no valid name.');
+        }
+
+        const tagsForCopy = Array.from(new Set([...(item.tags || []), copyTag]));
+        const created = await createUserItem({
+          userId,
+          name: item.name,
+          description: item.description,
+          metadata: item.metadata,
+          tags: tagsForCopy,
+          isPublicItem: targetIsPublicItem,
+          collectionId: trimmedTargetCollectionId,
+        }).unwrap();
+
+        copiedIds.push(created.id);
+
+        completedItems++;
+        setDeleteProgress((prev) => ({
+          ...prev,
+          completed: Math.min(completedItems, totalItems),
+        }));
+      }
+
+      // Phase 2: apply the same copy tag to originals once copy succeeds
+      completedItems = 0;
+      setDeleteProgress({ active: true, completed: 0, total: totalItems });
+      setProgressLabel(`Tagging originals (${copyTag})...`);
+      for (const item of selectedItems) {
+        const scope = resolveScope(item, defaultScope, groupByItemScope);
+        if (!scope) {
+          throw new Error('Invalid source scope while tagging originals.');
+        }
+
+        const tagged = Array.from(new Set([...(item.tags || []), copyTag]));
+        await updateUserItem({
+          id: item.id,
+          userId,
+          isPublicItem: scope.isPublicItem,
+          collectionId: scope.collectionId,
+          updates: { tags: tagged },
+        }).unwrap();
+
+        completedItems++;
+        setDeleteProgress((prev) => ({
+          ...prev,
+          completed: Math.min(completedItems, totalItems),
+        }));
+      }
+
+      // Phase 3: optional delete originals
+      const shouldDeleteOriginals = window.confirm(
+        `Copied ${copiedIds.length} item(s). Do you want to delete the original items?`
+      );
+
+      let originalsDeleted = 0;
+      if (shouldDeleteOriginals) {
+        setProgressLabel('Deleting original items...');
+        const deleteResult = await batchDeleteUserItems({
+          itemIds: selectedItems.map((item) => item.id),
+          userId,
+          isPublicItem: firstScope.isPublicItem,
+          collectionId: firstScope.collectionId,
+        }).unwrap();
+        originalsDeleted = deleteResult.deletedCount;
+      }
+
+      // Phase 4: optional cleanup tag from copies
+      const shouldCleanupCopies = window.confirm(
+        `Copy completed with tag ${copyTag}. Remove this tag from copied items?`
+      );
+      if (shouldCleanupCopies) {
+        setProgressLabel('Removing copy tag from copied items...');
+        for (let i = 0; i < copiedIds.length; i++) {
+          await updateUserItem({
+            id: copiedIds[i],
+            userId,
+            isPublicItem: targetIsPublicItem,
+            collectionId: trimmedTargetCollectionId,
+            updates: {
+              tags: (selectedItems[i]?.tags || []).filter((tag) => tag !== copyTag),
+            },
+          }).unwrap();
+        }
+      }
+
+      // Phase 5: optional cleanup tag from originals (only if kept)
+      if (!shouldDeleteOriginals) {
+        const shouldCleanupOriginals = window.confirm(
+          `Do you want to remove tag ${copyTag} from original items as well?`
+        );
+
+        if (shouldCleanupOriginals) {
+          setProgressLabel('Removing copy tag from original items...');
+          for (const item of selectedItems) {
+            await updateUserItem({
+              id: item.id,
+              userId,
+              isPublicItem: firstScope.isPublicItem,
+              collectionId: firstScope.collectionId,
+              updates: {
+                tags: (item.tags || []).filter((tag) => tag !== copyTag),
+              },
+            }).unwrap();
+          }
+        }
+      }
+
+      setBulkDeleteNotice({
+        type: 'success',
+        message: `Copied ${copiedIds.length} item(s) successfully.${
+          shouldDeleteOriginals
+            ? ` Deleted originals: ${originalsDeleted}.`
+            : ' Originals kept.'
+        }${
+          createUserTag && !tagRegistered
+            ? ' Copy tag was not registered in tags list.'
+            : ''
+        }`,
+      });
+      setSelectedItems([]);
+    } catch (error) {
+      const errorText =
+        (typeof error === 'object' && error !== null && 'message' in error
+          ? String((error as { message?: unknown }).message || '')
+          : '') + JSON.stringify(error || {});
+
+      const isPermissionDenied =
+        errorText.includes('permission-denied') ||
+        errorText.includes('Missing or insufficient permissions');
+
+      setBulkDeleteNotice({
+        type: 'error',
+        message: isPermissionDenied
+          ? 'Copy failed: destination write is blocked by Firestore rules for this visibility/collection.'
+          : 'Copy operation failed. No further actions were applied.',
+      });
+    } finally {
+      setDeleteProgress((prev) => ({ ...prev, active: false }));
+    }
+  };
+
+  return { runBulkCopy };
 };
