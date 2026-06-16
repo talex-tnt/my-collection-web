@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Qwigley&display=swap');
 @import './styles/focus-shadow.css';
 @import 'tailwindcss';
 @plugin "daisyui";
@@ -58,4 +59,31 @@ input {
   margin-right: 0.5rem !important; /* Controls space AFTER the arrow */
   
   opacity: 0.4;
+}
+
+.font-qwigley {
+  font-family: 'Qwigley', cursive;
+}
+
+.header-nav-glow {
+  text-shadow:
+    0.35px 0 rgba(0, 70, 238, 0.22),
+    -0.35px 0 rgba(0, 70, 238, 0.22),
+    0 0.35px rgba(0, 70, 238, 0.22),
+    0 -0.35px rgba(0, 70, 238, 0.22),
+    0 0 0.5px rgba(0, 68, 147, 0.1),
+    0 0 1.5px rgba(0, 68, 147, 0.06);
+  transition: text-shadow 180ms ease;
+}
+
+.header-nav-glow:hover,
+.header-nav-glow:focus-visible {
+  text-shadow:
+    0.5px 0 rgba(0, 70, 238, 0.45),
+    -0.5px 0 rgba(0, 70, 238, 0.45),
+    0 0.5px rgba(0, 70, 238, 0.45),
+    0 -0.5px rgba(0, 70, 238, 0.45),
+    0 0 2px rgba(0, 68, 147, 0.45),
+    0 0 6px rgba(0, 68, 147, 0.28),
+    0 0 10px rgba(0, 68, 147, 0.16);
 }

@@ -121,6 +121,12 @@ function Header() {
       console.error('Logout error:', logoutError);
     }
   };
+
+  const navTabClassName = ({ isActive }: { isActive: boolean }) =>
+    isActive
+      ? 'tab tab-active font-qwigley header-nav-glow !text-3xl !leading-none'
+      : 'tab font-qwigley header-nav-glow !text-3xl !leading-none';
+
   // console.log('Current user in Header:', user);
 
   return (
@@ -143,7 +149,7 @@ function Header() {
           {/* Mobile: select dropdown navigation */}
           <div className="relative w-full block lg:hidden">
             <select
-              className="select select-bordered w-full max-w-xs"
+              className="select w-full max-w-xs font-qwigley header-nav-glow text-3xl leading-none !border-0 !shadow-none focus:!border-0 focus:!shadow-none focus-visible:!border-0 focus-visible:!shadow-none !outline-none focus:!outline-none focus-visible:!outline-none"
               value={(() => {
                 if (location.pathname.startsWith('/my-collectibles'))
                   return '/my-collectibles';
@@ -177,72 +183,32 @@ function Header() {
 
           {/* Desktop: tab navigation */}
           <nav className="tabs tabs-boxed flex-wrap gap-2 hidden lg:flex">
-            <NavLink
-              to="/my-collectibles"
-              className={({ isActive }) =>
-                isActive ? 'tab tab-active' : 'tab'
-              }
-            >
+            <NavLink to="/my-collectibles" className={navTabClassName}>
               My Collectibles
             </NavLink>
-            <NavLink
-              to="/my-collections"
-              className={({ isActive }) =>
-                isActive ? 'tab tab-active' : 'tab'
-              }
-            >
+            <NavLink to="/my-collections" className={navTabClassName}>
               My Collections
             </NavLink>
-            <NavLink
-              to="/my-wishlists"
-              className={({ isActive }) =>
-                isActive ? 'tab tab-active' : 'tab'
-              }
-            >
+            <NavLink to="/my-wishlists" className={navTabClassName}>
               My Wishlists
             </NavLink>
-            <NavLink
-              to="/collectors"
-              className={({ isActive }) =>
-                isActive ? 'tab tab-active' : 'tab'
-              }
-            >
+            <NavLink to="/collectors" className={navTabClassName}>
               Collectors
             </NavLink>
-            <NavLink
-              to="/tags"
-              className={({ isActive }) =>
-                isActive ? 'tab tab-active' : 'tab'
-              }
-            >
+            <NavLink to="/tags" className={navTabClassName}>
               Tags
             </NavLink>
 
-            <NavLink
-              to="/settings"
-              className={({ isActive }) =>
-                isActive ? 'tab tab-active' : 'tab'
-              }
-            >
+            <NavLink to="/settings" className={navTabClassName}>
               Settings
             </NavLink>
             {isAdmin && (
-              <NavLink
-                to="/users"
-                className={({ isActive }) =>
-                  isActive ? 'tab tab-active' : 'tab'
-                }
-              >
+              <NavLink to="/users" className={navTabClassName}>
                 Users
               </NavLink>
             )}
             {isAdmin && (
-              <NavLink
-                to="/admin"
-                className={({ isActive }) =>
-                  isActive ? 'tab tab-active' : 'tab'
-                }
-              >
+              <NavLink to="/admin" className={navTabClassName}>
                 Admin
               </NavLink>
             )}
