@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import {
-  useDeleteUserWishMutation,
   useGetUserWishesQuery,
   useGetUserWishesCountQuery,
 } from '../api/firestore/firestoreApi';
+import { FiEdit as FiLock, FiEdit2 as FiUnlock } from 'react-icons/fi';
+import MyWishListItem from './MyWishListItem';
 
 interface MyWishesListProps {
   user: { uid: string } | null;
@@ -23,6 +25,8 @@ function MyWishesList({
   nameContainsTokens,
   wishlistId,
 }: MyWishesListProps) {
+  const [editing, setEditing] = useState(false);
+
   const { data: totalCount = 0 } = useGetUserWishesCountQuery(
     {
       userId: user?.uid || '',
@@ -53,26 +57,27 @@ function MyWishesList({
     { skip: !user?.uid }
   );
 
-  const [deleteWish, { isLoading: isDeleting }] = useDeleteUserWishMutation();
-
   const wishes = (wishesData?.wishes || []).filter((wish) =>
     wish.name.toLowerCase().includes(wishNameClientFilter.toLowerCase())
   );
 
-  const handleDelete = async (id: string) => {
-    if (!user?.uid) return;
-    await deleteWish({
-      id,
-      userId: user.uid,
-      isPublicWish,
-      wishlistId,
-    }).unwrap();
-  };
-
   return (
     <div className="card bg-base-100 shadow-xl">
       <div className="card-body">
-        <h2 className="card-title">Wishes ({totalCount})</h2>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="card-title">Wishes ({totalCount})</h2>
+          <button
+            className={`btn btn-xs ${editing ? 'btn-primary' : ''}`}
+            onClick={() => setEditing((previous) => !previous)}
+            title={editing ? 'Disable editing' : 'Enable editing'}
+          >
+            {editing ? (
+              <FiUnlock className="inline-block m-1" title="Editing" />
+            ) : (
+              <FiLock className="inline-block m-1" title="Reading" />
+            )}
+          </button>
+        </div>
         {error ? (
           <div className="alert alert-error">Error loading wishes</div>
         ) : null}
@@ -82,24 +87,16 @@ function MyWishesList({
         ) : null}
         <div className="space-y-2">
           {wishes.map((wish) => (
-            <div
+            <MyWishListItem
               key={wish.id}
-              className="flex items-center justify-between rounded-lg bg-base-200 p-3"
-            >
-              <div>
-                <div className="font-semibold">{wish.name}</div>
-                {wish.description ? (
-                  <div className="text-xs opacity-70">{wish.description}</div>
-                ) : null}
-              </div>
-              <button
-                className="btn btn-xs btn-error"
-                disabled={isDeleting}
-                onClick={() => void handleDelete(wish.id)}
-              >
-                Delete
-              </button>
-            </div>
+              wish={wish}
+              userId={user?.uid || ''}
+              showTags
+              isPublicWish={isPublicWish}
+              wishlistId={wishlistId}
+              readonly={!editing}
+              showPreview
+            />
           ))}
         </div>
       </div>
