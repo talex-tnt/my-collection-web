@@ -40,8 +40,10 @@ jobs:
         working-directory: retro-collections-web
         env:
           VITE_GIT_HASH: ${{ github.sha }}
-          VITE_GOOGLE_CLIENT_ID: ${{ github.ref_name == 'main' && secrets.VITE_GOOGLE_CLIENT_ID_PROD || secrets.VITE_GOOGLE_CLIENT_ID_DEV }}
           VITE_RAWG_API_KEY: ${{ secrets.VITE_RAWG_API_KEY }}
+          VITE_GOOGLE_CLIENT_ID: ${{ github.ref_name == 'main' && secrets.VITE_GOOGLE_CLIENT_ID_PROD || secrets.VITE_GOOGLE_CLIENT_ID_DEV }}
+          # Injects the target static backend URL dynamically based on the current branch execution scope
+          VITE_RETRO_COLLECTIONS_BASEURL: ${{ github.ref_name == 'main' && 'https://retro-collections.vercel.app/api' || 'https://retro-collections-dev.vercel.app/api' }}
         run: |
           BASE_PATH="/${{ env.basename }}/" npm run build
 
