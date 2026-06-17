@@ -1,13 +1,6 @@
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import {
-  collection,
-  doc,
-  onSnapshot,
-  serverTimestamp,
-  type Timestamp,
-  updateDoc,
-} from 'firebase/firestore';
+import { collection, onSnapshot, type Timestamp } from 'firebase/firestore';
 
 import { auth, db } from '../lib/firebase';
 import { useIsAdmin } from '../hooks';
@@ -21,7 +14,10 @@ import {
 } from '../api/firestore/firestoreApi';
 import { resolveDataCollectionPath } from '../api/firestore/runtimeConfig';
 
-import { useManageUserClaimsMutation } from '../api/retro-collections/retroCollectionsApi';
+import {
+  useApproveUserAccessMutation,
+  useManageUserClaimsMutation,
+} from '../api/retro-collections/retroCollectionsApi';
 
 function Admin() {
   type AccessRequest = {
@@ -46,6 +42,7 @@ function Admin() {
   const [addUser] = useAddAuthorizedUserMutation();
   const [removeUser] = useRemoveAuthorizedUserMutation();
   const [manageUserClaims] = useManageUserClaimsMutation();
+  const [approveUserAccess] = useApproveUserAccessMutation();
 
   const [newEmail, setNewEmail] = useState('');
   const [error, setError] = useState('');
@@ -190,26 +187,12 @@ function Admin() {
       setSuccess('');
       setApprovingRequestId(request.id);
 
-      await manageUserClaims({
+      const response = await approveUserAccess({
+        uidToManage: request.uid,
         emailToManage: request.email,
-        env,
-        enable: true,
       }).unwrap();
 
-      await addUser(request.email).unwrap();
-
-      const requestsPath = await resolveDataCollectionPath({
-        visibility: 'private',
-        resourceType: 'users-access-requests',
-      });
-
-      await updateDoc(doc(db, requestsPath, request.id), {
-        status: 'approved',
-        approvedAt: serverTimestamp(),
-        approvedBy: currentUser?.email || null,
-      });
-
-      setSuccess(`Request approved for ${request.email}`);
+      setSuccess(response.message || `Request approved for ${request.email}`);
     } catch (approveError) {
       console.error('Failed to approve request:', approveError);
       setError('Failed to approve request');

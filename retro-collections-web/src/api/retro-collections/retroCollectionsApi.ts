@@ -38,6 +38,18 @@ export type RequestUserAccessResponse = {
   message: string;
 };
 
+export type ApproveUserAccessArgs = {
+  uidToManage?: string;
+  emailToManage?: string;
+};
+
+export type ApproveUserAccessResponse = {
+  message: string;
+  uid: string;
+  email: string;
+  pendingRequestRemoved: boolean;
+};
+
 // 1. Core API base path resolved directly from build-time environment variables
 const baseUrl = import.meta.env.VITE_RETRO_COLLECTIONS_BASEURL;
 
@@ -126,6 +138,29 @@ export const retroCollectionsApi = createApi({
         return response;
       },
     }),
+
+    approveUserAccess: builder.mutation<
+      ApproveUserAccessResponse,
+      ApproveUserAccessArgs
+    >({
+      query: ({ uidToManage, emailToManage }) => ({
+        url: 'approve-user-access',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: {
+          uidToManage,
+          emailToManage,
+        },
+      }),
+      transformResponse: (
+        response: ApproveUserAccessResponse
+      ): ApproveUserAccessResponse => {
+        console.log('Approve User Access API response:', response);
+        return response;
+      },
+    }),
   }),
 });
 
@@ -133,4 +168,5 @@ export const {
   useManageUserClaimsMutation,
   useGetDriveImageQuery,
   useRequestUserAccessMutation,
+  useApproveUserAccessMutation,
 } = retroCollectionsApi;
