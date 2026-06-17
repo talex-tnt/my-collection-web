@@ -52,7 +52,7 @@ export const PreviewImage: React.FC<PreviewImageProps> = ({
 
   // Construct the Vercel proxy URL
   const proxyUrl = enableProxy
-    ? `https://retro-collections.vercel.app/api/drive-proxy?id=${driveId}&sz=${size}`
+    ? `${import.meta.env.VITE_RETRO_COLLECTIONS_BASEURL}/drive-proxy?id=${driveId}&sz=${size}`
     : `https://drive.google.com/thumbnail?id=${driveId}&sz=${size}`;
 
   if (!size) {
@@ -74,6 +74,7 @@ export const PreviewImage: React.FC<PreviewImageProps> = ({
       {size && (
         <img
           src={error ? fallbackUrl : proxyUrl}
+          crossOrigin="anonymous"
           alt={alt}
           loading="lazy"
           onLoad={() => setLoading(false)}

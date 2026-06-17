@@ -1,11 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { Resend } from 'resend';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const originHeader = req.headers['origin'];
   
-  // 1. Dynamic CORS configuration driven by Vercel environment targets
+  // 1. Dynamic CORS Whitelist Configuration from consolidated env vars
   const allowedOrigins = process.env.ALLOWED_ORIGINS 
     ? process.env.ALLOWED_ORIGINS.split(',') 
     : [];
@@ -19,100 +21,143 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Methods', 'POST,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
   res.setHeader(
     'Access-Control-Allow-Headers',
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
   );
 
+  // Instantly handle browser preflight requests
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  if (req.method !== 'POST' && req.method !== 'DELETE') {
+  // This endpoint strictly handles incoming access request payload initializations
+  if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
   try {
-    // 2. Authorization Header verification
+    // 2. Authorization Header Validation
     const authHeader = req.headers['authorization'];
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ error: 'Missing or malformed Authorization token.' });
     }
 
     const token = authHeader.split('Bearer ')[1];
-    
-    // Removed 'env' parameter since Vercel automatically routes to the right project keys
-    const { uidToManage, emailToManage } = req.body;
+    const { message } = req.body;
 
-    if (!uidToManage && !emailToManage) {
-      return res.status(400).json({ error: 'Missing target identifier. Provide either uidToManage or emailToManage.' });
+    if (message && typeof message === 'string' && message.length > 500) {
+      return res.status(400).json({ error: 'Message exceeds the maximum limit of 500 characters.' });
     }
 
-    // 3. Simplified Firebase initialization using unified environment variables
+    // 3. Normalized Environment Values (No downstream fallback conditional logic)
     const projectId = process.env.FIREBASE_PROJECT_ID;
     const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
     const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
-    const serviceAccount = { projectId, clientEmail, privateKey };
+    const resendApiKey = process.env.RESEND_API_KEY;
+    if (!resendApiKey) {
+      return res.status(500).json({ error: 'Resend API key configuration is missing for this environment.' });
+    }
 
-    // Determine internal app instance name checking the incoming Vercel host domain
-    const isProdBackend = req.headers.host === 'retro-collections.vercel.app';
-    const appName = isProdBackend ? 'prod-app' : 'dev-app';
+    const resend = new Resend(resendApiKey);
+
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'Access Gate <onboarding@resend.dev>';
+    const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL;
+
+    if (!adminEmail) {
+      return res.status(500).json({ error: 'Admin notification email configuration is missing for this environment.' });
+    }
+
+    // 4. Firebase Application Named Context Initializations
+    const serviceAccount = { projectId, clientEmail, privateKey };
     
+    // We name the app context via VERCEL_ENV if available ('production', 'preview', 'development')
+    const appName = process.env.VERCEL_ENV || 'default-app';
     const activeApps = getApps();
     const existingApp = activeApps.find(app => app.name === appName);
     
     const currentApp = existingApp || initializeApp({ credential: cert(serviceAccount) }, appName);
     const authInstance = getAuth(currentApp);
+    const dbInstance = getFirestore(currentApp);
 
-    // 4. Administrator status identity check
+    // 5. Requesting Identity Validation via JWT Decode
     const decodedToken = await authInstance.verifyIdToken(token);
-    if (!decodedToken.admin) {
-      return res.status(403).json({ error: 'Access Denied. Administrator privileges required.' });
+    const { uid, email, name } = decodedToken;
+
+    if (!email) {
+      return res.status(400).json({ error: 'The authenticated Google account must have a valid email address.' });
     }
 
-    let finalUid = uidToManage;
-    let targetUser;
+    // Generate local timestamp tracking metrics (YYYY-MM-DD)
+    const todayStr = new Date().toISOString().split('T')[0];
 
-    try {
-      if (emailToManage && typeof emailToManage === 'string') {
-        targetUser = await authInstance.getUserByEmail(emailToManage);
-        finalUid = targetUser.uid;
-      } else if (uidToManage && typeof uidToManage === 'string') {
-        targetUser = await authInstance.getUser(uidToManage);
-      } else {
-        return res.status(400).json({ error: 'Invalid format for uidToManage or emailToManage.' });
-      }
-    } catch (authError: any) {
-      if (authError.code === 'auth/user-not-found') {
-        return res.status(404).json({ error: 'The requested target user could not be found.' });
-      }
-      throw authError;
-    }
-
-    const currentClaims = targetUser.customClaims || {};
-    let targetStateMessage = '';
-
-    // 5. Manage target custom claims states
-    if (req.method === 'POST') {
-      await authInstance.setCustomUserClaims(finalUid, {
-        ...currentClaims,
-        enabled: true,
+    // 6. Security & Safeguard Check: System Daily Rate Limiting
+    const dailyLogRef = dbInstance.collection('system_logs').doc(todayStr);
+    const dailyLogDoc = await dailyLogRef.get();
+    
+    if (dailyLogDoc.exists && (dailyLogDoc.data()?.count >= 5)) {
+      return res.status(429).json({ 
+        error: 'The maximum number of daily registration requests for the system has been reached. Please try again tomorrow.' 
       });
-      targetStateMessage = `User profile status initialized to enabled in ${appName}.`;
-    } else if (req.method === 'DELETE') {
-      const updatedClaims = { ...currentClaims };
-      delete updatedClaims.enabled;
-      
-      await authInstance.setCustomUserClaims(finalUid, updatedClaims);
-      targetStateMessage = `User profile configuration cleared and disabled in ${appName}.`;
     }
 
-    return res.status(200).json({ message: targetStateMessage, uid: finalUid });
+    // 7. Double-Submission Check: Prevent Duplicated Requests
+    const userRequestRef = dbInstance.collection('users-access-requests').doc(uid);
+    const userRequestDoc = await userRequestRef.get();
+
+    if (userRequestDoc.exists) {
+      return res.status(400).json({ error: 'You have already submitted an access request. It is currently pending evaluation.' });
+    }
+
+    // 8. Atomic Pipeline Operations: Commit user log and increment rate metric data
+    const batch = dbInstance.batch();
+    
+    batch.set(userRequestRef, {
+      uid,
+      name: name || 'Anonymous User',
+      email,
+      message: message || '',
+      status: 'pending',
+      environment: appName,
+      createdAt: FieldValue.serverTimestamp()
+    });
+
+    batch.set(dailyLogRef, { 
+      count: FieldValue.increment(1) 
+    }, { merge: true });
+
+    await batch.commit();
+
+    // 9. Dispatch Alert Email to Admin via Resend
+    await resend.emails.send({
+      from: fromEmail, 
+      to: adminEmail,
+      subject: `[${appName.toUpperCase()}] New Access Request from ${name || email}`,
+      html: `
+        <h2>New Access Request Pending</h2>
+        <p>An unregistered user has requested access to the platform.</p>
+        <hr />
+        <p><strong>Name:</strong> ${name || 'N/A'}</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Firebase UID:</strong> ${uid}</p>
+        <p><strong>Environment:</strong> ${appName}</p>
+        <p><strong>User Message:</strong></p>
+        <blockquote style="background: #f9f9f9; padding: 10px; border-left: 3px solid #ccc;">
+          ${message ? message.replace(/\n/g, '<br>') : '<i>No message provided.</i>'}
+        </blockquote>
+        <hr />
+        <p>Log in to your admin console to approve this user.</p>
+      `,
+    });
+
+    return res.status(200).json({ 
+      message: 'Your access request has been successfully recorded. The administrator has been notified.' 
+    });
 
   } catch (error: any) {
-    console.error('Operational server failure tracking trace:', error);
+    console.error('Operational server failure during access request processing:', error);
     
     if (error.code && error.code.startsWith('auth/')) {
       return res.status(401).json({ error: 'Invalid/expired token signature authentication parameters.' });
