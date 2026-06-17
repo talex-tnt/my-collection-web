@@ -62,7 +62,9 @@ function CollectorPage() {
             <button
               className="btn btn-xs"
               type="button"
-              onClick={() => navigate(`/collectors/${userId}/wishlists/wishlists`)}
+              onClick={() =>
+                navigate(`/collectors/${userId}/wishlists/wishlists`)
+              }
             >
               Wishlists
             </button>

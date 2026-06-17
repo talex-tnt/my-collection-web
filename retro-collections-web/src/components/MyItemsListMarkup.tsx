@@ -126,6 +126,7 @@ function MyItemsListMarkup({
 
   useEffect(() => {
     if (availableCopyCollections.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCopyTargetCollectionId('');
       return;
     }

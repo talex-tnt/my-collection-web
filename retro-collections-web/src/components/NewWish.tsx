@@ -32,14 +32,18 @@ function NewWish({ userId, isPublicWish, wishlistId }: NewWishProps) {
   const [selectedWishTags, setSelectedWishTags] = useState<string[]>([]);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
-  const isGame = selectedWishTags.map((tag) => tag.toLowerCase()).includes('game');
+  const isGame = selectedWishTags
+    .map((tag) => tag.toLowerCase())
+    .includes('game');
 
-  const { data: wikiResults, isLoading: isLoadingWikiSuggestions } = useSearchQuery(name, {
-    skip: name.length < 3 || isGame || !enableWikiSuggestions,
-  });
-  const { data: rawgResults, isLoading: isLoadingGameSuggestions } = useSearchGamesQuery(name, {
-    skip: name.length < 3 || !isGame || !enableRawgSuggestions,
-  });
+  const { data: wikiResults, isLoading: isLoadingWikiSuggestions } =
+    useSearchQuery(name, {
+      skip: name.length < 3 || isGame || !enableWikiSuggestions,
+    });
+  const { data: rawgResults, isLoading: isLoadingGameSuggestions } =
+    useSearchGamesQuery(name, {
+      skip: name.length < 3 || !isGame || !enableRawgSuggestions,
+    });
 
   const gameSuggestions: Suggestion[] =
     rawgResults?.results?.map((g) => ({ name: g.name })) || [];
@@ -53,7 +57,8 @@ function NewWish({ userId, isPublicWish, wishlistId }: NewWishProps) {
 
   const nameInputRef = useRef<HTMLInputElement | null>(null);
 
-  const [createWish, { isLoading: isCreatingWish }] = useCreateUserWishMutation();
+  const [createWish, { isLoading: isCreatingWish }] =
+    useCreateUserWishMutation();
   const [createPublicUserTag] = useCreatePublicUserTagMutation();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -77,7 +82,10 @@ function NewWish({ userId, isPublicWish, wishlistId }: NewWishProps) {
     requestAnimationFrame(() => nameInputRef.current?.focus());
   };
 
-  const handleBulkImport = async (items: PreparedImportItem[], importTag: string) => {
+  const handleBulkImport = async (
+    items: PreparedImportItem[],
+    importTag: string
+  ) => {
     const cleanedTag = importTag.trim();
     if (!cleanedTag) return;
 
@@ -94,7 +102,9 @@ function NewWish({ userId, isPublicWish, wishlistId }: NewWishProps) {
       };
 
       if (selectedWishTags.length > 0) {
-        payload.tags = importTag ? [...selectedWishTags, importTag] : selectedWishTags;
+        payload.tags = importTag
+          ? [...selectedWishTags, importTag]
+          : selectedWishTags;
       } else if (importTag) {
         payload.tags = [importTag];
       }

@@ -31,9 +31,9 @@ function MyWishListItem({
   showPreview = true,
 }: MyWishListItemProps) {
   const wishlistId = wishlistIdProp || wish.wishlistId;
-  const [editingField, setEditingField] = useState<'name' | 'description' | null>(
-    null
-  );
+  const [editingField, setEditingField] = useState<
+    'name' | 'description' | null
+  >(null);
   const [editValue, setEditValue] = useState('');
   const [editing, setEditing] = useState(false);
   const [updateWish] = useUpdateUserWishMutation();
@@ -53,7 +53,10 @@ function MyWishListItem({
     }
   };
 
-  const startEditing = (field: 'name' | 'description', currentValue: string) => {
+  const startEditing = (
+    field: 'name' | 'description',
+    currentValue: string
+  ) => {
     if (readonly) return;
     setEditingField(field);
     setEditValue(currentValue);

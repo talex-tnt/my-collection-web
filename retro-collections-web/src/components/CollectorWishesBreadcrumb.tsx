@@ -13,9 +13,7 @@ function CollectorWishesBreadcrumb({
   wishlists,
   onNavigate,
 }: BreadcrumbProps) {
-  const currentWishlist = wishlists.find(
-    (c) => c.id === currentWishlistId
-  );
+  const currentWishlist = wishlists.find((c) => c.id === currentWishlistId);
 
   const tabColor = 'text-primary';
   const tertiaryColor = 'text-accent';
@@ -68,9 +66,7 @@ function CollectorWishesBreadcrumb({
           <li className="whitespace-normal">
             <div className="flex items-center gap-1">
               <button
-                onClick={() =>
-                  onNavigate(`/wishlists/${currentWishlistId}`)
-                }
+                onClick={() => onNavigate(`/wishlists/${currentWishlistId}`)}
                 className={`link font-bold inline-block no-underline hover:underline bg-transparent border-none p-0 min-h-0 h-auto text-left ${tertiaryColor}`}
                 title={currentWishlist?.name}
               >
@@ -99,9 +95,7 @@ function CollectorWishesBreadcrumb({
                             : ''
                         }
                         onClick={() =>
-                          handleAction(() =>
-                            onNavigate(`/wishlists/${col.id}`)
-                          )
+                          handleAction(() => onNavigate(`/wishlists/${col.id}`))
                         }
                       >
                         {col.name}

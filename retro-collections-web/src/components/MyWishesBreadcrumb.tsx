@@ -17,16 +17,16 @@ function MyWishesBreadcrumb({
   onVisibilityChange,
   onNavigate,
 }: BreadcrumbProps) {
-  const currentWishlist = wishlists.find(
-    (c) => c.id === currentWishlistId
-  );
+  const currentWishlist = wishlists.find((c) => c.id === currentWishlistId);
 
   const visibilityColor =
     visibility === 'public' ? 'text-primary' : 'text-secondary';
   const tabColor = 'text-primary';
   const tertiaryColor = 'text-accent';
 
-  const [openDropdown, setOpenDropdown] = useState<'visibility' | 'wishlist' | null>(null);
+  const [openDropdown, setOpenDropdown] = useState<
+    'visibility' | 'wishlist' | null
+  >(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

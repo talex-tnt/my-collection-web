@@ -40,7 +40,9 @@ function MyWishlistsPage() {
   const currentWishlistId = isDeepView ? pathSegments[4] : null;
 
   const handleVisibilityChange = (newVis: 'public' | 'private') => {
-    const targetSubPath = currentWishlistId ? `wishlists/${currentWishlistId}` : 'wishlists';
+    const targetSubPath = currentWishlistId
+      ? `wishlists/${currentWishlistId}`
+      : 'wishlists';
     navigate(`/my-wishlists/${newVis}/${targetSubPath}`);
   };
 
@@ -57,13 +59,26 @@ function MyWishlistsPage() {
       <Routes>
         <Route
           path="/:visibility/wishlists"
-          element={<MyWishlists user={user} isPublicWishlist={visibility === 'public'} />}
+          element={
+            <MyWishlists
+              user={user}
+              isPublicWishlist={visibility === 'public'}
+            />
+          }
         />
         <Route
           path="/:visibility/wishlists/:wishlistId"
-          element={<MyWishlistWishes user={user} isPublicWishlist={visibility === 'public'} />}
+          element={
+            <MyWishlistWishes
+              user={user}
+              isPublicWishlist={visibility === 'public'}
+            />
+          }
         />
-        <Route path="*" element={<Navigate to="/my-wishlists/public/wishlists" replace />} />
+        <Route
+          path="*"
+          element={<Navigate to="/my-wishlists/public/wishlists" replace />}
+        />
       </Routes>
     </div>
   );

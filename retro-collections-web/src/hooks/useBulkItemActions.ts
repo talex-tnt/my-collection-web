@@ -421,7 +421,11 @@ export const useBulkCopyItems = ({
       return;
     }
 
-    const firstScope = resolveScope(selectedItems[0], defaultScope, groupByItemScope);
+    const firstScope = resolveScope(
+      selectedItems[0],
+      defaultScope,
+      groupByItemScope
+    );
     if (!firstScope) {
       setBulkDeleteNotice({
         type: 'error',
@@ -460,7 +464,9 @@ export const useBulkCopyItems = ({
           throw new Error('One or more selected items have no valid name.');
         }
 
-        const tagsForCopy = Array.from(new Set([...(item.tags || []), copyTag]));
+        const tagsForCopy = Array.from(
+          new Set([...(item.tags || []), copyTag])
+        );
         const created = await createUserItem({
           userId,
           name: item.name,
@@ -536,7 +542,9 @@ export const useBulkCopyItems = ({
             isPublicItem: targetIsPublicItem,
             collectionId: trimmedTargetCollectionId,
             updates: {
-              tags: (selectedItems[i]?.tags || []).filter((tag) => tag !== copyTag),
+              tags: (selectedItems[i]?.tags || []).filter(
+                (tag) => tag !== copyTag
+              ),
             },
           }).unwrap();
         }

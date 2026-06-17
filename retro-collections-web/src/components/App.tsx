@@ -83,10 +83,7 @@ function App() {
                   path="/my-collections/*"
                   element={<MyCollectionsPage />}
                 />
-                <Route
-                  path="/my-wishlists/*"
-                  element={<MyWishlistsPage />}
-                />
+                <Route path="/my-wishlists/*" element={<MyWishlistsPage />} />
                 <Route
                   path="/collectors/:userId/wishlists/*"
                   element={<CollectorWishlistsPage />}

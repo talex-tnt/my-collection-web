@@ -74,9 +74,23 @@ function CollectorWishlistsPage() {
         />
 
         <Routes>
-          <Route path="/wishlists" element={<CollectorWishlists userId={userId} />} />
-          <Route path="/wishlists/:wishlistId" element={<CollectorFilterableWishes userId={userId} />} />
-          <Route path="*" element={<Navigate to={`/collectors/${userId}/wishlists/wishlists`} replace />} />
+          <Route
+            path="/wishlists"
+            element={<CollectorWishlists userId={userId} />}
+          />
+          <Route
+            path="/wishlists/:wishlistId"
+            element={<CollectorFilterableWishes userId={userId} />}
+          />
+          <Route
+            path="*"
+            element={
+              <Navigate
+                to={`/collectors/${userId}/wishlists/wishlists`}
+                replace
+              />
+            }
+          />
         </Routes>
       </div>
     </div>

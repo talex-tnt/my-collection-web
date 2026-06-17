@@ -46,7 +46,9 @@ function BulkDeleteFeedbackToast({
       {bulkDeleteNotice.type && !deleteProgress.active && (
         <div
           className={`alert shadow-lg mb-2 ${
-            bulkDeleteNotice.type === 'success' ? 'alert-success' : 'alert-error'
+            bulkDeleteNotice.type === 'success'
+              ? 'alert-success'
+              : 'alert-error'
           }`}
         >
           <div className="flex w-full items-start justify-between gap-3">

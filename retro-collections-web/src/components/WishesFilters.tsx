@@ -38,7 +38,9 @@ export default function WishesFilters({
       contentClassName="space-y-6 px-2sm:px-6"
     >
       <div>
-        <div className="font-semibold text-xs mb-1 opacity-70">Server Filters</div>
+        <div className="font-semibold text-xs mb-1 opacity-70">
+          Server Filters
+        </div>
 
         <div className="flex flex-wrap gap-2 mb-2 items-center">
           <label className="text-xs opacity-70 font-medium">Tags</label>
@@ -50,7 +52,9 @@ export default function WishesFilters({
         </div>
 
         <div className="flex flex-col gap-2 mt-4">
-          <label className="text-xs opacity-70 font-medium">Name starts with</label>
+          <label className="text-xs opacity-70 font-medium">
+            Name starts with
+          </label>
           <input
             type="text"
             className="input input-bordered input-xs w-full"
@@ -61,7 +65,9 @@ export default function WishesFilters({
             }}
             placeholder="Start of name (server)"
           />
-          <label className="text-xs opacity-70 font-medium">Name contains tokens</label>
+          <label className="text-xs opacity-70 font-medium">
+            Name contains tokens
+          </label>
           <input
             type="text"
             className="input input-bordered input-xs w-full"
@@ -76,7 +82,9 @@ export default function WishesFilters({
       </div>
 
       <div>
-        <div className="font-semibold text-xs mb-1 opacity-70">Client Filters</div>
+        <div className="font-semibold text-xs mb-1 opacity-70">
+          Client Filters
+        </div>
         <input
           type="text"
           className="input input-bordered input-xs w-full"
