@@ -82,6 +82,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const authInstance = getAuth(currentApp);
     const dbInstance = getFirestore(currentApp);
 
+    const runtimeConfigRef = dbInstance.doc('main/config/public/runtime');
+    const runtimeConfigDoc = await runtimeConfigRef.get();
+    const runtimeData = runtimeConfigDoc.data() as { dataFolder?: string } | undefined;
+    const dataFolder =
+      typeof runtimeData?.dataFolder === 'string' && runtimeData.dataFolder.trim().length > 0
+        ? runtimeData.dataFolder.trim()
+        : 'default';
+
     // 5. Requesting Identity Validation via JWT Decode
     const decodedToken = await authInstance.verifyIdToken(token);
     const { uid, email, name } = decodedToken;
@@ -104,7 +112,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // 7. Double-Submission Check: Prevent Duplicated Requests
-    const userRequestRef = dbInstance.collection('users-access-requests').doc(uid);
+    const userRequestRef = dbInstance
+      .collection('main')
+      .doc('data')
+      .collection(dataFolder)
+      .doc('private')
+      .collection('users-access-requests')
+      .doc(uid);
     const userRequestDoc = await userRequestRef.get();
 
     if (userRequestDoc.exists) {

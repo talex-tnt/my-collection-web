@@ -75,7 +75,7 @@ export const retroCollectionsApi = createApi({
   endpoints: (builder) => ({
     manageUserClaims: builder.mutation<ManageUserResponse, ManageUserArgs>({
       query: ({ uidToManage, emailToManage, enable }) => ({
-        url: '/manage-user',
+        url: 'manage-user',
         method: enable ? 'POST' : 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -93,7 +93,7 @@ export const retroCollectionsApi = createApi({
 
     getDriveImage: builder.query<DriveProxyResponse, DriveProxyArgs>({
       query: ({ fileId }) => ({
-        url: '/drive-proxy',
+        url: 'drive-proxy',
         method: 'GET',
         params: {
           id: fileId, // Aligned to map to the 'id' parameter expected by your backend query extractor
@@ -110,7 +110,7 @@ export const retroCollectionsApi = createApi({
       RequestUserAccessArgs
     >({
       query: ({ message }) => ({
-        url: '/request-user-access',
+        url: 'request-user-access',
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
