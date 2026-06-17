@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   GoogleAuthProvider,
@@ -9,12 +9,15 @@ import {
   signOut,
   type User,
 } from 'firebase/auth';
-import { auth, getIsAdmin } from '../lib/firebase';
+import { doc, getDoc, Timestamp } from 'firebase/firestore';
+import { auth } from '../lib/firebase';
+import { db } from '../lib/firebase';
 import {
   useCreateOrUpdatePrivateUserMutation,
   useCreateOrUpdateUserMutation,
-  useLazyIsUserAuthorizedQuery,
 } from '../api/firestore/firestoreApi';
+import { resolveDataCollectionPath } from '../api/firestore/runtimeConfig';
+import { useRequestUserAccessMutation } from '../api/retro-collections/retroCollectionsApi';
 import { useIsAdmin } from '../hooks';
 
 import { useDispatch } from 'react-redux';
@@ -23,25 +26,152 @@ import retroCollectionsLogo from '../assets/retro-collections-logo.png';
 
 // import { EXPIRY_KEY, TOKEN_KEY } from '../api/google-drive/googleDriveAuth';
 
+type AccessClaims = {
+  admin?: boolean;
+  enabled?: boolean;
+  tester?: boolean;
+};
+
+type AccessRequestStatus = 'pending' | 'approved' | 'rejected' | 'unknown';
+
+type ExistingAccessRequest = {
+  uid: string;
+  email: string;
+  message: string;
+  status: AccessRequestStatus;
+  environment: string;
+  createdAt: Date | null;
+};
+
+const canAccessMainFromClaims = (claims: AccessClaims) => {
+  return (
+    claims.admin === true || (claims.enabled === true && claims.tester !== true)
+  );
+};
+
+const normalizeAccessRequestStatus = (value: unknown): AccessRequestStatus => {
+  if (value === 'pending' || value === 'approved' || value === 'rejected') {
+    return value;
+  }
+
+  return 'unknown';
+};
+
 function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [user, setUser] = useState<User | null>(null);
   const [error, setError] = useState('');
+  const [isAccessRequestModalOpen, setIsAccessRequestModalOpen] =
+    useState(false);
+  const [deniedEmail, setDeniedEmail] = useState('');
+  const [accessRequestMessage, setAccessRequestMessage] = useState('');
+  const [accessRequestError, setAccessRequestError] = useState('');
+  const [accessRequestSuccess, setAccessRequestSuccess] = useState('');
+  const [existingAccessRequest, setExistingAccessRequest] =
+    useState<ExistingAccessRequest | null>(null);
   const isAdmin = useIsAdmin(user);
 
-  const [checkAuthorizedUser] = useLazyIsUserAuthorizedQuery();
   const [createOrUpdateUser] = useCreateOrUpdateUserMutation();
   const [createOrUpdatePrivateUser] = useCreateOrUpdatePrivateUserMutation();
+  const [requestUserAccess, { isLoading: isRequestingAccess }] =
+    useRequestUserAccessMutation();
+
+  const formatAccessRequestDate = (date: Date | null) => {
+    if (!date) {
+      return 'Not available yet';
+    }
+
+    return date.toLocaleString();
+  };
+
+  const readExistingAccessRequest = useCallback(
+    async (uid: string): Promise<ExistingAccessRequest | null> => {
+      const requestsPath = await resolveDataCollectionPath({
+        visibility: 'private',
+        resourceType: 'users-access-requests',
+      });
+      const requestRef = doc(db, requestsPath, uid);
+      const requestSnap = await getDoc(requestRef);
+
+      if (!requestSnap.exists()) {
+        setExistingAccessRequest(null);
+        return null;
+      }
+
+      const data = requestSnap.data() as {
+        uid?: string;
+        email?: string;
+        message?: string;
+        status?: string;
+        environment?: string;
+        createdAt?: Timestamp | null;
+      };
+
+      const parsedRequest: ExistingAccessRequest = {
+        uid: data.uid || uid,
+        email: data.email || '',
+        message: data.message || '',
+        status: normalizeAccessRequestStatus(data.status),
+        environment: data.environment || '',
+        createdAt:
+          data.createdAt instanceof Timestamp ? data.createdAt.toDate() : null,
+      };
+
+      setExistingAccessRequest(parsedRequest);
+      return parsedRequest;
+    },
+    []
+  );
+
+  const closeAccessRequestModal = () => {
+    setIsAccessRequestModalOpen(false);
+    setExistingAccessRequest(null);
+  };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
+
+      if (!currentUser) {
+        setIsAccessRequestModalOpen(false);
+        setExistingAccessRequest(null);
+        return;
+      }
+
+      try {
+        const tokenResult = await currentUser.getIdTokenResult(true);
+        const claims = tokenResult.claims as AccessClaims;
+        const hasMainAccess = canAccessMainFromClaims(claims);
+
+        if (!hasMainAccess) {
+          setDeniedEmail(currentUser.email || '');
+          setAccessRequestError('');
+          setAccessRequestSuccess('');
+          try {
+            const existingRequest = await readExistingAccessRequest(
+              currentUser.uid
+            );
+            setIsAccessRequestModalOpen(!existingRequest);
+          } catch (readError) {
+            console.error(
+              'Failed to read existing access request on auth restore:',
+              readError
+            );
+            setExistingAccessRequest(null);
+            setIsAccessRequestModalOpen(true);
+          }
+        } else {
+          closeAccessRequestModal();
+        }
+      } catch (authStateError) {
+        console.error('Failed to evaluate access status:', authStateError);
+      }
     });
 
     return unsubscribe;
-  }, []);
+  }, [readExistingAccessRequest]);
 
   const login = async () => {
     try {
@@ -66,21 +196,24 @@ function Header() {
       const currentUser = result.user;
       const email = currentUser.email || '';
 
-      let authorized = false;
-
-      const admin = await getIsAdmin();
-
-      if (admin) {
-        authorized = true;
-      } else {
-        const response = await checkAuthorizedUser(email);
-        authorized = response.data ?? false;
-      }
+      const tokenResult = await currentUser.getIdTokenResult(true);
+      const claims = tokenResult.claims as AccessClaims;
+      const authorized = canAccessMainFromClaims(claims);
 
       if (!authorized) {
-        await signOut(auth);
-        setError(`Access denied. User ${email} is not authorized.`);
-        setUser(null);
+        setDeniedEmail(email || currentUser.email || '');
+        setAccessRequestMessage('');
+        setAccessRequestError('');
+        setAccessRequestSuccess('');
+
+        try {
+          await readExistingAccessRequest(currentUser.uid);
+        } catch (readError) {
+          console.error('Failed to read existing access request:', readError);
+          setExistingAccessRequest(null);
+        }
+
+        setIsAccessRequestModalOpen(true);
         return;
       }
 
@@ -123,6 +256,47 @@ function Header() {
     }
   };
 
+  const submitAccessRequest = async () => {
+    try {
+      setAccessRequestError('');
+      setAccessRequestSuccess('');
+
+      const response = await requestUserAccess({
+        message: accessRequestMessage.trim(),
+      }).unwrap();
+
+      setAccessRequestSuccess(
+        response.message ||
+          'Your request has been sent. An administrator will review it soon.'
+      );
+
+      if (auth.currentUser) {
+        try {
+          await readExistingAccessRequest(auth.currentUser.uid);
+        } catch (readError) {
+          // Request was already submitted successfully; this follow-up read should not surface as a submit failure.
+          console.error(
+            'Failed to refresh access request after submit:',
+            readError
+          );
+        }
+      }
+
+      closeAccessRequestModal();
+      navigate('/my-collectibles');
+    } catch (requestError: unknown) {
+      const err = requestError as {
+        data?: { error?: string };
+        error?: string;
+      };
+      setAccessRequestError(
+        err?.data?.error ||
+          err?.error ||
+          'Failed to submit access request. Please try again.'
+      );
+    }
+  };
+
   const navTabClassName = ({ isActive }: { isActive: boolean }) =>
     isActive
       ? 'tab tab-active font-qwigley header-nav-glow !text-3xl !leading-none'
@@ -133,6 +307,97 @@ function Header() {
   return (
     // <header className="rounded-box border border-base-300 bg-base-100 shadow-sm">
     <header className="mb-0">
+      {isAccessRequestModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-xl border border-base-300 bg-base-100 p-6 shadow-xl">
+            <h3 className="text-xl font-semibold">Access Request Required</h3>
+            <p className="mt-2 text-sm text-base-content/70">
+              Access denied. User {deniedEmail || user?.email || 'unknown'} is
+              not authorized.
+            </p>
+            <p className="mt-2 text-sm text-base-content/70">
+              You can send a request to the administrator from here.
+            </p>
+
+            {existingAccessRequest ? (
+              <div className="mt-4 space-y-2 rounded-lg border border-base-300 bg-base-200/50 p-4 text-sm">
+                <p>
+                  <span className="font-semibold">Request status:</span>{' '}
+                  <span className="capitalize">
+                    {existingAccessRequest.status}
+                  </span>
+                </p>
+                <p>
+                  <span className="font-semibold">Submitted at:</span>{' '}
+                  {formatAccessRequestDate(existingAccessRequest.createdAt)}
+                </p>
+                {existingAccessRequest.environment && (
+                  <p>
+                    <span className="font-semibold">Environment:</span>{' '}
+                    {existingAccessRequest.environment}
+                  </p>
+                )}
+                {existingAccessRequest.message && (
+                  <p>
+                    <span className="font-semibold">Your message:</span>{' '}
+                    {existingAccessRequest.message}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <label className="form-control mt-4 w-full">
+                <span className="label-text mb-2 text-sm">
+                  Message (optional)
+                </span>
+                <textarea
+                  className="textarea textarea-bordered min-h-[120px] w-full"
+                  maxLength={500}
+                  value={accessRequestMessage}
+                  onChange={(event) =>
+                    setAccessRequestMessage(event.target.value)
+                  }
+                  placeholder="Add context for your request (max 500 characters)"
+                />
+              </label>
+            )}
+
+            {accessRequestError && (
+              <div className="alert alert-error mt-4">{accessRequestError}</div>
+            )}
+            {accessRequestSuccess && (
+              <div className="alert alert-success mt-4">
+                {accessRequestSuccess}
+              </div>
+            )}
+
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={submitAccessRequest}
+                disabled={
+                  isRequestingAccess ||
+                  !!accessRequestSuccess ||
+                  !!existingAccessRequest
+                }
+              >
+                {isRequestingAccess ? 'Sending Request...' : 'Request Access'}
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={async () => {
+                  closeAccessRequestModal();
+                  await logout();
+                }}
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="navbar p-0 mb-4">
         <div className="flex flex-col lg:flex-row items-start gap-3 lg:items-center mr-4 w-full">
           <div>

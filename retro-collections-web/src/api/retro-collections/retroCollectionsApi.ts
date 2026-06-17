@@ -1,6 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { getAuth } from 'firebase/auth';
 
+// --- Existing Types ---
 export type ManageUserArgs = {
   uidToManage?: string;
   emailToManage?: string;
@@ -27,7 +28,30 @@ export type DriveProxyResponse = {
   success: boolean;
   imageUrl?: string;
 };
-const baseUrl = 'https://retro-collections.vercel.app/api';
+
+// --- Access Request Types ---
+export type RequestUserAccessArgs = {
+  message?: string;
+};
+
+export type RequestUserAccessResponse = {
+  message: string;
+};
+
+export type ApproveUserAccessArgs = {
+  uidToManage?: string;
+  emailToManage?: string;
+};
+
+export type ApproveUserAccessResponse = {
+  message: string;
+  uid: string;
+  email: string;
+  pendingRequestRemoved: boolean;
+};
+
+// 1. Core API base path resolved directly from build-time environment variables
+const baseUrl = import.meta.env.VITE_RETRO_COLLECTIONS_BASEURL;
 
 export const retroCollectionsApi = createApi({
   reducerPath: 'retroCollectionsApi',
@@ -36,7 +60,7 @@ export const retroCollectionsApi = createApi({
     const currentUser = auth.currentUser;
 
     if (!currentUser) {
-      console.error('Nessun utente loggato');
+      console.error('No authenticated user found');
       throw new Error('User not authenticated');
     }
 
@@ -44,6 +68,7 @@ export const retroCollectionsApi = createApi({
     const baseQueryPayload = (tk: string) => ({
       baseUrl,
       prepareHeaders: (headers: Headers) => {
+        // 2. Clear authorization handling without downstream environment flags
         headers.set('Authorization', `Bearer ${tk}`);
         return headers;
       },
@@ -53,7 +78,7 @@ export const retroCollectionsApi = createApi({
     const result = await base(args, api, extraOptions);
 
     if (result.error?.status === 401) {
-      const newToken = await currentUser.getIdToken(true); // force refresh
+      const newToken = await currentUser.getIdToken(true); // Force token refresh
       const base = fetchBaseQuery(baseQueryPayload(newToken));
       return await base(args, api, extraOptions);
     }
@@ -62,7 +87,7 @@ export const retroCollectionsApi = createApi({
   endpoints: (builder) => ({
     manageUserClaims: builder.mutation<ManageUserResponse, ManageUserArgs>({
       query: ({ uidToManage, emailToManage, enable }) => ({
-        url: '/manage-user',
+        url: 'manage-user',
         method: enable ? 'POST' : 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -80,10 +105,10 @@ export const retroCollectionsApi = createApi({
 
     getDriveImage: builder.query<DriveProxyResponse, DriveProxyArgs>({
       query: ({ fileId }) => ({
-        url: '/drive-proxy',
+        url: 'drive-proxy',
         method: 'GET',
         params: {
-          fileId,
+          id: fileId, // Aligned to map to the 'id' parameter expected by your backend query extractor
         },
       }),
       transformResponse: (response: DriveProxyResponse): DriveProxyResponse => {
@@ -91,8 +116,57 @@ export const retroCollectionsApi = createApi({
         return response;
       },
     }),
+
+    requestUserAccess: builder.mutation<
+      RequestUserAccessResponse,
+      RequestUserAccessArgs
+    >({
+      query: ({ message }) => ({
+        url: 'request-user-access',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: {
+          message,
+        },
+      }),
+      transformResponse: (
+        response: RequestUserAccessResponse
+      ): RequestUserAccessResponse => {
+        console.log('Request User Access API response:', response);
+        return response;
+      },
+    }),
+
+    approveUserAccess: builder.mutation<
+      ApproveUserAccessResponse,
+      ApproveUserAccessArgs
+    >({
+      query: ({ uidToManage, emailToManage }) => ({
+        url: 'approve-user-access',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: {
+          uidToManage,
+          emailToManage,
+        },
+      }),
+      transformResponse: (
+        response: ApproveUserAccessResponse
+      ): ApproveUserAccessResponse => {
+        console.log('Approve User Access API response:', response);
+        return response;
+      },
+    }),
   }),
 });
 
-export const { useManageUserClaimsMutation, useGetDriveImageQuery } =
-  retroCollectionsApi;
+export const {
+  useManageUserClaimsMutation,
+  useGetDriveImageQuery,
+  useRequestUserAccessMutation,
+  useApproveUserAccessMutation,
+} = retroCollectionsApi;

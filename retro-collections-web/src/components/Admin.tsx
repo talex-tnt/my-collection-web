@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
+import { collection, onSnapshot, type Timestamp } from 'firebase/firestore';
 
-import { auth } from '../lib/firebase';
+import { auth, db } from '../lib/firebase';
 import { useIsAdmin } from '../hooks';
 
 import {
@@ -9,10 +10,22 @@ import {
   useAddAuthorizedUserMutation,
   useRemoveAuthorizedUserMutation,
 } from '../api/firestore/firestoreApi';
+import { resolveDataCollectionPath } from '../api/firestore/runtimeConfig';
 
-import { useManageUserClaimsMutation } from '../api/retro-collections/retroCollectionsApi';
+import {
+  useApproveUserAccessMutation,
+  useManageUserClaimsMutation,
+} from '../api/retro-collections/retroCollectionsApi';
 
 function Admin() {
+  type AccessRequest = {
+    id: string;
+    uid: string;
+    email: string;
+    status: string;
+    createdAt: Timestamp | null;
+  };
+
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   const isAdmin = useIsAdmin(currentUser);
@@ -27,10 +40,15 @@ function Admin() {
   const [addUser] = useAddAuthorizedUserMutation();
   const [removeUser] = useRemoveAuthorizedUserMutation();
   const [manageUserClaims] = useManageUserClaimsMutation();
+  const [approveUserAccess] = useApproveUserAccessMutation();
 
   const [newEmail, setNewEmail] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [pendingRequests, setPendingRequests] = useState<AccessRequest[]>([]);
+  const [approvingRequestId, setApprovingRequestId] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -39,6 +57,78 @@ function Admin() {
 
     return unsubscribe;
   }, []);
+
+  useEffect(() => {
+    if (!currentUser || !isAdmin) {
+      return;
+    }
+
+    let unsubscribe: (() => void) | undefined;
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const requestsPath = await resolveDataCollectionPath({
+          visibility: 'private',
+          resourceType: 'users-access-requests',
+        });
+        if (cancelled) {
+          return;
+        }
+
+        const requestsRef = collection(db, requestsPath);
+        unsubscribe = onSnapshot(
+          requestsRef,
+          (snapshot) => {
+            const requests = snapshot.docs
+              .map((requestDoc) => {
+                const data = requestDoc.data() as {
+                  uid?: string;
+                  email?: string;
+                  status?: string;
+                  createdAt?: Timestamp | null;
+                };
+
+                return {
+                  id: requestDoc.id,
+                  uid: data.uid || requestDoc.id,
+                  email: (data.email || '').toLowerCase(),
+                  status: data.status || 'unknown',
+                  createdAt: data.createdAt || null,
+                };
+              })
+              .filter((request) => request.status === 'pending');
+
+            setPendingRequests(requests);
+          },
+          (snapshotError) => {
+            console.error(
+              'Failed to load pending access requests:',
+              snapshotError
+            );
+          }
+        );
+      } catch (error) {
+        console.error('Failed to resolve pending requests path:', error);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [currentUser, isAdmin]);
+
+  const pendingRequestEmails = new Set(
+    pendingRequests.map((request) => request.email)
+  );
+
+  const visibleAuthorizedUsers = authorizedUsers.filter(
+    (authorizedUser) =>
+      !pendingRequestEmails.has((authorizedUser.id || '').toLowerCase())
+  );
 
   const addAuthorizedUser = async () => {
     if (!newEmail.trim()) {
@@ -79,6 +169,31 @@ function Admin() {
     } catch (err) {
       console.error(err);
       setError('Failed to remove user');
+    }
+  };
+
+  const approveAccessRequest = async (request: AccessRequest) => {
+    if (!request.email) {
+      setError('Cannot approve request without user email');
+      return;
+    }
+
+    try {
+      setError('');
+      setSuccess('');
+      setApprovingRequestId(request.id);
+
+      const response = await approveUserAccess({
+        uidToManage: request.uid,
+        emailToManage: request.email,
+      }).unwrap();
+
+      setSuccess(response.message || `Request approved for ${request.email}`);
+    } catch (approveError) {
+      console.error('Failed to approve request:', approveError);
+      setError('Failed to approve request');
+    } finally {
+      setApprovingRequestId(null);
     }
   };
 
@@ -130,17 +245,57 @@ function Admin() {
 
           {/* LIST USERS */}
           <div className="space-y-4">
+            {pendingRequests.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold">
+                  Pending Access Requests ({pendingRequests.length})
+                </h3>
+                <div className="space-y-2">
+                  {pendingRequests.map((request) => (
+                    <div
+                      key={request.id}
+                      className="rounded-lg border border-warning/40 bg-warning/10 p-3"
+                    >
+                      <p className="font-medium">
+                        {request.email || request.uid}
+                      </p>
+                      <p className="text-sm text-base-content/70">
+                        Status: {request.status}
+                      </p>
+                      <p className="text-sm text-base-content/70">
+                        Requested at:{' '}
+                        {request.createdAt
+                          ? request.createdAt.toDate().toLocaleString()
+                          : 'pending timestamp'}
+                      </p>
+                      <div className="mt-2 flex justify-end">
+                        <button
+                          className="btn btn-success btn-sm"
+                          onClick={() => approveAccessRequest(request)}
+                          disabled={approvingRequestId === request.id}
+                        >
+                          {approvingRequestId === request.id
+                            ? 'Approving...'
+                            : 'Approve'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <h3 className="text-lg font-semibold">
-              Authorized Users ({authorizedUsers.length})
+              Authorized Users ({visibleAuthorizedUsers.length})
             </h3>
 
             {isLoading ? (
               <div className="alert alert-info">Loading...</div>
-            ) : authorizedUsers.length === 0 ? (
+            ) : visibleAuthorizedUsers.length === 0 ? (
               <div className="alert alert-info">No authorized users yet</div>
             ) : (
               <div className="space-y-2">
-                {authorizedUsers.map((user) => (
+                {visibleAuthorizedUsers.map((user) => (
                   <div
                     key={user.id}
                     className="flex flex-col gap-2 rounded-lg border border-base-300 bg-base-200 p-4 sm:flex-row sm:items-center sm:justify-between"

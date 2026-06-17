@@ -181,6 +181,20 @@ service cloud.firestore {
         allow write: if environmentAccessAllowed() && folderMatchesConfig() && isAdmin();
       }
 
+      // Access requests submitted via backend API; collection is private and sibling to authorized-users.
+      match /private/users-access-requests/{requestUid} {
+        allow get: if
+          folderMatchesConfig() && (
+          isAdmin() ||
+          (
+            env == 'main' &&
+            isAuthenticated() &&
+            request.auth.uid == requestUid
+          ));
+        allow list: if environmentAccessAllowed() && folderMatchesConfig() && isAdmin();
+        allow create, update, delete: if environmentAccessAllowed() && folderMatchesConfig() && isAdmin();
+      }
+
       // users public profile: owner writes only name + visibility.public; others may read only when public - Tests 0.1.1-0.4.4
       match /public/users/{userId} {
         function isUserOwner() {
@@ -1292,6 +1306,7 @@ service cloud.firestore {
           && (isAdmin() || isUserOwner());
       }
     }
+
     match /{document=**} {
       allow read, write: if false;
     }

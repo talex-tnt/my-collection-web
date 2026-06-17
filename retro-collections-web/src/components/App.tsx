@@ -12,31 +12,174 @@ import ProfilePage from '../pages/ProfilePage';
 import TagsPage from '../pages/TagsPage';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { useEffect, useState } from 'react';
+import { doc, onSnapshot, Timestamp } from 'firebase/firestore';
 import { auth } from '../lib/firebase';
+import { db } from '../lib/firebase';
 import { useGetRuntimeConfigQuery } from '../api/firestore/firestoreApi';
+import { resolveDataCollectionPath } from '../api/firestore/runtimeConfig';
 import { useGoogleDriveAuth } from '../utils/hooks';
 import MyCollectiblesPage from '../pages/MyCollectiblesPage';
 import CollectorWishlistsPage from '../pages/CollectorWishlistsPage';
+
+type AccessClaims = {
+  admin?: boolean;
+  enabled?: boolean;
+  tester?: boolean;
+};
+
+type AccessRequestStatus = 'pending' | 'approved' | 'rejected' | 'unknown';
+
+type ExistingAccessRequest = {
+  uid: string;
+  email: string;
+  message: string;
+  status: AccessRequestStatus;
+  environment: string;
+  createdAt: Date | null;
+};
+
+const normalizeAccessRequestStatus = (value: unknown): AccessRequestStatus => {
+  if (value === 'pending' || value === 'approved' || value === 'rejected') {
+    return value;
+  }
+
+  return 'unknown';
+};
+
+const formatAccessRequestDate = (date: Date | null) => {
+  if (!date) {
+    return 'Not available yet';
+  }
+
+  return date.toLocaleString();
+};
+
+function canAccessMainFromClaims(claims: AccessClaims) {
+  return (
+    claims.admin === true || (claims.enabled === true && claims.tester !== true)
+  );
+}
 
 function App() {
   useGoogleDriveAuth();
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthorizedForMain, setIsAuthorizedForMain] = useState(false);
+  const [isAuthResolved, setIsAuthResolved] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [existingAccessRequest, setExistingAccessRequest] =
+    useState<ExistingAccessRequest | null>(null);
   const { isLoading: isRuntimeConfigLoading, isError: isRuntimeConfigError } =
     useGetRuntimeConfigQuery(undefined, {
-      skip: !isAuthenticated,
+      skip: !isAuthenticated || !isAuthorizedForMain || !isAuthResolved,
     });
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setIsAuthenticated(Boolean(currentUser));
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
+
+      if (!currentUser) {
+        setIsAuthenticated(false);
+        setIsAuthorizedForMain(false);
+        setIsAuthResolved(true);
+        return;
+      }
+
+      setIsAuthenticated(true);
+      setIsAuthResolved(false);
+
+      try {
+        const tokenResult = await currentUser.getIdTokenResult(true);
+        const claims = tokenResult.claims as AccessClaims;
+        setIsAuthorizedForMain(canAccessMainFromClaims(claims));
+      } catch {
+        setIsAuthorizedForMain(false);
+      } finally {
+        setIsAuthResolved(true);
+      }
     });
     return unsubscribe;
   }, []);
 
-  if (isAuthenticated && isRuntimeConfigLoading) {
+  useEffect(() => {
+    if (!isAuthenticated || isAuthorizedForMain || !user) {
+      return;
+    }
+
+    let unsubscribe: (() => void) | undefined;
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const requestsPath = await resolveDataCollectionPath({
+          visibility: 'private',
+          resourceType: 'users-access-requests',
+        });
+        if (cancelled) {
+          return;
+        }
+
+        const requestRef = doc(db, requestsPath, user.uid);
+        unsubscribe = onSnapshot(
+          requestRef,
+          (snapshot) => {
+            if (!snapshot.exists()) {
+              setExistingAccessRequest(null);
+              return;
+            }
+
+            const data = snapshot.data() as {
+              uid?: string;
+              email?: string;
+              message?: string;
+              status?: string;
+              environment?: string;
+              createdAt?: Timestamp | null;
+            };
+
+            setExistingAccessRequest({
+              uid: data.uid || user.uid,
+              email: data.email || user.email || '',
+              message: data.message || '',
+              status: normalizeAccessRequestStatus(data.status),
+              environment: data.environment || '',
+              createdAt:
+                data.createdAt instanceof Timestamp
+                  ? data.createdAt.toDate()
+                  : null,
+            });
+          },
+          (error) => {
+            console.error('Failed to read access request status:', error);
+          }
+        );
+      } catch (error) {
+        console.error('Failed to resolve access requests path:', error);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [isAuthenticated, isAuthorizedForMain, user]);
+
+  if (isAuthenticated && !isAuthResolved) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-base-200 text-base-content">
+        <div className="card bg-base-100 shadow-xl">
+          <div className="card-body">
+            <span className="loading loading-spinner loading-lg" />
+            <p>Checking account access...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isAuthenticated && isAuthorizedForMain && isRuntimeConfigLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-base-200 text-base-content">
         <div className="card bg-base-100 shadow-xl">
@@ -49,7 +192,7 @@ function App() {
     );
   }
 
-  if (isAuthenticated && isRuntimeConfigError) {
+  if (isAuthenticated && isAuthorizedForMain && isRuntimeConfigError) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-base-200 text-base-content">
         <div className="card bg-base-100 shadow-xl">
@@ -71,37 +214,84 @@ function App() {
           <div className="mx-auto max-w-screen-2xl space-y-4 px-2 sm:px-4 py-8">
             <Header />
 
-            <div className="space-y-6">
-              <Routes>
-                <Route path="/*" element={<Navigate to="/my-collectibles" />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route
-                  path="/my-collectibles/*"
-                  element={<MyCollectiblesPage />}
-                />
-                <Route
-                  path="/my-collections/*"
-                  element={<MyCollectionsPage />}
-                />
-                <Route path="/my-wishlists/*" element={<MyWishlistsPage />} />
-                <Route
-                  path="/collectors/:userId/wishlists/*"
-                  element={<CollectorWishlistsPage />}
-                />
-                <Route
-                  path="/collectors/:userId/*"
-                  element={<CollectorPage />}
-                />
-                <Route path="/collectors" element={<CollectorsPage />} />
-                <Route path="/users" element={<UsersPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
-                <Route path="/admin" element={<AdminPage />} />
-                <Route
-                  path="/tags"
-                  element={user ? <TagsPage user={user} /> : null}
-                />
-              </Routes>
-            </div>
+            {!isAuthenticated || isAuthorizedForMain ? (
+              <div className="space-y-6">
+                <Routes>
+                  <Route
+                    path="/*"
+                    element={<Navigate to="/my-collectibles" />}
+                  />
+                  <Route path="/profile" element={<ProfilePage />} />
+                  <Route
+                    path="/my-collectibles/*"
+                    element={<MyCollectiblesPage />}
+                  />
+                  <Route
+                    path="/my-collections/*"
+                    element={<MyCollectionsPage />}
+                  />
+                  <Route path="/my-wishlists/*" element={<MyWishlistsPage />} />
+                  <Route
+                    path="/collectors/:userId/wishlists/*"
+                    element={<CollectorWishlistsPage />}
+                  />
+                  <Route
+                    path="/collectors/:userId/*"
+                    element={<CollectorPage />}
+                  />
+                  <Route path="/collectors" element={<CollectorsPage />} />
+                  <Route path="/users" element={<UsersPage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                  <Route path="/admin" element={<AdminPage />} />
+                  <Route
+                    path="/tags"
+                    element={user ? <TagsPage user={user} /> : null}
+                  />
+                </Routes>
+              </div>
+            ) : (
+              <div className="rounded-box border border-base-300 bg-base-100 p-6 shadow-sm">
+                <h2 className="text-lg font-semibold">Access pending</h2>
+                <p className="mt-2 text-sm text-base-content/70">
+                  Your account is signed in, but not authorized yet. Use the
+                  access request dialog in the header to submit or review your
+                  request.
+                </p>
+
+                {existingAccessRequest && (
+                  <div className="mt-4 space-y-2 rounded-lg border border-base-300 bg-base-200/50 p-4 text-sm">
+                    <p>
+                      <span className="font-semibold">Request status:</span>{' '}
+                      <span className="capitalize">
+                        {existingAccessRequest.status}
+                      </span>
+                    </p>
+                    <p>
+                      <span className="font-semibold">Submitted at:</span>{' '}
+                      {formatAccessRequestDate(existingAccessRequest.createdAt)}
+                    </p>
+                    {existingAccessRequest.email && (
+                      <p>
+                        <span className="font-semibold">Email:</span>{' '}
+                        {existingAccessRequest.email}
+                      </p>
+                    )}
+                    {existingAccessRequest.environment && (
+                      <p>
+                        <span className="font-semibold">Environment:</span>{' '}
+                        {existingAccessRequest.environment}
+                      </p>
+                    )}
+                    {existingAccessRequest.message && (
+                      <p>
+                        <span className="font-semibold">Message:</span>{' '}
+                        {existingAccessRequest.message}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
         <Footer />

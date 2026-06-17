@@ -3,8 +3,22 @@ import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  const originHeader = req.headers['origin'];
+  
+  // 1. Dynamic CORS configuration driven by Vercel environment targets
+  const allowedOrigins = process.env.ALLOWED_ORIGINS 
+    ? process.env.ALLOWED_ORIGINS.split(',') 
+    : [];
+
+  const isAllowedOrigin = !!originHeader && allowedOrigins.includes(originHeader);
+
+  if (isAllowedOrigin) {
+    res.setHeader('Access-Control-Allow-Origin', originHeader);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', 'null');
+  }
+
   res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST,DELETE,OPTIONS');
   res.setHeader(
     'Access-Control-Allow-Headers',
@@ -20,35 +34,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    // 2. Authorization Header verification
     const authHeader = req.headers['authorization'];
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ error: 'Missing or malformed Authorization token.' });
     }
 
     const token = authHeader.split('Bearer ')[1];
-    const { uidToManage, emailToManage, env } = req.body;
+    
+    // Removed 'env' parameter since Vercel automatically routes to the right project keys
+    const { uidToManage, emailToManage } = req.body;
 
     if (!uidToManage && !emailToManage) {
       return res.status(400).json({ error: 'Missing target identifier. Provide either uidToManage or emailToManage.' });
     }
 
-    const isProdSelection = env === 'prod';
-    
-    const projectId = isProdSelection ? process.env.FIREBASE_PROJECT_ID_PROD : process.env.FIREBASE_PROJECT_ID_DEV;
-    const clientEmail = isProdSelection ? process.env.FIREBASE_CLIENT_EMAIL_PROD : process.env.FIREBASE_CLIENT_EMAIL_DEV;
-    const privateKey = isProdSelection 
-      ? process.env.FIREBASE_PRIVATE_KEY_PROD?.replace(/\\n/g, '\n')
-      : process.env.FIREBASE_PRIVATE_KEY_DEV?.replace(/\\n/g, '\n');
+    // 3. Simplified Firebase initialization using unified environment variables
+    const projectId = process.env.FIREBASE_PROJECT_ID;
+    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+    const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
     const serviceAccount = { projectId, clientEmail, privateKey };
 
-    const appName = isProdSelection ? 'prod-app' : 'dev-app';
+    // Use a single Firebase app instance per environment (separated at deployment time)
+    const appName = process.env.VERCEL_ENV || 'default-app';
     const activeApps = getApps();
     const existingApp = activeApps.find(app => app.name === appName);
     
     const currentApp = existingApp || initializeApp({ credential: cert(serviceAccount) }, appName);
     const authInstance = getAuth(currentApp);
 
+    // 4. Administrator status identity check
     const decodedToken = await authInstance.verifyIdToken(token);
     if (!decodedToken.admin) {
       return res.status(403).json({ error: 'Access Denied. Administrator privileges required.' });
@@ -76,6 +92,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const currentClaims = targetUser.customClaims || {};
     let targetStateMessage = '';
 
+    // 5. Manage target custom claims states
     if (req.method === 'POST') {
       await authInstance.setCustomUserClaims(finalUid, {
         ...currentClaims,

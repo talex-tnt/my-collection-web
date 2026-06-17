@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "deploy:dev": "vercel",
-    "deploy:prod": "vercel --prod"
+    "deploy:dev": "vercel && vercel alias retro-collections-dev.vercel.app",
+    "deploy:prod": "vercel --prod && vercel alias retro-collections.vercel.app"
   },
   "keywords": [],
   "author": "",
@@ -14,6 +14,7 @@
     "@vercel/node": "^5.8.6"
   },
   "dependencies": {
-    "firebase-admin": "^13.10.0"
+    "firebase-admin": "^13.10.0",
+    "resend": "^6.12.4"
   }
 }
