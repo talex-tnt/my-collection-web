@@ -4,8 +4,6 @@ import { onAuthStateChanged, type User } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { useIsAdmin } from '../hooks';
 
-const env = import.meta.env.VITE_ENV;
-
 import {
   useGetAuthorizedUsersQuery,
   useAddAuthorizedUserMutation,
@@ -54,7 +52,6 @@ function Admin() {
 
       await manageUserClaims({
         emailToManage: newEmail,
-        env,
         enable: true,
       }).unwrap();
       await addUser(newEmail).unwrap();
@@ -74,7 +71,6 @@ function Admin() {
 
       await manageUserClaims({
         emailToManage: email,
-        env,
         enable: false,
       }).unwrap();
       await removeUser(email).unwrap();
