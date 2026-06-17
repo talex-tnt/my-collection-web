@@ -4,6 +4,8 @@ import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { Resend } from 'resend';
 
+const maxAllowedRequestsPerDay = process.env.MAX_ALLOWED_REQUESTS_PER_DAY ? Number(process.env.MAX_ALLOWED_REQUESTS_PER_DAY) : 5;
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const originHeader = req.headers['origin'];
   
@@ -105,7 +107,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const dailyLogRef = dbInstance.collection('system_logs').doc(todayStr);
     const dailyLogDoc = await dailyLogRef.get();
     
-    if (dailyLogDoc.exists && (dailyLogDoc.data()?.count >= 5)) {
+    if (dailyLogDoc.exists && (dailyLogDoc.data()?.count >= maxAllowedRequestsPerDay)) {
       return res.status(429).json({ 
         error: 'The maximum number of daily registration requests for the system has been reached. Please try again tomorrow.' 
       });
@@ -145,7 +147,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await batch.commit();
 
     // 9. Dispatch Alert Email to Admin via Resend
-    await resend.emails.send({
+    const resendResult = await resend.emails.send({
       from: fromEmail, 
       to: adminEmail,
       subject: `[${appName.toUpperCase()}] New Access Request from ${name || email}`,
@@ -166,9 +168,53 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       `,
     });
 
-    return res.status(200).json({ 
-      message: 'Your access request has been successfully recorded. The administrator has been notified.' 
-    });
+    const resendError =
+      resendResult && typeof resendResult === 'object' && 'error' in resendResult
+        ? resendResult.error
+        : null;
+
+    if (resendError) {
+      console.error('Resend email dispatch failed for access request:', {
+        appName,
+        adminEmail,
+        uid,
+        resendError,
+      });
+    }
+
+    const includeEmailDebug = process.env.DEBUG_ACCESS_REQUEST_EMAIL === 'true';
+
+    const responsePayload: {
+      message: string;
+      emailNotificationSent?: boolean;
+      debug?: {
+        appName: string;
+        adminEmail: string;
+        fromEmail: string;
+        resendData: unknown;
+        resendError: unknown;
+      };
+    } = {
+      message: resendError
+        ? 'Your access request has been recorded, but admin email notification failed. Please contact the administrator directly.'
+        : 'Your access request has been successfully recorded. The administrator has been notified.',
+      emailNotificationSent: !resendError,
+    };
+
+    if (includeEmailDebug) {
+      responsePayload.debug = {
+        appName,
+        adminEmail,
+        fromEmail,
+        resendData:
+          resendResult && typeof resendResult === 'object' && 'data' in resendResult
+            ? resendResult.data
+            : null,
+        resendError,
+      };
+    }
+
+    return res.status(resendError ? 202 : 200).json(responsePayload);
 
   } catch (error: any) {
     console.error('Operational server failure during access request processing:', error);
