@@ -39,9 +39,7 @@ export type RequestUserAccessResponse = {
 };
 
 // 1. Core API base path resolved directly from build-time environment variables
-const baseUrl =
-  import.meta.env.VITE_RETRO_COLLECTIONS_BASEURL ||
-  'https://retro-collections-dev.vercel.app/api';
+const baseUrl = import.meta.env.VITE_RETRO_COLLECTIONS_BASEURL;
 
 export const retroCollectionsApi = createApi({
   reducerPath: 'retroCollectionsApi',
