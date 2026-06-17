@@ -5,7 +5,6 @@ export type ManageUserArgs = {
   uidToManage?: string;
   emailToManage?: string;
   enable: boolean;
-  env: 'dev' | 'prod';
 };
 
 export type CustomClaims = {
@@ -62,7 +61,7 @@ export const retroCollectionsApi = createApi({
   },
   endpoints: (builder) => ({
     manageUserClaims: builder.mutation<ManageUserResponse, ManageUserArgs>({
-      query: ({ uidToManage, emailToManage, enable, env }) => ({
+      query: ({ uidToManage, emailToManage, enable }) => ({
         url: '/manage-user',
         method: enable ? 'POST' : 'DELETE',
         headers: {
@@ -71,7 +70,6 @@ export const retroCollectionsApi = createApi({
         body: {
           uidToManage,
           emailToManage,
-          env,
         },
       }),
       transformResponse: (response: ManageUserResponse): ManageUserResponse => {
