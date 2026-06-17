@@ -1292,6 +1292,12 @@ service cloud.firestore {
           && (isAdmin() || isUserOwner());
       }
     }
+
+    // Access requests submitted via backend API; visible/manageable by admins only.
+    match /users-access-requests/{requestUid} {
+      allow read, write: if isAdmin();
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
