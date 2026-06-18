@@ -70,6 +70,7 @@ interface FirestoreItemDoc {
 
 export interface PaginationCursor {
   id: string;
+  docPath?: string;
   createdAt?: string;
   updatedAt?: string;
   nameLowercase?: string;
@@ -171,15 +172,17 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
 
       // 6. Map and apply the cursor variables for pagination matching the active index structure
       if (startAfter) {
+        const cursorDocPath = startAfter.docPath ?? startAfter.id;
+
         if (prefix || sortBy === 'name') {
           baseConstraints.push(
-            fsStartAfter(startAfter.nameLowercase, startAfter.id)
+            fsStartAfter(startAfter.nameLowercase, cursorDocPath)
           );
         } else if (sortBy === 'createdAt') {
           baseConstraints.push(
             fsStartAfter(
               Timestamp.fromDate(new Date(startAfter.createdAt!)),
-              startAfter.id
+              cursorDocPath
             )
           );
         } else {
@@ -187,7 +190,7 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
           baseConstraints.push(
             fsStartAfter(
               Timestamp.fromDate(new Date(startAfter.updatedAt!)),
-              startAfter.id
+              cursorDocPath
             )
           );
         }
@@ -205,11 +208,14 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
       try {
         const snapshot = await getDocs(groupQuery);
 
-        const rawItems = snapshot.docs.map(mapItemDoc);
+        const rawDocs = snapshot.docs;
+        const rawItems = rawDocs.map(mapItemDoc);
 
         const hasNextPage = rawItems.length > (limit ?? rawItems.length);
         const pagedItems = hasNextPage ? rawItems.slice(0, limit) : rawItems;
+        const pagedDocs = hasNextPage ? rawDocs.slice(0, limit) : rawDocs;
         const last = pagedItems[pagedItems.length - 1];
+        const lastDoc = pagedDocs[pagedDocs.length - 1];
 
         return {
           data: {
@@ -218,6 +224,7 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
               endCursor: last
                 ? {
                     id: last.id,
+                    docPath: lastDoc?.ref.path,
                     createdAt: last.createdAt,
                     updatedAt: last.updatedAt, // Pass down to preserve cursor values
                     nameLowercase: last.name.toLowerCase(),
