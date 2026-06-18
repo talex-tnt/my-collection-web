@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { useGetPublicUsersQuery } from '../api/firestore/firestoreApi';
 import { useCurrentUser } from '../utils/hooks';
+import LoginWithGoogle from '../components/LoginWithGoogle';
 
 function CollectorsPage() {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ function CollectorsPage() {
         <div className="card-body">
           <h2 className="card-title">Collectors</h2>
           <p>Please log in to view collectors.</p>
+          <LoginWithGoogle className="btn btn-primary max-w-xs" />
         </div>
       </div>
     );

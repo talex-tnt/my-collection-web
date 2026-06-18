@@ -11,6 +11,7 @@ import { useCurrentUser } from '../utils/hooks';
 import MyCollectionItems from '../components/MyCollectionItems';
 import { useGetUserCollectionsQuery } from '../api/firestore/firestoreApi';
 import MyItemsBreadcrumb from '../components/MyItemsBreadcrumb';
+import LoginWithGoogle from '../components/LoginWithGoogle';
 
 function MyCollectionsPage() {
   const user = useCurrentUser();
@@ -31,6 +32,7 @@ function MyCollectionsPage() {
         <div className="card-body">
           <h2 className="card-title">My Items</h2>
           <p>Please log in to manage your items.</p>
+          <LoginWithGoogle className="btn btn-primary max-w-xs" />
         </div>
       </div>
     );

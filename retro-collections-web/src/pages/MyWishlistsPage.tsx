@@ -10,6 +10,7 @@ import { useGetUserWishlistsQuery } from '../api/firestore/firestoreApi';
 import MyWishlists from '../components/MyWishlists';
 import MyWishlistWishes from '../components/MyWishlistWishes';
 import MyWishesBreadcrumb from '../components/MyWishesBreadcrumb';
+import LoginWithGoogle from '../components/LoginWithGoogle';
 
 function MyWishlistsPage() {
   const user = useCurrentUser();
@@ -30,6 +31,7 @@ function MyWishlistsPage() {
         <div className="card-body">
           <h2 className="card-title">My Wishlists</h2>
           <p>Please log in to manage your wishlists.</p>
+          <LoginWithGoogle className="btn btn-primary max-w-xs" />
         </div>
       </div>
     );

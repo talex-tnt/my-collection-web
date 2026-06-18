@@ -1,27 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import {
-  GoogleAuthProvider,
-  browserLocalPersistence,
-  onAuthStateChanged,
-  setPersistence,
-  signInWithPopup,
-  signOut,
-  type User,
-} from 'firebase/auth';
+import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
 import { doc, getDoc, Timestamp } from 'firebase/firestore';
 import { auth } from '../lib/firebase';
 import { db } from '../lib/firebase';
-import {
-  useCreateOrUpdatePrivateUserMutation,
-  useCreateOrUpdateUserMutation,
-} from '../api/firestore/firestoreApi';
 import { resolveDataCollectionPath } from '../api/firestore/runtimeConfig';
 import { useRequestUserAccessMutation } from '../api/retro-collections/retroCollectionsApi';
 import { useIsAdmin } from '../hooks';
+import LoginWithGoogle from './LoginWithGoogle';
 
 import { useDispatch } from 'react-redux';
-import { clearAuth, setAccessToken } from '../store/authSlice';
+import { clearAuth } from '../store/authSlice';
 import retroCollectionsLogo from '../assets/retro-collections-logo.png';
 
 // import { EXPIRY_KEY, TOKEN_KEY } from '../api/google-drive/googleDriveAuth';
@@ -73,8 +62,6 @@ function Header() {
     useState<ExistingAccessRequest | null>(null);
   const isAdmin = useIsAdmin(user);
 
-  const [createOrUpdateUser] = useCreateOrUpdateUserMutation();
-  const [createOrUpdatePrivateUser] = useCreateOrUpdatePrivateUserMutation();
   const [requestUserAccess, { isLoading: isRequestingAccess }] =
     useRequestUserAccessMutation();
 
@@ -172,79 +159,6 @@ function Header() {
 
     return unsubscribe;
   }, [readExistingAccessRequest]);
-
-  const login = async () => {
-    try {
-      setError('');
-
-      await setPersistence(auth, browserLocalPersistence);
-
-      const provider = new GoogleAuthProvider();
-      provider.addScope('https://www.googleapis.com/auth/drive.readonly');
-
-      const result = await signInWithPopup(auth, provider);
-      const credential = GoogleAuthProvider.credentialFromResult(result);
-      if (credential?.accessToken) {
-        dispatch(setAccessToken(credential.accessToken));
-
-        // const tokenResult = await result.user.getIdTokenResult();
-        // const expiryTime = new Date(tokenResult.expirationTime).getTime();
-
-        // sessionStorage.setItem(TOKEN_KEY, credential?.accessToken);
-        // sessionStorage.setItem(EXPIRY_KEY, expiryTime.toString());
-      }
-      const currentUser = result.user;
-      const email = currentUser.email || '';
-
-      const tokenResult = await currentUser.getIdTokenResult(true);
-      const claims = tokenResult.claims as AccessClaims;
-      const authorized = canAccessMainFromClaims(claims);
-
-      if (!authorized) {
-        setDeniedEmail(email || currentUser.email || '');
-        setAccessRequestMessage('');
-        setAccessRequestError('');
-        setAccessRequestSuccess('');
-
-        try {
-          await readExistingAccessRequest(currentUser.uid);
-        } catch (readError) {
-          console.error('Failed to read existing access request:', readError);
-          setExistingAccessRequest(null);
-        }
-
-        setIsAccessRequestModalOpen(true);
-        return;
-      }
-
-      await createOrUpdateUser({
-        id: currentUser.uid,
-        name: currentUser.displayName || '',
-      });
-
-      await createOrUpdatePrivateUser({
-        id: currentUser.uid,
-        email: currentUser.email || '',
-        lastLogin: new Date().toISOString(),
-      });
-
-      // if (credential) {
-      //   const accessToken = credential.accessToken;
-      //   const res = await fetch(`https://www.googleapis.com/drive/v3/files`, {
-      //     headers: {
-      //       Authorization: `Bearer ${accessToken}`,
-      //     },
-      //   });
-      //   console.log('Google Drive API response:', res);
-      // } else {
-      //   setError('Failed to obtain authentication credential.');
-      //   return;
-      // }
-    } catch (loginError) {
-      console.error('Login error:', loginError);
-      setError('Login failed. Please try again.');
-    }
-  };
 
   const logout = async () => {
     try {
@@ -547,9 +461,7 @@ function Header() {
                 <p className="text-sm text-base-content/70">
                   Sign in to manage your collections and items.
                 </p>
-                <button className="btn btn-primary w-full" onClick={login}>
-                  Login with Google
-                </button>
+                <LoginWithGoogle />
               </div>
             )}
           </div>

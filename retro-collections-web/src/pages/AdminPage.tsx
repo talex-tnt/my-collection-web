@@ -4,6 +4,7 @@ import { onAuthStateChanged, type User } from 'firebase/auth';
 import Admin from '../components/Admin';
 import { auth } from '../lib/firebase';
 import { useIsAdmin } from '../hooks';
+import LoginWithGoogle from '../components/LoginWithGoogle';
 
 function AdminPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -26,6 +27,7 @@ function AdminPage() {
           <p>
             Please log in with the admin account to manage authorized users.
           </p>
+          <LoginWithGoogle className="btn btn-primary max-w-xs" />
         </div>
       </div>
     );

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import UserProfile from '../components/UserProfile';
+import LoginWithGoogle from '../components/LoginWithGoogle';
 
 function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -20,6 +21,7 @@ function ProfilePage() {
         <div className="card-body">
           <h2 className="card-title">My Profile</h2>
           <p>Please log in to view and edit your profile.</p>
+          <LoginWithGoogle className="btn btn-primary max-w-xs" />
         </div>
       </div>
     );

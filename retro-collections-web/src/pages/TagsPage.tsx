@@ -9,6 +9,7 @@ import {
   useDeletePublicUserTagMutation,
   useUpdatePublicUserTagMutation,
 } from '../api/firestore/firestoreApi';
+import LoginWithGoogle from '../components/LoginWithGoogle';
 
 // Cleaned up with unique IDs and standard asset paths
 // Completely updated to match your public/tag-icons directory assets
@@ -382,6 +383,7 @@ export default function TagsPage({ user }: TagsPageProps) {
         <div className="card-body">
           <h2 className="card-title">Tags</h2>
           <p>Please log in to manage Tags.</p>
+          <LoginWithGoogle className="btn btn-primary max-w-xs" />
         </div>
       </div>
     );

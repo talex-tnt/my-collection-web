@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'; // 1. Import the navigation hook
 import { useCurrentUser } from '../utils/hooks';
 import MyItemsAllGrouped from '../components/MyItemsAllGrouped';
 import { FiArrowRight as Icon } from 'react-icons/fi';
+import LoginWithGoogle from '../components/LoginWithGoogle';
 function MyCollectiblesPage() {
   const user = useCurrentUser();
   const navigate = useNavigate(); // 2. Initialize the navigate function
@@ -12,6 +13,7 @@ function MyCollectiblesPage() {
         <div className="card-body">
           <h2 className="card-title">My Items</h2>
           <p>Please log in to manage your items.</p>
+          <LoginWithGoogle className="btn btn-primary max-w-xs" />
         </div>
       </div>
     );
