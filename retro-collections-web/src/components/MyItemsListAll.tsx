@@ -80,6 +80,17 @@ function MyItemsListAll({
   }, [pageIndex]);
   const [cursors, setCursors] = useState<(Cursor | null)[]>([null]);
 
+  useEffect(() => {
+    setPageIndex(0);
+    setCursors([null]);
+  }, [
+    user?.uid,
+    selectedTags,
+    startWithNameFilter,
+    nameContainsTokens,
+    itemNameClientFilter,
+  ]);
+
   const currentCursor = cursors[pageIndex];
   const isAll = pageSize === 'all';
 

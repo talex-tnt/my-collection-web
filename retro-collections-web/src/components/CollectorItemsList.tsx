@@ -43,6 +43,18 @@ function CollectorItemsList({
 
   const [cursors, setCursors] = useState<(Cursor | null)[]>([null]);
 
+  useEffect(() => {
+    setPageIndex(0);
+    setCursors([null]);
+  }, [
+    userId,
+    selectedTags,
+    startWithNameFilter,
+    nameContainsTokens,
+    itemNameClientFilter,
+    collectionId,
+  ]);
+
   const currentCursor = cursors[pageIndex];
   const isAll = pageSize === 'all';
 

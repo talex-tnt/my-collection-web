@@ -129,6 +129,28 @@ function MyItemsList({
   }, [pageIndex]);
   const [cursors, setCursors] = useState<(Cursor | null)[]>([null]);
 
+  useEffect(() => {
+    let disposed = false;
+
+    queueMicrotask(() => {
+      if (disposed) return;
+      setPageIndex(0);
+      setCursors([null]);
+    });
+
+    return () => {
+      disposed = true;
+    };
+  }, [
+    user?.uid,
+    selectedTags,
+    startWithNameFilter,
+    nameContainsTokens,
+    itemNameClientFilter,
+    isPublicItem,
+    collectionId,
+  ]);
+
   const currentCursor = cursors[pageIndex];
   const isAll = pageSize === 'all';
 
