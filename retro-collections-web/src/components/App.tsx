@@ -243,10 +243,7 @@ function App() {
                   <Route path="/users" element={<UsersPage />} />
                   <Route path="/settings" element={<SettingsPage />} />
                   <Route path="/admin" element={<AdminPage />} />
-                  <Route
-                    path="/tags"
-                    element={user ? <TagsPage user={user} /> : null}
-                  />
+                  <Route path="/tags" element={<TagsPage user={user} />} />
                 </Routes>
               </div>
             ) : (

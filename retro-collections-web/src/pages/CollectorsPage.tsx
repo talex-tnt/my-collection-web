@@ -1,11 +1,24 @@
 import { useNavigate } from 'react-router-dom';
 
 import { useGetPublicUsersQuery } from '../api/firestore/firestoreApi';
+import { useCurrentUser } from '../utils/hooks';
 
 function CollectorsPage() {
   const navigate = useNavigate();
 
   const { data: users = [], isLoading } = useGetPublicUsersQuery();
+  const user = useCurrentUser();
+
+  if (!user) {
+    return (
+      <div className="card bg-base-100 shadow-xl">
+        <div className="card-body">
+          <h2 className="card-title">Collectors</h2>
+          <p>Please log in to view collectors.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

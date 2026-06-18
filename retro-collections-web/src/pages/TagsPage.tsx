@@ -261,11 +261,11 @@ const TAG_COLOR_PAIRS = [
 ] as TagColorPair[];
 
 interface TagsPageProps {
-  user: { uid: string };
+  user?: { uid: string } | null;
 }
 
 export default function TagsPage({ user }: TagsPageProps) {
-  const userId = user.uid;
+  const userId = user?.uid ?? '';
   const {
     data: tags = [],
     isLoading,
@@ -376,6 +376,16 @@ export default function TagsPage({ user }: TagsPageProps) {
     return orderA - orderB;
   });
 
+  if (!user) {
+    return (
+      <div className="card bg-base-100 shadow-xl">
+        <div className="card-body">
+          <h2 className="card-title">Tags</h2>
+          <p>Please log in to manage Tags.</p>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="max-w-5xl mx-auto mt-8 p-6 bg-base-200 rounded-lg shadow relative">
       <h1 className="text-2xl font-bold mb-4">Manage Tags</h1>
