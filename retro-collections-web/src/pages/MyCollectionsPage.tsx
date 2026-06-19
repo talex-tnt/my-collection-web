@@ -37,7 +37,9 @@ function MyCollectionsPage() {
     const targetSubPath = currentCollectionId ? 'collections' : tab;
     navigate(`/my-collections/${newVis}/${targetSubPath}`);
   };
-
+  if (!user) {
+    return <Navigate to="/" replace />;
+  }
   return (
     <div>
       <MyItemsBreadcrumb

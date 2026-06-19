@@ -29,7 +29,7 @@ function AdminPage() {
           </p>
 
           <p className="mt-2">
-            Logged in as: <strong>{currentUser.email}</strong>
+            Logged in as: <strong>{currentUser?.email}</strong>
           </p>
         </div>
       </div>
@@ -43,10 +43,10 @@ function AdminPage() {
           <h2 className="card-title">Admin Dashboard</h2>
 
           <p className="text-base-content/70">
-            Current user: {currentUser.displayName || currentUser.email}
+            Current user: {currentUser?.displayName || currentUser?.email}
           </p>
 
-          <p className="text-sm">UID: {currentUser.uid}</p>
+          <p className="text-sm">UID: {currentUser?.uid}</p>
         </div>
       </div>
 

@@ -35,6 +35,10 @@ function MyWishlistsPage() {
     navigate(`/my-wishlists/${newVis}/${targetSubPath}`);
   };
 
+  if (!user) {
+    return <Navigate to="/" replace />;
+  }
+
   return (
     <div>
       <MyWishesBreadcrumb
