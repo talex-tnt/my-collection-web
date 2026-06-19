@@ -313,7 +313,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const startWithNameFilter = toStringOrUndefined(req.query.startWithNameFilter)?.toLowerCase();
     const nameContainsTokens = toStringOrUndefined(req.query.nameContainsTokens);
     const sortBy = (toStringOrUndefined(req.query.sortBy) || 'updatedAt') as SortBy;
-    const limit = parseLimit(req.query.limit);
+    const limit = Math.min(parseLimit(req.query.limit) ?? 25, 25);
     const cursor = parseCursor(req.query.startAfter);
 
     let queryRef: Query = db.collectionGroup('items');
