@@ -1,20 +1,9 @@
-import { useEffect, useState } from 'react';
-import { onAuthStateChanged, type User } from 'firebase/auth';
-import { auth } from '../lib/firebase';
 import UserProfile from '../components/UserProfile';
 import LoginWithGoogle from '../components/LoginWithGoogle';
+import { useCurrentUser } from '../utils/hooks';
 
 function ProfilePage() {
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
-
-    return unsubscribe;
-  }, []);
-
+  const user = useCurrentUser();
   if (!user) {
     return (
       <div className="card bg-base-100 shadow-xl">

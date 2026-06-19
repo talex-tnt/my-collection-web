@@ -10,7 +10,6 @@ import { useGetUserWishlistsQuery } from '../api/firestore/firestoreApi';
 import MyWishlists from '../components/MyWishlists';
 import MyWishlistWishes from '../components/MyWishlistWishes';
 import MyWishesBreadcrumb from '../components/MyWishesBreadcrumb';
-import LoginWithGoogle from '../components/LoginWithGoogle';
 
 function MyWishlistsPage() {
   const user = useCurrentUser();
@@ -24,18 +23,6 @@ function MyWishlistsPage() {
     { userId: user?.uid || '', isPublicWishlist: visibility === 'public' },
     { skip: !user?.uid }
   );
-
-  if (!user) {
-    return (
-      <div className="card bg-base-100 shadow-xl">
-        <div className="card-body">
-          <h2 className="card-title">My Wishlists</h2>
-          <p>Please log in to manage your wishlists.</p>
-          <LoginWithGoogle className="btn btn-primary max-w-xs" />
-        </div>
-      </div>
-    );
-  }
 
   const pathSegments = location.pathname.split('/');
   const isDeepView = pathSegments.length > 4 && pathSegments[3] === 'wishlists';

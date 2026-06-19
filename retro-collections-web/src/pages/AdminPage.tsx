@@ -4,7 +4,6 @@ import { onAuthStateChanged, type User } from 'firebase/auth';
 import Admin from '../components/Admin';
 import { auth } from '../lib/firebase';
 import { useIsAdmin } from '../hooks';
-import LoginWithGoogle from '../components/LoginWithGoogle';
 
 function AdminPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -18,20 +17,6 @@ function AdminPage() {
 
     return unsubscribe;
   }, []);
-
-  if (!currentUser) {
-    return (
-      <div className="card bg-base-100 shadow-xl">
-        <div className="card-body">
-          <h2 className="card-title">Admin</h2>
-          <p>
-            Please log in with the admin account to manage authorized users.
-          </p>
-          <LoginWithGoogle className="btn btn-primary max-w-xs" />
-        </div>
-      </div>
-    );
-  }
 
   if (!isAdmin) {
     return (

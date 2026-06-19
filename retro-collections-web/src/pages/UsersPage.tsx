@@ -9,7 +9,6 @@ import {
 } from '../api/firestore/firestoreApi';
 import { useIsAdmin } from '../hooks';
 import type { PrivateUserRecord } from '../api/firestore/services/private/users';
-import LoginWithGoogle from '../components/LoginWithGoogle';
 
 interface PublicUserRecord {
   id: string;
@@ -90,18 +89,6 @@ function UsersPage() {
 
     return unsubscribe;
   }, []);
-
-  if (!currentUser) {
-    return (
-      <div className="card bg-base-100 shadow-xl">
-        <div className="card-body">
-          <h2 className="card-title">Users</h2>
-          <p>Log in as admin to view registered users.</p>
-        </div>
-        <LoginWithGoogle className="btn btn-primary max-w-xs" />
-      </div>
-    );
-  }
 
   if (!isAdmin) {
     return (

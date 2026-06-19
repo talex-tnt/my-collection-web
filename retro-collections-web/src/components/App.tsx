@@ -20,6 +20,8 @@ import { resolveDataCollectionPath } from '../api/firestore/runtimeConfig';
 import { useGoogleDriveAuth } from '../utils/hooks';
 import MyCollectiblesPage from '../pages/MyCollectiblesPage';
 import CollectorWishlistsPage from '../pages/CollectorWishlistsPage';
+import LoginWithGoogle from './LoginWithGoogle';
+import { useCurrentUser } from '../utils/hooks';
 
 type AccessClaims = {
   admin?: boolean;
@@ -62,6 +64,7 @@ function canAccessMainFromClaims(claims: AccessClaims) {
 
 function App() {
   useGoogleDriveAuth();
+  const currentUser = useCurrentUser();
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthorizedForMain, setIsAuthorizedForMain] = useState(false);
@@ -185,7 +188,7 @@ function App() {
         <div className="card bg-base-100 shadow-xl">
           <div className="card-body">
             <span className="loading loading-spinner loading-lg" />
-            <p>Loading Firestore config...</p>
+            <p>Loading config...</p>
           </div>
         </div>
       </div>
@@ -197,7 +200,7 @@ function App() {
       <div className="flex min-h-screen items-center justify-center bg-base-200 text-base-content">
         <div className="card bg-base-100 shadow-xl">
           <div className="card-body">
-            <h2 className="card-title">Firestore config unavailable</h2>
+            <h2 className="card-title">Config unavailable</h2>
             <p>
               Please try again after the public runtime config is reachable.
             </p>
@@ -207,6 +210,27 @@ function App() {
     );
   }
 
+  if (!currentUser) {
+    return (
+      <HashRouter>
+        <div className="flex flex-col min-h-screen bg-base-200 text-base-content">
+          <div className="flex-1">
+            <div className="mx-auto max-w-screen-2xl space-y-4 px-2 sm:px-4 py-8">
+              <Header />
+              <div className="card bg-base-100 shadow-xl">
+                <div className="card-body">
+                  {/* <h2 className="card-title">My Profile</h2> */}
+                  <p>Please log in to view and edit your profile.</p>
+                  <LoginWithGoogle className="btn btn-primary max-w-xs" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </HashRouter>
+    );
+  }
+  console.log('Current user:', currentUser);
   return (
     <HashRouter>
       <div className="flex flex-col min-h-screen bg-base-200 text-base-content">

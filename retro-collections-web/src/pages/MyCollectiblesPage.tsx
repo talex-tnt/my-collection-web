@@ -2,22 +2,10 @@ import { useNavigate } from 'react-router-dom'; // 1. Import the navigation hook
 import { useCurrentUser } from '../utils/hooks';
 import MyItemsAllGrouped from '../components/MyItemsAllGrouped';
 import { FiArrowRight as Icon } from 'react-icons/fi';
-import LoginWithGoogle from '../components/LoginWithGoogle';
+
 function MyCollectiblesPage() {
   const user = useCurrentUser();
   const navigate = useNavigate(); // 2. Initialize the navigate function
-
-  if (!user) {
-    return (
-      <div className="card bg-base-100 shadow-xl">
-        <div className="card-body">
-          <h2 className="card-title">My Items</h2>
-          <p>Please log in to manage your items.</p>
-          <LoginWithGoogle className="btn btn-primary max-w-xs" />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4">
@@ -36,7 +24,7 @@ function MyCollectiblesPage() {
       </div>
 
       {/* Main layout with filters and items list */}
-      <MyItemsAllGrouped user={user} />
+      {user && <MyItemsAllGrouped user={user} />}
     </div>
   );
 }
