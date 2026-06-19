@@ -3,7 +3,7 @@ import { FiChevronDown } from 'react-icons/fi';
 import type { Collection } from '../api/firestore/services/misc/userCollections';
 
 interface BreadcrumbProps {
-  tab: 'collections' | 'spare';
+  tab: 'collections' | 'spare' | 'collectibles';
   currentCollectionId: string | null;
   collections: Collection[];
   onNavigate: (path: string) => void;
@@ -19,7 +19,12 @@ function CollectorItemsBreadcrumb({
     (c) => c.id === currentCollectionId
   );
 
-  const tabColor = tab === 'collections' ? 'text-primary' : 'text-secondary';
+  const tabColor =
+    tab === 'collections'
+      ? 'text-primary'
+      : tab === 'spare'
+        ? 'text-warning'
+        : 'text-secondary';
   const tertiaryColor = 'text-accent';
 
   const [openDropdown, setOpenDropdown] = useState<'tab' | 'collection' | null>(
@@ -64,7 +69,11 @@ function CollectorItemsBreadcrumb({
               onClick={() => onNavigate(`/${tab}`)}
               className={`link font-bold capitalize no-underline hover:no-underline bg-transparent border-none p-0 min-h-0 h-auto ${tabColor}`}
             >
-              {tab === 'collections' ? 'Collections' : 'Spare Collectibles'}
+              {tab === 'collections'
+                ? 'Collections'
+                : tab === 'spare'
+                  ? 'Spare Collectibles'
+                  : 'Collectibles'}
             </button>
 
             <div
@@ -76,7 +85,7 @@ function CollectorItemsBreadcrumb({
               >
                 <FiChevronDown className="h-3 w-3" />
               </button>
-              <ul className="dropdown-content z-[50] menu p-2 shadow bg-base-100 rounded-box w-44 mt-2">
+              <ul className="dropdown-content z-[50] menu p-2 shadow bg-base-100 rounded-box w-48 mt-2">
                 <li>
                   <button
                     onClick={() =>
@@ -89,10 +98,22 @@ function CollectorItemsBreadcrumb({
                 </li>
                 <li>
                   <button
-                    onClick={() => handleAction(() => onNavigate('/spare'))}
-                    className="font-medium text-secondary"
+                    onClick={() =>
+                      handleAction(() => onNavigate('/spare'))
+                    }
+                    className="font-medium text-warning"
                   >
                     Spare Collectibles
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() =>
+                      handleAction(() => onNavigate('/collectibles'))
+                    }
+                    className="font-medium text-secondary"
+                  >
+                    Collectibles
                   </button>
                 </li>
               </ul>

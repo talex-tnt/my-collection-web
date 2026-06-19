@@ -648,6 +648,7 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
       const cleanData = sanitizeFirestorePayload(itemData);
       const requestPayload = {
         ...cleanData,
+        isPublic: isPublicItem,
         nameLowercase: itemData.name.trim().toLowerCase(),
         nameTokens: tokenizeName(itemData.name),
         tags: itemData.tags || [],
@@ -671,6 +672,7 @@ const getUserItemsEndpoints = (builder: FirestoreBuilder) => ({
           data: {
             id: docRef.id,
             ...itemData,
+            isPublic: isPublicItem,
             collectionId,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),

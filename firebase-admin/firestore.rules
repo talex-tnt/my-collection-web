@@ -322,10 +322,10 @@ service cloud.firestore {
                 (field == 'item.description') ? 1000 : 0;
         }
         function createKeys() {
-          return ['name', 'nameLowercase', 'nameTokens', 'createdAt', 'updatedAt', 'description', 'tags', 'metadata', 'userId'];
+          return ['name', 'nameLowercase', 'nameTokens', 'createdAt', 'updatedAt', 'description', 'tags', 'metadata', 'userId', 'isPublic'];
         }
         function createRequiredKeys() {
-          return ['name', 'nameLowercase', 'nameTokens', 'createdAt', 'userId'];
+          return ['name', 'nameLowercase', 'nameTokens', 'createdAt', 'userId', 'isPublic'];
         }
         function validCreate(data) {
           return 
@@ -334,6 +334,7 @@ service cloud.firestore {
               hasOnlyValidKeys(data, createKeys()) &&
               hasAllRequiredKeys(data, createRequiredKeys()) &&
               isUserOwner() && isOwner(data, 'userId') &&
+              data.isPublic is bool && data.isPublic == true &&
               validString(data.name, getLengthLimit('item.name')) &&
               validTimestamp(data.createdAt) &&
               hasValidOptionalString(data, 'description', getLengthLimit('item.description'))
@@ -355,6 +356,10 @@ service cloud.firestore {
               isUserOwner() &&
               newData.createdAt == existingData.createdAt &&
               newData.userId == existingData.userId &&
+              ('isPublic' in newData) &&
+              (newData.isPublic is bool) &&
+              newData.isPublic == true &&
+              newData.isPublic == existingData.isPublic &&
               validTimestamp(newData.updatedAt) &&
               hasValidOptionalString(newData, 'name', getLengthLimit('item.name')) &&
               hasValidOptionalString(newData, 'description', getLengthLimit('item.description'))
@@ -570,10 +575,10 @@ service cloud.firestore {
                 (field == 'item.description') ? 1000 : 0;
         }
         function createKeys() {
-          return ['name', 'nameLowercase', 'nameTokens', 'createdAt', 'updatedAt', 'description', 'tags', 'metadata', 'userId', 'collectionId'];
+          return ['name', 'nameLowercase', 'nameTokens', 'createdAt', 'updatedAt', 'description', 'tags', 'metadata', 'userId', 'collectionId', 'isPublic'];
         }
         function createRequiredKeys() {
-          return ['name', 'nameLowercase', 'nameTokens', 'createdAt', 'userId', 'collectionId'];
+          return ['name', 'nameLowercase', 'nameTokens', 'createdAt', 'userId', 'collectionId', 'isPublic'];
         }
         function validCreate(data) {
           return 
@@ -582,6 +587,7 @@ service cloud.firestore {
               hasOnlyValidKeys(data, createKeys()) &&
               hasAllRequiredKeys(data, createRequiredKeys()) &&
               isUserOwner() && isOwner(data, 'userId') &&
+              data.isPublic is bool && data.isPublic == true &&
               validString(data.name, getLengthLimit('item.name')) &&
               validTimestamp(data.createdAt) &&
               hasValidOptionalString(data, 'description', getLengthLimit('item.description'))
@@ -603,6 +609,10 @@ service cloud.firestore {
               isUserOwner() &&
               newData.createdAt == existingData.createdAt &&
               newData.userId == existingData.userId &&
+              ('isPublic' in newData) &&
+              (newData.isPublic is bool) &&
+              newData.isPublic == true &&
+              newData.isPublic == existingData.isPublic &&
               validTimestamp(newData.updatedAt) &&
               hasValidOptionalString(newData, 'name', getLengthLimit('item.name')) &&
               hasValidOptionalString(newData, 'description', getLengthLimit('item.description'))
@@ -916,10 +926,10 @@ service cloud.firestore {
                 (field == 'item.description') ? 1000 : 0;
         }
         function createKeys() {
-          return ['name', 'nameLowercase', 'nameTokens', 'createdAt', 'updatedAt', 'description', 'tags', 'metadata', 'userId'];
+          return ['name', 'nameLowercase', 'nameTokens', 'createdAt', 'updatedAt', 'description', 'tags', 'metadata', 'userId', 'isPublic'];
         }
         function createRequiredKeys() {
-          return ['name', 'nameLowercase', 'nameTokens', 'createdAt', 'userId'];
+          return ['name', 'nameLowercase', 'nameTokens', 'createdAt', 'userId', 'isPublic'];
         }
         function validCreate(data) {
           return 
@@ -928,6 +938,7 @@ service cloud.firestore {
               hasOnlyValidKeys(data, createKeys()) &&
               hasAllRequiredKeys(data, createRequiredKeys()) &&
               isUserOwner() && isOwner(data, 'userId') &&
+              data.isPublic is bool && data.isPublic == false &&
               validString(data.name, getLengthLimit('item.name')) &&
               validTimestamp(data.createdAt) &&
               hasValidOptionalString(data, 'description', getLengthLimit('item.description'))
@@ -949,6 +960,10 @@ service cloud.firestore {
               isUserOwner() && isOwner(existingData, 'userId') &&
               newData.createdAt == existingData.createdAt &&
               newData.userId == existingData.userId &&
+              ('isPublic' in newData) &&
+              (newData.isPublic is bool) &&
+              newData.isPublic == false &&
+              newData.isPublic == existingData.isPublic &&
               validTimestamp(newData.updatedAt) &&
               hasValidOptionalString(newData, 'name', getLengthLimit('item.name')) &&
               hasValidOptionalString(newData, 'description', getLengthLimit('item.description'))
@@ -1081,10 +1096,10 @@ service cloud.firestore {
                 (field == 'item.description') ? 1000 : 0;
         }
         function createKeys() {
-          return ['name', 'nameLowercase', 'nameTokens', 'createdAt', 'updatedAt', 'description', 'tags', 'metadata', 'userId', 'collectionId'];
+          return ['name', 'nameLowercase', 'nameTokens', 'createdAt', 'updatedAt', 'description', 'tags', 'metadata', 'userId', 'collectionId', 'isPublic'];
         }
         function createRequiredKeys() {
-          return ['name', 'nameLowercase', 'nameTokens', 'createdAt', 'userId', 'collectionId'];
+          return ['name', 'nameLowercase', 'nameTokens', 'createdAt', 'userId', 'collectionId', 'isPublic'];
         }
         function validCreate(data) {
           return 
@@ -1093,6 +1108,7 @@ service cloud.firestore {
               hasOnlyValidKeys(data, createKeys()) &&
               hasAllRequiredKeys(data, createRequiredKeys()) &&
               isUserOwner() && isOwner(data, 'userId') &&
+              data.isPublic is bool && data.isPublic == false &&
               validString(data.name, getLengthLimit('item.name')) &&
               validTimestamp(data.createdAt) &&
               hasValidOptionalString(data, 'description', getLengthLimit('item.description'))
@@ -1114,6 +1130,10 @@ service cloud.firestore {
               isUserOwner() && isOwner(existingData, 'userId') &&
               newData.createdAt == existingData.createdAt &&
               newData.userId == existingData.userId &&
+              ('isPublic' in newData) &&
+              (newData.isPublic is bool) &&
+              newData.isPublic == false &&
+              newData.isPublic == existingData.isPublic &&
               validTimestamp(newData.updatedAt) &&
               hasValidOptionalString(newData, 'name', getLengthLimit('item.name')) &&
               hasValidOptionalString(newData, 'description', getLengthLimit('item.description'))

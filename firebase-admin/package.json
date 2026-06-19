@@ -6,6 +6,7 @@
     "deploy": "dotenv -e .env -- sh -c 'echo $ENV && firebase deploy --project=$ENV'",
     "deploy:ci": "firebase deploy --project $ENV",
     "init:main": "dotenv -e .env -- node init-main-db.mjs",
+    "backfill:items:is-public": "dotenv -e .env -- node backfill-items-is-public.mjs",
     "set-admin": "node set-admin.mjs",
     "list:indexes": "dotenv -e .env -- sh -c 'firebase firestore:indexes --project=$ENV'",
     "lint": "eslint .",

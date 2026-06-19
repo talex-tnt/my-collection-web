@@ -11,6 +11,7 @@ import {
   useGetUserCollectionsQuery,
 } from '../api/firestore/firestoreApi';
 import CollectorFilterableItems from '../components/CollectorFilterableItems';
+import CollectorFilterablePublicItems from '../components/CollectorFilterablePublicItems';
 import CollectorCollections from '../components/CollectorCollections';
 import CollectorItemsBreadcrumb from '../components/CollectorItemsBreadcrumb';
 
@@ -41,7 +42,9 @@ function CollectorPage() {
 
   const tab = location.pathname.includes('/collections')
     ? 'collections'
-    : 'spare';
+    : location.pathname.includes('/spare')
+      ? 'spare'
+      : 'collectibles';
   const pathSegments = location.pathname.split('/');
   const isDeepView =
     pathSegments.length > 4 && pathSegments[3] === 'collections';
@@ -56,7 +59,27 @@ function CollectorPage() {
             {user?.nickname ? `@${user.nickname}` : user?.name || userId}
           </p>
           <div className="mt-3 inline-flex gap-2">
-            <button className="btn btn-xs btn-primary" type="button">
+            <button
+              className={`btn btn-xs ${
+                tab === 'collectibles' ? 'btn-primary' : ''
+              }`}
+              type="button"
+              onClick={() => navigate(`/collectors/${userId}/collectibles`)}
+            >
+              Collectibles
+            </button>
+            <button
+              className={`btn btn-xs ${tab === 'spare' ? 'btn-primary' : ''}`}
+              type="button"
+              onClick={() => navigate(`/collectors/${userId}/spare`)}
+            >
+              Spare Collectibles
+            </button>
+            <button
+              className={`btn btn-xs ${tab === 'collections' ? 'btn-primary' : ''}`}
+              type="button"
+              onClick={() => navigate(`/collectors/${userId}/collections`)}
+            >
               Collections
             </button>
             <button
@@ -82,6 +105,10 @@ function CollectorPage() {
 
         <Routes>
           <Route
+            path="/collectibles"
+            element={<CollectorFilterablePublicItems userId={userId} />}
+          />
+          <Route
             path="/spare"
             element={<CollectorFilterableItems userId={userId} />}
           />
@@ -96,7 +123,7 @@ function CollectorPage() {
           <Route
             path="*"
             element={
-              <Navigate to={`/collectors/${userId}/collections`} replace />
+              <Navigate to={`/collectors/${userId}/collectibles`} replace />
             }
           />
         </Routes>

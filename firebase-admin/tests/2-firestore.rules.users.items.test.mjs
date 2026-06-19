@@ -86,6 +86,17 @@ const validItem = {
   nameLowercase: 'test item',
   nameTokens: ['test', 'item'],
   createdAt: admin.firestore.Timestamp.now(),
+  userId: 'rules-regular-user',
+};
+
+const validPublicItem = {
+  ...validItem,
+  isPublic: true,
+};
+
+const validPrivateItem = {
+  ...validItem,
+  isPublic: false,
 };
 
 const TEST_USER_ID = 'rules-regular-user';
@@ -264,7 +275,7 @@ test(`[2.2.1] owner can create own item on ${RULES_TARGET}`, async () => {
   try {
     await assert.doesNotReject(
       setDoc(doc(context.db, itemPath), {
-        ...validItem,
+        ...validPublicItem,
         userId,
         createdAt: Timestamp.now(),
       })
@@ -331,7 +342,7 @@ test(`[2.3.1] rejects missing required name field on ${RULES_TARGET}`, async () 
       setDoc(doc(context.db, itemPath), {
         userId,
         createdAt: Timestamp.now(),
-        visibility: { public: false },
+        isPublic: false,
       })
     );
   } finally {
@@ -353,7 +364,7 @@ test(`[2.3.2] rejects missing required createdAt on ${RULES_TARGET}`, async () =
       setDoc(doc(context.db, itemPath), {
         name: 'Item',
         userId,
-        visibility: { public: false },
+        isPublic: false,
       })
     );
   } finally {
@@ -376,6 +387,7 @@ test(`[2.3.3] rejects missing required visibility on ${RULES_TARGET}`, async () 
         name: 'Item',
         userId,
         createdAt: Timestamp.now(),
+        isPublic: false,
       })
     );
   } finally {
@@ -398,7 +410,7 @@ test(`[2.3.4] name cannot exceed 100 characters on ${RULES_TARGET}`, async () =>
         name: 'x'.repeat(101),
         userId,
         createdAt: Timestamp.now(),
-        visibility: { public: false },
+        isPublic: false,
       })
     );
   } finally {
@@ -421,7 +433,7 @@ test(`[2.3.6] description cannot exceed 1000 characters on ${RULES_TARGET}`, asy
         name: 'Valid Name',
         userId,
         createdAt: Timestamp.now(),
-        visibility: { public: false },
+        isPublic: false,
         description: 'x'.repeat(1001),
       })
     );
@@ -445,7 +457,7 @@ test(`[2.3.7] rejects invalid visibility map on ${RULES_TARGET}`, async () => {
         name: 'Item',
         userId,
         createdAt: Timestamp.now(),
-        visibility: { public: false, extra: 'field' },
+        isPublic: false,
       })
     );
   } finally {
@@ -468,7 +480,7 @@ test(`[2.3.8] rejects non-timestamp createdAt on ${RULES_TARGET}`, async () => {
         name: 'Item',
         userId,
         createdAt: '2024-01-01',
-        visibility: { public: false },
+        isPublic: false,
       })
     );
   } finally {
@@ -488,11 +500,10 @@ test(`[2.4.1] owner can update own item on ${RULES_TARGET}`, async () => {
   await getAdminDb()
     .doc(itemPath)
     .set({
+      ...validPublicItem,
       name: 'Test Item',
       userId,
       createdAt: admin.firestore.Timestamp.now(),
-      // collectionId removed
-      visibility: { public: false },
     });
 
   const context = await buildClientContext({
@@ -521,15 +532,13 @@ test(`[2.4.2] non-owner cannot update item on ${RULES_TARGET}`, async () => {
   const itemPath = getPublicItemPath('update-owner', 'update-item-2');
 
   // Setup
-  await getAdminDb()
-    .doc(itemPath)
-    .set({
-      name: 'Test Item',
-      userId: ownerId,
-      createdAt: admin.firestore.Timestamp.now(),
-      // collectionId removed
-      visibility: { public: false },
-    });
+  await getAdminDb().doc(itemPath).set({
+    name: 'Test Item',
+    userId: ownerId,
+    createdAt: admin.firestore.Timestamp.now(),
+    // collectionId removed
+    isPublic: false,
+  });
 
   const context = await buildClientContext({
     uid: 'other-user',
@@ -594,11 +603,10 @@ test(`[2.5.2] name is optional in updates on ${RULES_TARGET}`, async () => {
   await getAdminDb()
     .doc(itemPath)
     .set({
+      ...validPublicItem,
       name: 'Test Item',
       userId,
       createdAt: admin.firestore.Timestamp.now(),
-      // collectionId removed
-      visibility: { public: false },
     });
 
   const context = await buildClientContext({
@@ -630,11 +638,10 @@ test(`[2.5.3] description is optional in updates on ${RULES_TARGET}`, async () =
   await getAdminDb()
     .doc(itemPath)
     .set({
+      ...validPublicItem,
       name: 'Test Item',
       userId,
       createdAt: admin.firestore.Timestamp.now(),
-      // collectionId removed
-      visibility: { public: false },
       description: 'Original description',
     });
 
@@ -666,11 +673,10 @@ test(`[2.5.4] visibility is optional in updates on ${RULES_TARGET}`, async () =>
   await getAdminDb()
     .doc(itemPath)
     .set({
+      ...validPublicItem,
       name: 'Test Item',
       userId,
       createdAt: admin.firestore.Timestamp.now(),
-      // collectionId removed
-      visibility: { public: false },
     });
 
   const context = await buildClientContext({

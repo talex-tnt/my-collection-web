@@ -1,5 +1,6 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { getAuth } from 'firebase/auth';
+import type { ImageFolder, ImagePreview } from '../firestore/types/shared';
 
 // --- Existing Types ---
 export type ManageUserArgs = {
@@ -48,6 +49,49 @@ export type ApproveUserAccessResponse = {
   uid: string;
   email: string;
   pendingRequestRemoved: boolean;
+};
+
+export type PublicItemsCursor = {
+  id: string;
+  docPath?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  nameLowercase?: string;
+};
+
+export type PublicItem = {
+  id: string;
+  name: string;
+  userId: string;
+  collectionId?: string;
+  createdAt: string;
+  updatedAt?: string;
+  description?: string;
+  tags?: string[];
+  metadata?: {
+    imageFolder?: ImageFolder;
+    previewImage?: ImagePreview;
+  };
+  isPublic: boolean;
+};
+
+export type GetPublicItemsArgs = {
+  userId: string;
+  tags?: string[];
+  startWithNameFilter?: string;
+  nameContainsTokens?: string;
+  limit?: number;
+  startAfter?: PublicItemsCursor | null;
+  sortBy?: 'createdAt' | 'updatedAt' | 'name';
+};
+
+export type GetPublicItemsResponse = {
+  items: PublicItem[];
+  totalCount: number;
+  pageInfo: {
+    endCursor: PublicItemsCursor | null;
+    hasNextPage: boolean;
+  };
 };
 
 // 1. Core API base path resolved directly from build-time environment variables
@@ -161,6 +205,30 @@ export const retroCollectionsApi = createApi({
         return response;
       },
     }),
+
+    getPublicItems: builder.query<GetPublicItemsResponse, GetPublicItemsArgs>({
+      query: ({
+        userId,
+        tags,
+        startWithNameFilter,
+        nameContainsTokens,
+        limit,
+        startAfter,
+        sortBy,
+      }) => ({
+        url: 'get-public-items',
+        method: 'GET',
+        params: {
+          userId,
+          tags: tags?.join(','),
+          startWithNameFilter,
+          nameContainsTokens,
+          limit,
+          sortBy,
+          startAfter: startAfter ? JSON.stringify(startAfter) : undefined,
+        },
+      }),
+    }),
   }),
 });
 
@@ -169,4 +237,5 @@ export const {
   useGetDriveImageQuery,
   useRequestUserAccessMutation,
   useApproveUserAccessMutation,
+  useGetPublicItemsQuery,
 } = retroCollectionsApi;
