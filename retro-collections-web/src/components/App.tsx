@@ -19,7 +19,6 @@ import { useGetRuntimeConfigQuery } from '../api/firestore/firestoreApi';
 import { resolveDataCollectionPath } from '../api/firestore/runtimeConfig';
 import { useGoogleDriveAuth } from '../utils/hooks';
 import MyCollectiblesPage from '../pages/MyCollectiblesPage';
-import CollectorWishlistsPage from '../pages/CollectorWishlistsPage';
 import LoginWithGoogle from './LoginWithGoogle';
 import { useCurrentUser } from '../utils/hooks';
 
@@ -255,10 +254,6 @@ function App() {
                     element={<MyCollectionsPage />}
                   />
                   <Route path="/my-wishlists/*" element={<MyWishlistsPage />} />
-                  <Route
-                    path="/collectors/:userId/wishlists/*"
-                    element={<CollectorWishlistsPage />}
-                  />
                   <Route
                     path="/collectors/:userId/*"
                     element={<CollectorPage />}

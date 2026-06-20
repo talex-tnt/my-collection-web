@@ -19,7 +19,12 @@ function CollectorFilterableWishes({ userId }: { userId?: string }) {
   ).data as Wishlist | undefined;
 
   return (
-    <>
+    <div className="ml-0 md:ml-4">
+      {wishlistId && wishlist?.name ? (
+        <div className="flex flex-col p-0 py-2">
+          <p className="text-md mt-1">{wishlist.name}</p>
+        </div>
+      ) : null}
       {wishlistId && wishlist?.description ? (
         <div className="flex flex-col p-0 px-2">
           <p className="text-sm opacity-70 mt-1">{wishlist.description}</p>
@@ -51,7 +56,7 @@ function CollectorFilterableWishes({ userId }: { userId?: string }) {
           />
         </div>
       </div>
-    </>
+    </div>
   );
 }
 

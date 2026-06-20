@@ -3,7 +3,7 @@ import { FiChevronDown } from 'react-icons/fi';
 import type { Collection } from '../api/firestore/services/misc/userCollections';
 
 interface BreadcrumbProps {
-  tab: 'collections' | 'spare' | 'collectibles';
+  tab: 'collections' | 'spare' | 'collectibles' | 'wishlists';
   currentCollectionId: string | null;
   collections: Collection[];
   onNavigate: (path: string) => void;
@@ -24,7 +24,9 @@ function CollectorItemsBreadcrumb({
       ? 'text-primary'
       : tab === 'spare'
         ? 'text-warning'
-        : 'text-secondary';
+        : tab === 'collectibles'
+          ? 'text-secondary'
+          : 'text-error';
   const tertiaryColor = 'text-accent';
 
   const [openDropdown, setOpenDropdown] = useState<'tab' | 'collection' | null>(
@@ -60,7 +62,7 @@ function CollectorItemsBreadcrumb({
   return (
     <div
       ref={containerRef}
-      className="p-4 pt-2 px-2 pb-0 mb-2 text-sm breadcrumbs overflow-visible"
+      className="p-4 pt-2 px-0 md:px-2 pb-0 mb-0 text-sm breadcrumbs overflow-visible"
     >
       <ul className="flex-wrap row-gap-1">
         <li className="whitespace-normal">
@@ -73,7 +75,9 @@ function CollectorItemsBreadcrumb({
                 ? 'Collections'
                 : tab === 'spare'
                   ? 'Spare Collectibles'
-                  : 'Collectibles'}
+                  : tab === 'wishlists'
+                    ? 'Wishlists'
+                    : 'Collectibles'}
             </button>
 
             <div
@@ -89,6 +93,16 @@ function CollectorItemsBreadcrumb({
                 <li>
                   <button
                     onClick={() =>
+                      handleAction(() => onNavigate('/collectibles'))
+                    }
+                    className="font-medium text-secondary"
+                  >
+                    Collectibles
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() =>
                       handleAction(() => onNavigate('/collections'))
                     }
                     className="font-medium text-primary"
@@ -98,22 +112,19 @@ function CollectorItemsBreadcrumb({
                 </li>
                 <li>
                   <button
-                    onClick={() =>
-                      handleAction(() => onNavigate('/spare'))
-                    }
+                    onClick={() => handleAction(() => onNavigate('/spare'))}
                     className="font-medium text-warning"
                   >
                     Spare Collectibles
                   </button>
                 </li>
+
                 <li>
                   <button
-                    onClick={() =>
-                      handleAction(() => onNavigate('/collectibles'))
-                    }
-                    className="font-medium text-secondary"
+                    onClick={() => handleAction(() => onNavigate('/wishlists'))}
+                    className="font-medium text-error"
                   >
-                    Collectibles
+                    Wishlists
                   </button>
                 </li>
               </ul>

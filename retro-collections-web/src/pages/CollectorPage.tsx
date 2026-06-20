@@ -14,6 +14,8 @@ import CollectorFilterableItems from '../components/CollectorFilterableItems';
 import CollectorFilterablePublicItems from '../components/CollectorFilterablePublicItems';
 import CollectorCollections from '../components/CollectorCollections';
 import CollectorItemsBreadcrumb from '../components/CollectorItemsBreadcrumb';
+import CollectorWishlists from '../components/CollectorWishlists';
+import CollectorFilterableWishes from '../components/CollectorFilterableWishes';
 
 function CollectorPage() {
   const { userId } = useParams();
@@ -44,7 +46,9 @@ function CollectorPage() {
     ? 'collections'
     : location.pathname.includes('/spare')
       ? 'spare'
-      : 'collectibles';
+      : location.pathname.includes('/wishlists')
+        ? 'wishlists'
+        : 'collectibles';
   const pathSegments = location.pathname.split('/');
   const isDeepView =
     pathSegments.length > 4 && pathSegments[3] === 'collections';
@@ -52,28 +56,29 @@ function CollectorPage() {
 
   return (
     <div className="card bg-base-100 shadow-xl">
-      <div className="card-body space-y-4 px-2 sm:px-4">
-        <div className="mb-0">
+      <div className="card-body space-y-4 px-2 sm:px-4 pt-0">
+        <div className="mb-0 ">
           <h2 className="card-title text-lg">Collector</h2>
           <p className="text-sm text-base-content/70">
             {user?.nickname ? `@${user.nickname}` : user?.name || userId}
           </p>
-          <div className="mt-3 inline-flex gap-2">
+          <div className="hidden md:block mt-3 mb-2">
+            <div className="ml-4 inline-flex gap-2"></div>
             <button
-              className={`btn btn-xs ${
+              className={`btn btn-xs  btn-outline ${
                 tab === 'collectibles' ? 'btn-primary' : ''
               }`}
               type="button"
               onClick={() => navigate(`/collectors/${userId}/collectibles`)}
             >
-              Collectibles
+              All Collectibles
             </button>
             <button
               className={`btn btn-xs ${tab === 'spare' ? 'btn-primary' : ''}`}
               type="button"
               onClick={() => navigate(`/collectors/${userId}/spare`)}
             >
-              Spare Collectibles
+              Spare Only
             </button>
             <button
               className={`btn btn-xs ${tab === 'collections' ? 'btn-primary' : ''}`}
@@ -83,25 +88,24 @@ function CollectorPage() {
               Collections
             </button>
             <button
-              className="btn btn-xs"
+              className={`btn btn-xs ${tab === 'wishlists' ? 'text-error' : ''}`}
               type="button"
-              onClick={() =>
-                navigate(`/collectors/${userId}/wishlists/wishlists`)
-              }
+              onClick={() => navigate(`/collectors/${userId}/wishlists`)}
             >
               Wishlists
             </button>
           </div>
         </div>
-
-        <CollectorItemsBreadcrumb
-          tab={tab}
-          currentCollectionId={currentCollectionId}
-          collections={collectionsData?.collections || []}
-          onNavigate={(targetSubPath: string) =>
-            navigate(`/collectors/${userId}${targetSubPath}`)
-          }
-        />
+        <div className="block md:hidden mb-0">
+          <CollectorItemsBreadcrumb
+            tab={tab}
+            currentCollectionId={currentCollectionId}
+            collections={collectionsData?.collections || []}
+            onNavigate={(targetSubPath: string) =>
+              navigate(`/collectors/${userId}${targetSubPath}`)
+            }
+          />
+        </div>
 
         <Routes>
           <Route
@@ -119,6 +123,14 @@ function CollectorPage() {
           <Route
             path="/collections/:collectionId"
             element={<CollectorFilterableItems userId={userId} />}
+          />
+          <Route
+            path="/wishlists"
+            element={<CollectorWishlists userId={userId} />}
+          />
+          <Route
+            path="/wishlists/:wishlistId"
+            element={<CollectorFilterableWishes userId={userId} />}
           />
           <Route
             path="*"
