@@ -13,6 +13,88 @@ import { useDispatch } from 'react-redux';
 import { clearAuth } from '../store/authSlice';
 import retroCollectionsLogo from '../assets/retro-collections-logo.png';
 
+function UserMenu({
+  user,
+  logout,
+  error,
+}: {
+  user: User;
+  logout: () => void;
+  error?: string;
+}) {
+  return (
+    <div className="dropdown dropdown-end">
+      <button tabIndex={0} className="btn btn-ghost gap-3 px-1 sm:px-3">
+        <div className="text-right">
+          <p className="text-sm font-medium">
+            {user?.displayName || user?.email || 'Guest'}
+          </p>
+          <p className="text-xs text-base-content/70 whitespace-nowrap">
+            {user ? 'Signed in' : 'Not signed in'}
+          </p>
+        </div>
+        <div className="avatar">
+          {user?.photoURL ? (
+            <div className="w-8 h-8 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2 overflow-hidden">
+              <img
+                src={user.photoURL}
+                alt="avatar"
+                className="w-8 h-8 object-cover"
+              />
+            </div>
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-primary text-primary-content flex items-center justify-center">
+              <span className="text-xs font-semibold">
+                {(user?.displayName || user?.email || 'G')
+                  .charAt(0)
+                  .toUpperCase()}
+              </span>
+            </div>
+          )}
+        </div>
+      </button>
+
+      <div
+        tabIndex={0}
+        className="dropdown-content z-10 mt-3 w-80 rounded-box border border-base-300 bg-base-100 p-4 shadow-xl"
+      >
+        {error && <div className="alert alert-error mb-3">{error}</div>}
+
+        {user ? (
+          <div className="space-y-3">
+            <div>
+              <p className="text-sm text-base-content/70">Signed in as</p>
+              <p className="font-semibold">{user.displayName || user.email}</p>
+            </div>
+            <div className="space-y-1 text-sm text-base-content/80">
+              <p>{user.email}</p>
+              <p className="break-all">UID: {user.uid}</p>
+            </div>
+
+            <NavLink
+              to="/profile"
+              className="btn btn-ghost w-full justify-start"
+            >
+              Edit Profile
+            </NavLink>
+
+            <button className="btn btn-primary w-full" onClick={logout}>
+              Logout
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-base-content/70">
+              Sign in to manage your collections and items.
+            </p>
+            <LoginWithGoogle />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // import { EXPIRY_KEY, TOKEN_KEY } from '../api/google-drive/googleDriveAuth';
 
 type AccessClaims = {
@@ -313,8 +395,8 @@ function Header() {
       )}
 
       <div className="navbar p-0 mb-4">
-        <div className="flex flex-col lg:flex-row items-start gap-3 lg:items-center mr-4 w-full">
-          <div>
+        <div className="flex flex-col lg:flex-row items-start gap-3 lg:items-center mr-0 w-full">
+          <div className="flex items-center gap-2 w-full md:w-auto">
             <img
               src={retroCollectionsLogo}
               alt="Retro Collections"
@@ -324,10 +406,13 @@ function Header() {
               Organize, tag, and share your retro collections. Manage
               collectibles, track items, customize tags, and control visibility.
             </p> */}
+            <div className="block md:hidden ml-auto mr-2">
+              <UserMenu user={user as User} logout={logout} error={error} />
+            </div>
           </div>
 
           {/* Mobile: select dropdown navigation */}
-          <div className="relative w-full block lg:hidden">
+          <div className="relative w-full lg:hidden">
             <select
               className="select w-full max-w-xs font-qwigley header-nav-glow text-3xl leading-none !border-0 !shadow-none focus:!border-0 focus:!shadow-none focus-visible:!border-0 focus-visible:!shadow-none !outline-none focus:!outline-none focus-visible:!outline-none"
               value={(() => {
@@ -393,77 +478,8 @@ function Header() {
               </NavLink>
             )}
           </nav>
-        </div>
-
-        <div className="dropdown dropdown-end">
-          <button tabIndex={0} className="btn btn-ghost gap-3 px-1 sm:px-3">
-            <div className="hidden text-right sm:block">
-              <p className="text-sm font-medium">
-                {user?.displayName || user?.email || 'Guest'}
-              </p>
-              <p className="text-xs text-base-content/70 whitespace-nowrap">
-                {user ? 'Signed in' : 'Not signed in'}
-              </p>
-            </div>
-            <div className="avatar">
-              {user?.photoURL ? (
-                <div className="w-8 h-8 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2 overflow-hidden">
-                  <img
-                    src={user.photoURL}
-                    alt="avatar"
-                    className="w-8 h-8 object-cover"
-                  />
-                </div>
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-primary text-primary-content flex items-center justify-center">
-                  <span className="text-xs font-semibold">
-                    {(user?.displayName || user?.email || 'G')
-                      .charAt(0)
-                      .toUpperCase()}
-                  </span>
-                </div>
-              )}
-            </div>
-          </button>
-
-          <div
-            tabIndex={0}
-            className="dropdown-content z-10 mt-3 w-80 rounded-box border border-base-300 bg-base-100 p-4 shadow-xl"
-          >
-            {error && <div className="alert alert-error mb-3">{error}</div>}
-
-            {user ? (
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm text-base-content/70">Signed in as</p>
-                  <p className="font-semibold">
-                    {user.displayName || user.email}
-                  </p>
-                </div>
-                <div className="space-y-1 text-sm text-base-content/80">
-                  <p>{user.email}</p>
-                  <p className="break-all">UID: {user.uid}</p>
-                </div>
-
-                <NavLink
-                  to="/profile"
-                  className="btn btn-ghost w-full justify-start"
-                >
-                  Edit Profile
-                </NavLink>
-
-                <button className="btn btn-primary w-full" onClick={logout}>
-                  Logout
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <p className="text-sm text-base-content/70">
-                  Sign in to manage your collections and items.
-                </p>
-                <LoginWithGoogle />
-              </div>
-            )}
+          <div className="hidden md:block ml-auto mr-2">
+            <UserMenu user={user as User} logout={logout} error={error} />
           </div>
         </div>
       </div>
