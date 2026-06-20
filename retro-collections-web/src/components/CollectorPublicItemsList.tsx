@@ -29,7 +29,7 @@ function CollectorPublicItemsList({
   startWithNameFilter,
   nameContainsTokens,
 }: CollectorPublicItemsListProps) {
-  const [pageSize, setPageSize, pageOptions] = useSettingsUIPageSize();
+  const [_pageSize, setPageSize, _pageOptions] = useSettingsUIPageSize();
   const [showTags, setShowTags] = useState(true);
   const [showPreview, setShowPreview] = useState(true);
   const [pageIndex, setPageIndex] = useState(0);
@@ -40,6 +40,7 @@ function CollectorPublicItemsList({
   }, [pageIndex]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPageIndex(0);
     setCursors([null]);
   }, [
@@ -50,9 +51,15 @@ function CollectorPublicItemsList({
     itemNameClientFilter,
   ]);
 
-  const currentCursor = cursors[pageIndex];
-  const isAll = pageSize === 'all';
+  const pageOptions = _pageOptions
+    .filter((n: number | string) => n !== 'all')
+    .filter((n) => n < 50);
 
+  const pageSize =
+    _pageSize === 'all' ? pageOptions[_pageSize.length - 1] : _pageSize;
+
+  const currentCursor = cursors[pageIndex];
+  const limit = pageSize;
   const {
     data: itemsData,
     isLoading,
@@ -61,13 +68,13 @@ function CollectorPublicItemsList({
     {
       userId: userId || '',
       tags: selectedTags.length ? selectedTags : undefined,
-      limit: isAll ? undefined : pageSize,
+      limit,
       startAfter: currentCursor,
       startWithNameFilter: startWithNameFilter || undefined,
       nameContainsTokens: nameContainsTokens || undefined,
       sortBy: 'updatedAt',
     },
-    { skip: !userId }
+    { skip: !userId || !limit }
   );
 
   const items = (itemsData?.items || []).filter((item) =>
@@ -176,13 +183,12 @@ function CollectorPublicItemsList({
                   {n}
                 </option>
               ))}
-              <option value="all">All</option>
             </select>
 
             <button
               className="btn btn-xs"
               onClick={() => setPageIndex((p) => Math.max(0, p - 1))}
-              disabled={pageIndex === 0 || isAll}
+              disabled={pageIndex === 0}
             >
               Prev
             </button>
@@ -190,11 +196,10 @@ function CollectorPublicItemsList({
             <button
               className="btn btn-xs"
               onClick={() => {
-                if (isAll) return;
                 if (!pageInfo?.hasNextPage) return;
                 setPageIndex((p) => p + 1);
               }}
-              disabled={isAll || !pageInfo?.hasNextPage}
+              disabled={!pageInfo?.hasNextPage}
             >
               Next
             </button>
