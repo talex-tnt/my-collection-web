@@ -196,11 +196,11 @@ const getUserWishesEndpoints = (builder: FirestoreBuilder) => ({
       // 7. Compile the query constraints into a Collection Group execution reference
       const groupQuery = Number.isInteger(limit)
         ? query(
-            collectionGroup(db, 'whishes'),
+            collectionGroup(db, 'wishes'),
             ...baseConstraints,
             fsLimit((limit ?? 0) + 1)
           )
-        : query(collectionGroup(db, 'whishes'), ...baseConstraints);
+        : query(collectionGroup(db, 'wishes'), ...baseConstraints);
 
       try {
         const snapshot = await getDocs(groupQuery);
@@ -234,7 +234,7 @@ const getUserWishesEndpoints = (builder: FirestoreBuilder) => ({
               apiEndpoint: 'getAllWishesFromGroup',
               operation: 'QUERY',
               firebaseFunc: 'getDocs',
-              path: `collectionGroup://whishes`,
+              path: `collectionGroup://wishes`,
             },
             error
           ),
@@ -303,7 +303,7 @@ const getUserWishesEndpoints = (builder: FirestoreBuilder) => ({
       }
 
       const countQuery = query(
-        collectionGroup(db, 'whishes'),
+        collectionGroup(db, 'wishes'),
         ...baseConstraints
       );
 
@@ -311,7 +311,7 @@ const getUserWishesEndpoints = (builder: FirestoreBuilder) => ({
         apiEndpoint: 'getAllUserWishesCount',
         operation: 'QUERY' as const,
         firebaseFunc: 'getCountFromServer',
-        path: `collectionGroup://whishes`,
+        path: `collectionGroup://wishes`,
         requestPayload: {
           userId,
           tags,
@@ -382,7 +382,7 @@ const getUserWishesEndpoints = (builder: FirestoreBuilder) => ({
 
       const path = await getUserCollectionPath({
         visibility: resolvedVisibility,
-        resourceType: 'whishes',
+        resourceType: 'wishes',
         userId,
         wishlistId,
       });
@@ -550,7 +550,7 @@ const getUserWishesEndpoints = (builder: FirestoreBuilder) => ({
 
       const path = await getUserCollectionPath({
         visibility: resolvedVisibility,
-        resourceType: 'whishes',
+        resourceType: 'wishes',
         userId,
         wishlistId,
       });
@@ -633,7 +633,7 @@ const getUserWishesEndpoints = (builder: FirestoreBuilder) => ({
 
       const path = await getUserCollectionPath({
         visibility: resolvedVisibility,
-        resourceType: 'whishes',
+        resourceType: 'wishes',
         userId: itemData.userId,
         wishlistId,
       });
@@ -710,7 +710,7 @@ const getUserWishesEndpoints = (builder: FirestoreBuilder) => ({
 
       const path = await getUserCollectionPath({
         visibility: resolvedVisibility,
-        resourceType: 'whishes',
+        resourceType: 'wishes',
         userId,
         wishlistId,
       });
@@ -783,7 +783,7 @@ const getUserWishesEndpoints = (builder: FirestoreBuilder) => ({
 
       const path = await getUserCollectionPath({
         visibility: resolvedVisibility,
-        resourceType: 'whishes',
+        resourceType: 'wishes',
         userId,
         wishlistId,
       });
@@ -850,7 +850,7 @@ const getUserWishesEndpoints = (builder: FirestoreBuilder) => ({
       // 1. Resolve the correct path to the wishes subcollection
       const subcollectionPath = await getUserCollectionPath({
         visibility: resolvedVisibility,
-        resourceType: 'whishes',
+        resourceType: 'wishes',
         userId,
         wishlistId,
       });
@@ -931,7 +931,7 @@ const getUserWishesEndpoints = (builder: FirestoreBuilder) => ({
       // 1. Resolve the correct path to the wishes subcollection
       const subcollectionPath = await getUserCollectionPath({
         visibility: resolvedVisibility,
-        resourceType: 'whishes',
+        resourceType: 'wishes',
         userId,
         wishlistId,
       });

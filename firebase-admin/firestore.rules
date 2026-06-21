@@ -722,7 +722,7 @@ service cloud.firestore {
           && (isAdmin() || isUserOwner());
       }
 
-      match /public/users/{userId}/wishlists/{wishlistId}/whishes/{wishId} {
+      match /public/users/{userId}/wishlists/{wishlistId}/wishes/{wishId} {
         function isUserOwner() {
           return isOwner({'userId': userId}, 'userId');
         }
@@ -1249,8 +1249,8 @@ service cloud.firestore {
           && (isAdmin() || isUserOwner());
       }
 
-      // Private wishlists' whishes
-      match /private/users/{userId}/wishlists/{wishlistId}/whishes/{wishId} {
+      // Private wishlists' wishes
+      match /private/users/{userId}/wishlists/{wishlistId}/wishes/{wishId} {
         function isUserOwner() {
           return isOwner({'userId': userId}, 'userId');
         }
