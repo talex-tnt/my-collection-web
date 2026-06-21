@@ -62,7 +62,7 @@ function CollectorPage() {
           <p className="text-sm text-base-content/70">
             {user?.nickname ? `@${user.nickname}` : user?.name || userId}
           </p>
-          <div className="hidden md:block mt-3 mb-2">
+          <div className="hidden md:block mt-3 mb-2 space-x-2">
             <div className="ml-4 inline-flex gap-2"></div>
             <button
               className={`btn btn-xs  btn-outline ${
