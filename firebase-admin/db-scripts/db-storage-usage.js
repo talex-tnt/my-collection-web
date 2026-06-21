@@ -90,7 +90,9 @@ const getJson = async ({ url, accessToken }) => {
 
   const json = await res.json();
   if (!res.ok) {
-    throw new Error(`GET ${url} failed (${res.status}): ${JSON.stringify(json)}`);
+    throw new Error(
+      `GET ${url} failed (${res.status}): ${JSON.stringify(json)}`
+    );
   }
 
   return json;
@@ -155,8 +157,8 @@ const getLatestMetricValue = async ({ projectId, accessToken, metricType }) => {
 
   const params = new URLSearchParams({
     filter: `metric.type="${metricType}"`,
-    interval_startTime: startTime.toISOString(),
-    interval_endTime: endTime.toISOString(),
+    'interval.startTime': startTime.toISOString(),
+    'interval.endTime': endTime.toISOString(),
     view: 'FULL',
     'aggregation.alignmentPeriod': '3600s',
     'aggregation.perSeriesAligner': 'ALIGN_MAX',
@@ -195,7 +197,8 @@ const formatBytes = (bytes) => {
 };
 
 const formatPercent = (value, total) => {
-  if (!Number.isFinite(value) || !Number.isFinite(total) || total <= 0) return 'n/a';
+  if (!Number.isFinite(value) || !Number.isFinite(total) || total <= 0)
+    return 'n/a';
   return `${((value / total) * 100).toFixed(2)}%`;
 };
 
@@ -210,7 +213,10 @@ const formatPercent = (value, total) => {
 
     const accessToken = await getAccessToken(key);
 
-    const metricTypes = await listFirestoreMetricTypes({ projectId, accessToken });
+    const metricTypes = await listFirestoreMetricTypes({
+      projectId,
+      accessToken,
+    });
 
     const documentMetricType =
       selectMetricType(metricTypes, ['document', 'storage', 'byte']) ||
@@ -250,17 +256,26 @@ const formatPercent = (value, total) => {
         documents: {
           bytes: documentBytes,
           human: formatBytes(documentBytes),
-          percentOfSparkLimit: formatPercent(documentBytes, sparkStorageLimitBytes),
+          percentOfSparkLimit: formatPercent(
+            documentBytes,
+            sparkStorageLimitBytes
+          ),
         },
         indexes: {
           bytes: indexBytes,
           human: formatBytes(indexBytes),
-          percentOfSparkLimit: formatPercent(indexBytes, sparkStorageLimitBytes),
+          percentOfSparkLimit: formatPercent(
+            indexBytes,
+            sparkStorageLimitBytes
+          ),
         },
         totalUsed: {
           bytes: totalBytes,
           human: formatBytes(totalBytes),
-          percentOfSparkLimit: formatPercent(totalBytes, sparkStorageLimitBytes),
+          percentOfSparkLimit: formatPercent(
+            totalBytes,
+            sparkStorageLimitBytes
+          ),
         },
         freeRemaining: {
           bytes: freeBytes,
@@ -272,7 +287,9 @@ const formatPercent = (value, total) => {
 
     console.log('Firestore Spark storage report');
     console.log(`Project: ${projectId}`);
-    console.log(`Limit:   ${report.sparkStorageLimitHuman} (${sparkStorageLimitBytes} B)`);
+    console.log(
+      `Limit:   ${report.sparkStorageLimitHuman} (${sparkStorageLimitBytes} B)`
+    );
     console.log('');
     console.log(
       `Documents: ${report.usage.documents.human} (${report.usage.documents.percentOfSparkLimit})`

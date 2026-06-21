@@ -285,24 +285,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const decodedToken = await auth.verifyIdToken(token);
 
     const db = getFirestore(app);
-    const requesterUid = decodedToken.uid;
-    const clientIp = getClientIp(req);
+    
+    // const requesterUid = decodedToken.uid;
+    // const clientIp = getClientIp(req);
 
-    const rateLimitDecision = await enforceRateLimit({
-      db,
-      requesterUid,
-      ip: clientIp,
-    });
+    // const rateLimitDecision = await enforceRateLimit({
+    //   db,
+    //   requesterUid,
+    //   ip: clientIp,
+    // });
 
-    if (!rateLimitDecision.allowed) {
-      res.setHeader('Retry-After', String(rateLimitDecision.retryAfterSeconds));
-      return res.status(429).json({
-        error: 'Too many requests. Please retry later.',
-        retryAfterSeconds: rateLimitDecision.retryAfterSeconds,
-      });
-    }
+    // if (!rateLimitDecision.allowed) {
+    //   res.setHeader('Retry-After', String(rateLimitDecision.retryAfterSeconds));
+    //   return res.status(429).json({
+    //     error: 'Too many requests. Please retry later.',
+    //     retryAfterSeconds: rateLimitDecision.retryAfterSeconds,
+    //   });
+    // }
 
-    res.setHeader('X-RateLimit-Remaining', String(rateLimitDecision.remaining));
+    // res.setHeader('X-RateLimit-Remaining', String(rateLimitDecision.remaining));
 
     const userId = toStringOrUndefined(req.query.userId);
     if (!userId) {
