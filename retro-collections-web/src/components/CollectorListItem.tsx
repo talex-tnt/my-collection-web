@@ -52,7 +52,7 @@ function CollectorListItem({
         </button>
       </div>
 
-      <div className="flex flex-col gap-4 justify-between items-start w-full">
+      <div className="flex flex-row gap-4 justify-between items-start w-full">
         {showPreview && (
           <div className="flex flex-col gap-2">
             {imagePreview?.id && (
@@ -65,12 +65,22 @@ function CollectorListItem({
             )}
           </div>
         )}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm text-base-content/80 whitespace-pre-wrap">
-            {item.description}
-          </p>
+        <div className="flex flex-col gap-1 w-full self-stretch">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-base-content/80 whitespace-pre-wrap">
+              {item.description}
+            </p>
+          </div>
+          <div className="flex flex-col gap-1 w-full text-xs text-base-content/40 whitespace-pre-wrap mt-auto">
+            {/* End Description */}
+            {item.createdAt && (
+              <span>Created: {new Date(item.createdAt).toLocaleString()}</span>
+            )}
+            {item.updatedAt && (
+              <span>Edited: {new Date(item.updatedAt).toLocaleString()}</span>
+            )}
+          </div>
         </div>
-        {/* End Description */}
       </div>
     </motion.div>
   );
