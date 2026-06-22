@@ -94,6 +94,20 @@ export type GetPublicItemsResponse = {
   };
 };
 
+// --- New AI Image Analyzer Types ---
+export type AnalyzeArgs = {
+  parentFolderId: string;
+  images: File[];
+  optionalTags?: string[];
+  driveToken: string; // Captured securely on the client layer to supply the target middleware context
+};
+
+export type AnalyzeResponse = {
+  suggestedTitle: string;
+  descriptionEn: string;
+  productTags: string[];
+};
+
 // 1. Core API base path resolved directly from build-time environment variables
 const baseUrl = import.meta.env.VITE_RETRO_COLLECTIONS_BASEURL;
 
@@ -229,6 +243,27 @@ export const retroCollectionsApi = createApi({
         },
       }),
     }),
+
+    analyzeProductImages: builder.mutation<AnalyzeResponse, AnalyzeArgs>({
+      query: ({ parentFolderId, images, optionalTags, driveToken }) => {
+        const formData = new FormData();
+        formData.append('parentFolderId', parentFolderId);
+        images.forEach((img) => formData.append('images', img));
+
+        if (optionalTags && optionalTags.length > 0) {
+          formData.append('optionalTags', optionalTags.join(','));
+        }
+
+        return {
+          url: 'analyze-item', // Routes relative to your Vercel VITE_RETRO_COLLECTIONS_BASEURL context
+          method: 'POST',
+          headers: {
+            'X-Drive-Token': driveToken, // Injects your Google token into headers alongside the Firebase standard Bearer token
+          },
+          body: formData, // Automatically processes content-type headers for FormData payloads
+        };
+      },
+    }),
   }),
 });
 
@@ -238,4 +273,5 @@ export const {
   useRequestUserAccessMutation,
   useApproveUserAccessMutation,
   useGetPublicItemsQuery,
+  useAnalyzeProductImagesMutation, // Hook exposed for your UI components
 } = retroCollectionsApi;

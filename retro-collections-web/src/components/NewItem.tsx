@@ -12,6 +12,7 @@ import AutocompleteInput from './AutocompleteInput';
 import CollapsePanel from './CollapsePanel';
 import SelectTags from './SelectTags';
 import ImportModal from './ImportModal';
+import { AIImageAnalyzer } from './AIImageAnalyzer';
 import type { PreparedImportItem } from '../utils/useDriveImport';
 
 interface NewItemProps {
@@ -70,6 +71,22 @@ function NewItem({
     useCreateUserItemMutation();
   const [createPublicUserTag] = useCreatePublicUserTagMutation();
 
+  // Applies AI suggestions directly into the form control states
+  const handleApplyAISuggestions = (suggestions: {
+    title: string;
+    description: string;
+    tags: string[];
+  }) => {
+    setName(suggestions.title);
+    setDescription(suggestions.description);
+
+    // Merge existing user-selected tags with AI generated tags uniquely
+    const mergedTags = Array.from(
+      new Set([...selectedTags, ...suggestions.tags])
+    );
+    setSelectedTags(mergedTags);
+  };
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -97,6 +114,7 @@ function NewItem({
 
       setName('');
       setDescription('');
+      setSelectedTags([]); // Clears out active tags on successful creation
 
       requestAnimationFrame(() => {
         nameInputRef.current?.focus();
@@ -115,11 +133,9 @@ function NewItem({
     if (!cleanedTag) return;
 
     try {
-      // 2. Create the tag in Firestore first so it registers in your tag collection
       await createPublicUserTag({ userId, tag: cleanedTag }).unwrap();
     } catch (error) {
       console.error(`Failed to register batch tag "${cleanedTag}":`, error);
-      // Optional: return or continue depending on whether you want to proceed if tag creation fails
     }
 
     for (const item of items) {
@@ -159,6 +175,12 @@ function NewItem({
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex flex-col gap-3">
+          {/* AI IMAGE ANALYZER TRIGGER PANEL */}
+          <AIImageAnalyzer
+            currentTags={selectedTags}
+            onAnalysisSuccess={handleApplyAISuggestions}
+          />
+
           {/* TAG SELECTION */}
           <label className="form-control w-full">
             <span className="label-text">Tags</span>
