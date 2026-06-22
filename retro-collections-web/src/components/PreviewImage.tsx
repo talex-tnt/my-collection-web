@@ -56,9 +56,6 @@ export const PreviewImage: React.FC<PreviewImageProps> = ({
     : `https://drive.google.com/thumbnail?id=${driveId}&sz=${size}`;
 
   if (!size) {
-    console.warn(
-      'PreviewImage: No size specified. Please provide a size prop or set desktop/mobile preview image sizes in UI settings.'
-    );
     return;
   }
   return (
