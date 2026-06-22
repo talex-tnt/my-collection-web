@@ -81,6 +81,7 @@ export default function Tags({
               foregroundColor: null,
               imageUrl: null,
             };
+            console.log('Rendering tag:', tag, 'with style:', style); // Debug log for tag rendering
             return (
               <span
                 key={tag}
@@ -98,7 +99,7 @@ export default function Tags({
                   <img
                     src={style.imageUrl}
                     alt=""
-                    className="max-w-[100px] max-h-[22px] object-contain shrink-0"
+                    className={`max-w-[100px] max-h-[22px] object-contain shrink-0 ${style.backgroundColor === 'transparent' ? 'px-0' : 'px-2'}`} // Add padding if no background color
                     loading="lazy"
                   />
                 )}
