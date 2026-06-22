@@ -123,7 +123,7 @@ export default function SelectTag({
                         <img
                           src={absoluteImagePath}
                           alt=""
-                          className="max-w-full max-h-[28px] object-contain shrink-0"
+                          className={`max-w-full max-h-[28px] object-contain shrink-0 ${tagStyle.backgroundColor === 'transparent' ? 'px-0' : 'px-2'}`}
                           loading="lazy"
                         />
                       ) : (
