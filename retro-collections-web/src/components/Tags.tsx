@@ -81,7 +81,6 @@ export default function Tags({
               foregroundColor: null,
               imageUrl: null,
             };
-            console.log('Rendering tag:', tag, 'with style:', style); // Debug log for tag rendering
             return (
               <span
                 key={tag}
