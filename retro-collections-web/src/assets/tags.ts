@@ -173,6 +173,12 @@ export const AVAILABLE_TAG_IMAGES = [
     label: 'Xbox (2010)',
   },
 
+  {
+    id: 'arcade',
+    path: '/tag-icons/arcade-logo.png',
+    label: 'Arcade',
+  },
+
   // publisher logos
   {
     id: 'capcom',
