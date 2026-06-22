@@ -104,7 +104,8 @@ export default function SelectTag({
                 <li key={t.id} className="block">
                   <button
                     type="button"
-                    onClick={() => {
+                    onMouseDown={(e) => {
+                      e.preventDefault();
                       onTagSelected(t.id);
                       setIsOpen(false);
                     }}
