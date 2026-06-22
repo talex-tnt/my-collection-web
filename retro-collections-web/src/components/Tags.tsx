@@ -85,7 +85,7 @@ export default function Tags({
                 key={tag}
                 className={
                   'badge badge-outline flex items-center' +
-                  (style.imageUrl ? ' p-0 px-2' : ' gap-2 py-3 px-2.5')
+                  (style.imageUrl ? ' p-0 px-0' : ' gap-2 py-3 px-2.5')
                 }
                 style={{
                   backgroundColor: style.backgroundColor || undefined,
