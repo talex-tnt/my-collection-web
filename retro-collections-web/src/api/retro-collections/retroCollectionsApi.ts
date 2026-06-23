@@ -94,18 +94,30 @@ export type GetPublicItemsResponse = {
   };
 };
 
-// --- New AI Image Analyzer Types ---
+// --- AI Image Analyzer Types ---
 export type AnalyzeArgs = {
   parentFolderId: string;
   images: File[];
   optionalTags?: string[];
-  driveToken: string; // Captured securely on the client layer to supply the target middleware context
+  driveToken: string;
 };
 
 export type AnalyzeResponse = {
   suggestedTitle: string;
   descriptionEn: string;
   productTags: string[];
+};
+
+// --- New Create and Upload Target Directory Types ---
+export type CreateAndUploadArgs = {
+  parentFolderId: string;
+  newFolderName: string;
+  images: File[];
+  driveToken: string;
+};
+
+export type CreateAndUploadResponse = {
+  folderId: string;
 };
 
 // 1. Core API base path resolved directly from build-time environment variables
@@ -264,6 +276,27 @@ export const retroCollectionsApi = createApi({
         };
       },
     }),
+
+    createAndUploadFolder: builder.mutation<
+      CreateAndUploadResponse,
+      CreateAndUploadArgs
+    >({
+      query: ({ parentFolderId, newFolderName, images, driveToken }) => {
+        const formData = new FormData();
+        formData.append('parentFolderId', parentFolderId);
+        formData.append('newFolderName', newFolderName);
+        images.forEach((img) => formData.append('images', img));
+
+        return {
+          url: 'create-and-upload', // Pointing directly to your new native backend endpoint routing context
+          method: 'POST',
+          headers: {
+            'X-Drive-Token': driveToken,
+          },
+          body: formData,
+        };
+      },
+    }),
   }),
 });
 
@@ -273,5 +306,6 @@ export const {
   useRequestUserAccessMutation,
   useApproveUserAccessMutation,
   useGetPublicItemsQuery,
-  useAnalyzeProductImagesMutation, // Hook exposed for your UI components
+  useAnalyzeProductImagesMutation,
+  useCreateAndUploadFolderMutation,
 } = retroCollectionsApi;

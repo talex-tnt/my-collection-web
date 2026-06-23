@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useAnalyzeProductImagesMutation } from '../api/retro-collections/retroCollectionsApi';
+import {
+  useAnalyzeProductImagesMutation,
+  useCreateAndUploadFolderMutation,
+} from '../api/retro-collections/retroCollectionsApi';
 import DriveBrowser from './DriveBrowser';
 import type { FolderType, FileType } from '../api/firestore/types/shared';
 import {
@@ -9,6 +12,10 @@ import {
 } from '../api/google-drive/googleDriveAuth';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import type { SerializedError } from '@reduxjs/toolkit';
+import {
+  getDriveWriteToken,
+  requestDriveWriteToken,
+} from '../api/google-drive/googleDriveAuthWrite';
 
 interface AIImageAnalyzerProps {
   currentTags?: string[];
@@ -16,6 +23,7 @@ interface AIImageAnalyzerProps {
     title: string;
     description: string;
     tags: string[];
+    uploadedFolderId?: string; // Enhanced payload to return the created drive id if needed
   }) => void;
 }
 
@@ -37,7 +45,12 @@ export function AIImageAnalyzer({
   // Error messaging state
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const [analyzeImages, { isLoading }] = useAnalyzeProductImagesMutation();
+  // API mutations
+  const [analyzeImages, { isLoading: isAnalyzing }] =
+    useAnalyzeProductImagesMutation();
+  const [createAndUpload, { isLoading: isUploading }] =
+    useCreateAndUploadFolderMutation();
+
   const [suggestedResult, setSuggestedResult] = useState<{
     suggestedTitle: string;
     descriptionEn: string;
@@ -84,39 +97,61 @@ export function AIImageAnalyzer({
       setSuggestedResult(result);
     } catch (error: unknown) {
       console.error('Error during image analysis operations:', error);
-
-      let extractMessage = 'An unexpected error occurred.';
-
-      const fetchError = error as FetchBaseQueryError;
-      const serializedError = error as SerializedError;
-
-      if (
-        fetchError &&
-        fetchError.data &&
-        typeof fetchError.data === 'object'
-      ) {
-        const apiData = fetchError.data as { error?: string; message?: string };
-        extractMessage = apiData.error || apiData.message || extractMessage;
-      } else if (
-        serializedError &&
-        typeof serializedError.message === 'string'
-      ) {
-        extractMessage = serializedError.message;
-      }
-
-      setErrorMessage(extractMessage);
+      parseAndSetError(error);
     }
   };
-  const handleAcceptSuggestion = () => {
-    if (!suggestedResult) return;
 
-    onAnalysisSuccess({
-      title: suggestedResult.suggestedTitle,
-      description: suggestedResult.descriptionEn,
-      tags: suggestedResult.productTags,
-    });
+  // NEW STEP: Confirms execution, summons the folder creation/upload API, and pipes the result forward
+  const handleConfirmAndUpload = async () => {
+    if (!suggestedResult || !selectedFolder?.id || images.length === 0) return;
+    setErrorMessage(null);
 
-    handleCloseModal();
+    try {
+      let token = getDriveWriteToken();
+      if (!token) {
+        token = await requestDriveWriteToken();
+      }
+
+      // Trigger the folder creation + image binary file transmission pipeline
+      const uploadResult = await createAndUpload({
+        parentFolderId: selectedFolder.id,
+        newFolderName: suggestedResult.suggestedTitle,
+        images: images,
+        driveToken: token,
+      }).unwrap();
+
+      // Fire completion event returning metadata as well as the newly created folder reference ID
+      onAnalysisSuccess({
+        title: suggestedResult.suggestedTitle,
+        description: suggestedResult.descriptionEn,
+        tags: suggestedResult.productTags,
+        uploadedFolderId: uploadResult.folderId,
+      });
+
+      handleCloseModal();
+    } catch (error: unknown) {
+      console.error(
+        'Error during folder creation and image upload pipeline:',
+        error
+      );
+      parseAndSetError(error);
+    }
+  };
+
+  // Isolated type-safe error parsing utility wrapper
+  const parseAndSetError = (error: unknown) => {
+    let extractMessage = 'An unexpected error occurred.';
+    const fetchError = error as FetchBaseQueryError;
+    const serializedError = error as SerializedError;
+
+    if (fetchError && fetchError.data && typeof fetchError.data === 'object') {
+      const apiData = fetchError.data as { error?: string; message?: string };
+      extractMessage = apiData.error || apiData.message || extractMessage;
+    } else if (serializedError && typeof serializedError.message === 'string') {
+      extractMessage = serializedError.message;
+    }
+
+    setErrorMessage(extractMessage);
   };
 
   const handleCloseModal = () => {
@@ -127,6 +162,8 @@ export function AIImageAnalyzer({
     setErrorMessage(null);
     setIsOpen(false);
   };
+
+  const globalLoading = isAnalyzing || isUploading;
 
   return (
     <>
@@ -148,7 +185,7 @@ export function AIImageAnalyzer({
                 type="button"
                 onClick={handleCloseModal}
                 className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
-                disabled={isLoading}
+                disabled={globalLoading}
               >
                 ✕
               </button>
@@ -158,7 +195,7 @@ export function AIImageAnalyzer({
                   ✨ AI Product Creation Assistant
                 </h3>
                 <p className="text-[11px] opacity-60">
-                  Automate names, descriptions, and tag discovery
+                  Automate names, descriptions, and folder structure uploads
                 </p>
               </div>
 
@@ -172,7 +209,7 @@ export function AIImageAnalyzer({
                   type="button"
                   className={`btn btn-sm btn-block ${selectedFolder ? 'btn-neutral' : 'btn-primary btn-outline'}`}
                   onClick={() => setIsDriveOpen(true)}
-                  disabled={isLoading}
+                  disabled={globalLoading}
                 >
                   {selectedFolder
                     ? 'Change Folder Target'
@@ -201,7 +238,7 @@ export function AIImageAnalyzer({
                   capture="environment"
                   onChange={handleFileChange}
                   className="file-input file-input-bordered file-input-sm file-input-primary w-full"
-                  disabled={isLoading}
+                  disabled={globalLoading}
                 />
               </div>
 
@@ -252,9 +289,9 @@ export function AIImageAnalyzer({
                   type="button"
                   onClick={handleAnalyze}
                   className="btn btn-sm btn-primary w-full shadow-md"
-                  disabled={isLoading}
+                  disabled={globalLoading}
                 >
-                  {isLoading ? (
+                  {isAnalyzing ? (
                     <span className="loading loading-spinner loading-xs" />
                   ) : (
                     `Analyze Photos Inside Target Directory`
@@ -262,7 +299,7 @@ export function AIImageAnalyzer({
                 </button>
               )}
 
-              {/* SUGGESTED METADATA COMPILATION */}
+              {/* SUGGESTED METADATA COMPILATION & DRIVE UPLOAD CONFIRMATION CONTROLS */}
               {suggestedResult && (
                 <div className="bg-base-100 p-4 rounded-xl border border-success/30 space-y-3 text-xs shadow-inner">
                   <div className="badge badge-success text-white font-medium">
@@ -273,9 +310,21 @@ export function AIImageAnalyzer({
                     <span className="font-bold block opacity-70">
                       Suggested Title:
                     </span>
-                    <p className="text-sm font-medium mt-0.5">
-                      {suggestedResult.suggestedTitle}
-                    </p>
+                    <input
+                      type="text"
+                      className="input input-sm input-bordered w-full font-medium mt-1 text-sm text-base-content"
+                      value={suggestedResult.suggestedTitle}
+                      disabled={isUploading}
+                      onChange={(e) =>
+                        setSuggestedResult({
+                          ...suggestedResult,
+                          suggestedTitle: e.target.value,
+                        })
+                      }
+                    />
+                    <label className="text-[10px] opacity-50 mt-0.5 block">
+                      This will be the name of your new Google Drive folder.
+                    </label>
                   </div>
 
                   {suggestedResult.descriptionEn && (
@@ -307,21 +356,33 @@ export function AIImageAnalyzer({
                     </div>
                   )}
 
-                  <div className="flex gap-2 pt-2">
-                    <button
-                      type="button"
-                      className="btn btn-xs btn-success flex-1 text-white"
-                      onClick={handleAcceptSuggestion}
-                    >
-                      Apply to Form
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-xs btn-ghost"
-                      onClick={() => setSuggestedResult(null)}
-                    >
-                      Discard
-                    </button>
+                  <div className="flex flex-col gap-2 pt-2 border-t border-base-200">
+                    <span className="text-[11px] font-bold text-center block text-warning animate-pulse">
+                      ❓ Ready to create this folder and upload your photos?
+                    </span>
+
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-success flex-1 text-white shadow"
+                        onClick={handleConfirmAndUpload}
+                        disabled={isUploading}
+                      >
+                        {isUploading ? (
+                          <span className="loading loading-spinner loading-xs" />
+                        ) : (
+                          'Confirm & Upload to Drive'
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-ghost"
+                        onClick={() => setSuggestedResult(null)}
+                        disabled={isUploading}
+                      >
+                        Discard
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
