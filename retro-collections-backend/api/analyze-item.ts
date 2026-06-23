@@ -168,7 +168,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
   } catch (error: any) {
-    console.error('Error executing vision operations serverless task:', error);
-    return res.status(500).json({ error: 'Internal server processing exception.' });
+   console.error('Error executing vision operations serverless task:', error);
+
+    let clientMessage = 'Internal server processing exception.';
+    
+    // Check if the error message is a serialized Google API error string
+    if (error?.message && typeof error.message === 'string') {
+      try {
+        const parsedMessage = JSON.parse(error.message);
+        if (parsedMessage?.error?.message) {
+          clientMessage = parsedMessage.error.message;
+        }
+      } catch {
+        // Fallback if error.message is regular text
+        clientMessage = error.message;
+      }
+    } else if (error?.statusText) {
+      clientMessage = error.statusText;
+    }
+
+    return res.status(500).json({ 
+      error: clientMessage 
+    });
   }
 }
