@@ -100,6 +100,7 @@ export type AnalyzeArgs = {
   images: File[];
   optionalTags?: string[];
   driveToken: string;
+  engine?: 'github' | 'gemini';
 };
 
 export type AnalyzeResponse = {
@@ -263,7 +264,13 @@ export const retroCollectionsApi = createApi({
     }),
 
     analyzeProductImages: builder.mutation<AnalyzeResponse, AnalyzeArgs>({
-      query: ({ parentFolderId, images, optionalTags, driveToken }) => {
+      query: ({
+        parentFolderId,
+        images,
+        optionalTags,
+        driveToken,
+        engine = 'github',
+      }) => {
         const formData = new FormData();
         formData.append('parentFolderId', parentFolderId);
         images.forEach((img) => formData.append('images', img));
@@ -273,7 +280,7 @@ export const retroCollectionsApi = createApi({
         }
 
         return {
-          url: 'analyze-item-github-ai',
+          url: `analyze-item-${engine}-ai`,
           method: 'POST',
           headers: {
             'X-Drive-Token': driveToken,

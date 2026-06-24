@@ -24,7 +24,7 @@ interface AIImageAnalyzerProps {
     description: string;
     tags: string[];
     uploadedFolderId?: { id: string; name: string };
-    fallbackPreview?: { id: string; name: string }; // Fixed: Now accepts both tracking ID and file name
+    fallbackPreview?: { id: string; name: string };
   }) => void;
 }
 
@@ -39,6 +39,9 @@ export function AIImageAnalyzer({
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [selectedFolder, setSelectedFolder] = useState<FolderType | null>(null);
+
+  // Selector Engine Choice state variable
+  const [engine, setEngine] = useState<'github' | 'gemini'>('github');
 
   // Secondary nested popup toggle state for the Drive Browser
   const [isDriveOpen, setIsDriveOpen] = useState(false);
@@ -94,9 +97,10 @@ export function AIImageAnalyzer({
       }
       const result = await analyzeImages({
         parentFolderId: selectedFolder.id,
-        images,
+        images: images?.length > 0 ? [images[0]] : [],
         optionalTags: currentTags,
         driveToken: token,
+        engine, // Forward chosen engine selection variable directly to your RTK pipeline query
       }).unwrap();
 
       setSuggestedResult(result);
@@ -125,7 +129,7 @@ export function AIImageAnalyzer({
         driveToken: token,
       }).unwrap();
 
-      // Fixed: Extract the live uploaded image metadata array returned from Google Drive via your API route
+      // Extract the live uploaded image metadata array returned from Google Drive via your API route
       const primaryUploadedFile = uploadResult.files?.[0];
 
       // Fire completion event returning metadata along with the newly created folder reference ID
@@ -136,7 +140,7 @@ export function AIImageAnalyzer({
         uploadedFolderId: uploadResult.folderId
           ? { id: uploadResult.folderId, name: suggestedResult.suggestedTitle }
           : undefined,
-        // Fixed: Map the real Google Drive File ID instead of the local static filename instance
+        // Map the real Google Drive File ID instead of the local static filename instance
         fallbackPreview: primaryUploadedFile
           ? { id: primaryUploadedFile.id, name: primaryUploadedFile.name }
           : undefined,
@@ -169,7 +173,7 @@ export function AIImageAnalyzer({
   };
 
   const handleCloseModal = () => {
-    // Fixed: Revoke temporary object URLs out of browser local memory allocations
+    // Revoke temporary object URLs out of browser local memory allocations
     previews.forEach((url) => URL.revokeObjectURL(url));
 
     setSuggestedResult(null);
@@ -177,6 +181,7 @@ export function AIImageAnalyzer({
     setPreviews([]);
     setSelectedFolder(null);
     setErrorMessage(null);
+    setEngine('github'); // Reset selector baseline safely back to standard context
     setIsOpen(false);
   };
 
@@ -273,6 +278,46 @@ export function AIImageAnalyzer({
                 </div>
               )}
 
+              {/* STEP 3: DROPDOWN ENGINE SELECTOR VIEW CONTROLLER (Stays visible if photos exist) */}
+              {images.length > 0 && selectedFolder && (
+                <div className="form-control w-full space-y-1 animate-fadeIn">
+                  <span className="label-text font-semibold text-xs opacity-80">
+                    3. Choose AI Core Engine
+                  </span>
+                  <div className="flex gap-2">
+                    <select
+                      className="select select-bordered select-sm flex-1 font-medium"
+                      value={engine}
+                      onChange={(e) =>
+                        setEngine(e.target.value as 'github' | 'gemini')
+                      }
+                      disabled={globalLoading}
+                    >
+                      <option value="github">
+                        GitHub AI Pipeline (Default)
+                      </option>
+                      <option value="gemini">Gemini Pro Vision Engine</option>
+                    </select>
+
+                    {/* Inline Re-run button variant shown only when an active result is ready to swap */}
+                    {suggestedResult && (
+                      <button
+                        type="button"
+                        onClick={handleAnalyze}
+                        className="btn btn-sm btn-outline btn-primary px-3 shadow-sm"
+                        disabled={globalLoading}
+                      >
+                        {isAnalyzing ? (
+                          <span className="loading loading-spinner loading-xs" />
+                        ) : (
+                          'Rerun 🔄'
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* DYNAMIC VISUAL ERROR BANNER */}
               {errorMessage && (
                 <div className="alert alert-error text-xs p-3 rounded-xl border border-error/20 bg-error/10 text-error flex items-start gap-2 animate-fadeIn">
@@ -300,7 +345,7 @@ export function AIImageAnalyzer({
                 </div>
               )}
 
-              {/* PIPELINE DISPATCH CONTROL ACTION */}
+              {/* FIRST-RUN PIPELINE DISPATCH CONTROL ACTION */}
               {images.length > 0 && selectedFolder && !suggestedResult && (
                 <button
                   type="button"
@@ -311,7 +356,7 @@ export function AIImageAnalyzer({
                   {isAnalyzing ? (
                     <span className="loading loading-spinner loading-xs" />
                   ) : (
-                    `Analyze Photos Inside Target Directory`
+                    `Analyze Photos Using ${engine === 'github' ? 'GitHub AI' : 'Gemini AI'}`
                   )}
                 </button>
               )}
@@ -320,7 +365,8 @@ export function AIImageAnalyzer({
               {suggestedResult && (
                 <div className="bg-base-100 p-4 rounded-xl border border-success/30 space-y-3 text-xs shadow-inner">
                   <div className="badge badge-success text-white font-medium">
-                    AI Analysis Completed
+                    AI Analysis Completed (
+                    {engine === 'github' ? 'GitHub' : 'Gemini'})
                   </div>
 
                   <div>
@@ -331,7 +377,7 @@ export function AIImageAnalyzer({
                       type="text"
                       className="input input-sm input-bordered w-full font-medium mt-1 text-sm text-base-content"
                       value={suggestedResult.suggestedTitle}
-                      disabled={isUploading}
+                      disabled={isUploading || isAnalyzing}
                       onChange={(e) =>
                         setSuggestedResult({
                           ...suggestedResult,
@@ -383,7 +429,7 @@ export function AIImageAnalyzer({
                         type="button"
                         className="btn btn-sm btn-success flex-1 text-white shadow"
                         onClick={handleConfirmAndUpload}
-                        disabled={isUploading}
+                        disabled={isUploading || isAnalyzing}
                       >
                         {isUploading ? (
                           <span className="loading loading-spinner loading-xs" />
@@ -395,7 +441,7 @@ export function AIImageAnalyzer({
                         type="button"
                         className="btn btn-sm btn-ghost"
                         onClick={() => setSuggestedResult(null)}
-                        disabled={isUploading}
+                        disabled={isUploading || isAnalyzing}
                       >
                         Discard
                       </button>
