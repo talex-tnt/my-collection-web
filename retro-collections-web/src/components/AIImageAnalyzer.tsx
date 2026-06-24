@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import {
-  useAnalyzeProductImagesMutation,
-  useCreateAndUploadFolderMutation,
-} from '../api/retro-collections/retroCollectionsApi';
+import { useAnalyzeProductImagesMutation } from '../api/retro-collections/retroCollectionsApi';
+import { useCreateAndUploadFolderMutation } from '../api/google-drive/googleDriveWriteApi';
 import DriveBrowser from './DriveBrowser';
 import type { FolderType, FileType } from '../api/firestore/types/shared';
 import {
@@ -12,10 +10,6 @@ import {
 } from '../api/google-drive/googleDriveAuth';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import type { SerializedError } from '@reduxjs/toolkit';
-import {
-  getDriveWriteToken,
-  requestDriveWriteToken,
-} from '../api/google-drive/googleDriveAuthWrite';
 
 interface AIImageAnalyzerProps {
   currentTags?: string[];
@@ -53,7 +47,7 @@ export function AIImageAnalyzer({
   const [analyzeImages, { isLoading: isAnalyzing }] =
     useAnalyzeProductImagesMutation();
   const [createAndUpload, { isLoading: isUploading }] =
-    useCreateAndUploadFolderMutation();
+    useCreateAndUploadFolderMutation(); // 👈 Linked to your fresh frontend direct Google Drive pipeline
 
   const [suggestedResult, setSuggestedResult] = useState<{
     suggestedTitle: string;
@@ -116,20 +110,17 @@ export function AIImageAnalyzer({
     setErrorMessage(null);
 
     try {
-      let token = getDriveWriteToken();
-      if (!token) {
-        token = await requestDriveWriteToken();
-      }
+      // Note: Local token check logic removed here because driveApi's baseQuery
+      // automatically handles implicit token retrieval, auto-refresh, and injection.
 
-      // Trigger the folder creation + image binary file transmission pipeline
+      // Trigger the direct direct frontend folder creation + binary upload task pipeline
       const uploadResult = await createAndUpload({
         parentFolderId: selectedFolder.id,
         newFolderName: suggestedResult.suggestedTitle,
         images: images,
-        driveToken: token,
       }).unwrap();
 
-      // Extract the live uploaded image metadata array returned from Google Drive via your API route
+      // Extract the live uploaded image metadata array returned natively from your driveApi mutation
       const primaryUploadedFile = uploadResult.files?.[0];
 
       // Fire completion event returning metadata along with the newly created folder reference ID
@@ -149,7 +140,7 @@ export function AIImageAnalyzer({
       handleCloseModal();
     } catch (error: unknown) {
       console.error(
-        'Error during folder creation and image upload pipeline:',
+        'Error during frontend folder creation and image upload pipeline:',
         error
       );
       parseAndSetError(error);
