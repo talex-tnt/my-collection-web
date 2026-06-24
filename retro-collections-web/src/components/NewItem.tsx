@@ -10,7 +10,7 @@ import {
 import { useSearchGamesQuery } from '../api/games/rawgApi';
 import { useSearchQuery } from '../api/wikipedia/wikipediaApi';
 import { useRawgSettings, useWikiSettings } from '../utils/hooks';
-import { findPreviewImage } from '../utils/findPreviewImage'; // Imported utility
+import { findPreviewImage } from '../utils/findPreviewImage';
 import AutocompleteInput from './AutocompleteInput';
 import CollapsePanel from './CollapsePanel';
 import SelectTags from './SelectTags';
@@ -44,7 +44,7 @@ function NewItem({
   const [tagError] = useState<string | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState<boolean>(false);
 
-  // Drive state variables (Keep track of both folder and optional local preview calculations)
+  // Drive state variables
   const [imageFolder, setImageFolder] = useState<FolderType | null>(null);
   const [previewImage, setPreviewImage] = useState<{
     id: string;
@@ -89,6 +89,7 @@ function NewItem({
     description: string;
     tags: string[];
     uploadedFolderId?: { id: string; name: string };
+    fallbackPreview?: { id: string; name: string };
   }) => {
     setName(suggestions.title);
     setDescription(suggestions.description);
@@ -100,9 +101,15 @@ function NewItem({
 
     if (suggestions.uploadedFolderId) {
       setImageFolder(suggestions.uploadedFolderId);
-      // When uploading brand new images from scratch via AI analyzer,
-      // previewImage will get resolved automatically down the line by your storage backend/preview loader.
-      setPreviewImage(null);
+
+      if (suggestions.fallbackPreview) {
+        setPreviewImage({
+          id: suggestions.fallbackPreview.id,
+          name: suggestions.fallbackPreview.name,
+        });
+      } else {
+        setPreviewImage(null);
+      }
     }
   };
 
@@ -125,7 +132,7 @@ function NewItem({
         itemData.tags = selectedTags;
       }
 
-      // --- STRUCTURING NESTED METADATA EXACTLY LIKE THE UPDATE ACTION ---
+      // Structures nested data matching identical layout state required by MyListItem
       if (imageFolder) {
         itemData.metadata = {
           imageFolder: imageFolder.id ? imageFolder : {},
@@ -249,7 +256,7 @@ function NewItem({
           </label>
         </div>
 
-        {/* COMPACT PURE VISUAL TOGGLE WITH FOLDER TEXT NAME RENDERED */}
+        {/* CONTROLS BAR CONTAINER */}
         <div className="flex flex-row items-center gap-3 mt-1">
           <button
             type="button"
@@ -284,7 +291,6 @@ function NewItem({
             </div>
           </button>
 
-          {/* RENDERS THE FOLDER NAME DYNAMICALLY MATCHING PREVIEW BADGES */}
           {imageFolder && (
             <div className="flex items-center gap-1 bg-base-200 rounded py-1 px-2 border border-base-300 max-w-[180px] truncate shadow-sm">
               <span className="text-[10px] font-medium opacity-80 truncate">
@@ -292,6 +298,7 @@ function NewItem({
               </span>
             </div>
           )}
+
           {/* AI IMAGE ANALYZER TRIGGER PANEL */}
           <AIImageAnalyzer
             currentTags={selectedTags}
@@ -299,7 +306,6 @@ function NewItem({
           />
         </div>
 
-        {/* COMPACT INTERACTIVE ACTIONS CONTAINER */}
         <div className="flex gap-2 mt-2 w-full">
           <button
             type="submit"
@@ -325,7 +331,7 @@ function NewItem({
         onConfirmImport={handleBulkImport}
       />
 
-      {/* DRIVE BROWSER MODAL PORTAL ATTACHED DIRECTLY TO BODY */}
+      {/* DRIVE BROWSER MODAL PORTAL */}
       {showDrivePopup &&
         createPortal(
           <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm">
@@ -343,12 +349,11 @@ function NewItem({
                   if (data.folder) {
                     setImageFolder(data.folder);
 
-                    // --- RESOLVING PREVIEW IMAGES EXTRACTED FROM CHOSEN FILES ---
                     const resolvedPreview = findPreviewImage(data.files || []);
                     if (resolvedPreview?.id) {
                       setPreviewImage({
                         id: resolvedPreview.id,
-                        name: resolvedPreview.name,
+                        name: resolvedPreview.name ?? '',
                       });
                     } else {
                       setPreviewImage(null);

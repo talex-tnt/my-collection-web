@@ -118,6 +118,7 @@ export type CreateAndUploadArgs = {
 
 export type CreateAndUploadResponse = {
   folderId: string;
+  files: { id: string; name: string }[];
 };
 
 // 1. Core API base path resolved directly from build-time environment variables
@@ -125,6 +126,10 @@ const baseUrl = import.meta.env.VITE_RETRO_COLLECTIONS_BASEURL;
 
 export const retroCollectionsApi = createApi({
   reducerPath: 'retroCollectionsApi',
+
+  // Fixed: Declare cache tag identifiers so the API can coordinate auto-refresh operations
+  tagTypes: ['DriveFolders'],
+
   baseQuery: async (args, api, extraOptions) => {
     const auth = getAuth();
     const currentUser = auth.currentUser;
@@ -178,9 +183,10 @@ export const retroCollectionsApi = createApi({
         url: 'drive-proxy',
         method: 'GET',
         params: {
-          id: fileId, // Aligned to map to the 'id' parameter expected by your backend query extractor
+          id: fileId,
         },
       }),
+      providesTags: ['DriveFolders'],
       transformResponse: (response: DriveProxyResponse): DriveProxyResponse => {
         console.log('Drive Proxy API response:', response);
         return response;
@@ -267,12 +273,12 @@ export const retroCollectionsApi = createApi({
         }
 
         return {
-          url: 'analyze-item-github-ai', // Routes relative to your Vercel VITE_RETRO_COLLECTIONS_BASEURL context
+          url: 'analyze-item-github-ai',
           method: 'POST',
           headers: {
-            'X-Drive-Token': driveToken, // Injects your Google token into headers alongside the Firebase standard Bearer token
+            'X-Drive-Token': driveToken,
           },
-          body: formData, // Automatically processes content-type headers for FormData payloads
+          body: formData,
         };
       },
     }),
@@ -288,7 +294,7 @@ export const retroCollectionsApi = createApi({
         images.forEach((img) => formData.append('images', img));
 
         return {
-          url: 'create-and-upload', // Pointing directly to your new native backend endpoint routing context
+          url: 'create-and-upload',
           method: 'POST',
           headers: {
             'X-Drive-Token': driveToken,
@@ -296,6 +302,7 @@ export const retroCollectionsApi = createApi({
           body: formData,
         };
       },
+      invalidatesTags: ['DriveFolders'],
     }),
   }),
 });

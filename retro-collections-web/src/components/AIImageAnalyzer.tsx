@@ -23,7 +23,8 @@ interface AIImageAnalyzerProps {
     title: string;
     description: string;
     tags: string[];
-    uploadedFolderId?: { id: string; name: string }; // Typed to match FolderType structure
+    uploadedFolderId?: { id: string; name: string };
+    fallbackPreview?: { id: string; name: string }; // Fixed: Now accepts both tracking ID and file name
   }) => void;
 }
 
@@ -60,6 +61,10 @@ export function AIImageAnalyzer({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     setErrorMessage(null); // Clear errors on new upload
+
+    // Revoke old object URLs to clear memory allocation space before mapping new ones
+    previews.forEach((url) => URL.revokeObjectURL(url));
+
     const filesArray = Array.from(e.target.files);
     setImages(filesArray);
 
@@ -120,13 +125,20 @@ export function AIImageAnalyzer({
         driveToken: token,
       }).unwrap();
 
-      // FIXED: Packages the string response folderId into an object matching FolderType schema
+      // Fixed: Extract the live uploaded image metadata array returned from Google Drive via your API route
+      const primaryUploadedFile = uploadResult.files?.[0];
+
+      // Fire completion event returning metadata along with the newly created folder reference ID
       onAnalysisSuccess({
         title: suggestedResult.suggestedTitle,
         description: suggestedResult.descriptionEn,
         tags: suggestedResult.productTags,
         uploadedFolderId: uploadResult.folderId
           ? { id: uploadResult.folderId, name: suggestedResult.suggestedTitle }
+          : undefined,
+        // Fixed: Map the real Google Drive File ID instead of the local static filename instance
+        fallbackPreview: primaryUploadedFile
+          ? { id: primaryUploadedFile.id, name: primaryUploadedFile.name }
           : undefined,
       });
 
@@ -157,6 +169,9 @@ export function AIImageAnalyzer({
   };
 
   const handleCloseModal = () => {
+    // Fixed: Revoke temporary object URLs out of browser local memory allocations
+    previews.forEach((url) => URL.revokeObjectURL(url));
+
     setSuggestedResult(null);
     setImages([]);
     setPreviews([]);
@@ -228,7 +243,7 @@ export function AIImageAnalyzer({
                 )}
               </div>
 
-              {/* STEP 2: BINARY PAYLOAD UPLOAD */}
+              {/* STEP 2: BINARY UPLOAD FIELD */}
               <div className="form-control w-full space-y-1">
                 <span className="label-text font-semibold text-xs opacity-80">
                   2. Capture or Upload Photos
@@ -301,7 +316,7 @@ export function AIImageAnalyzer({
                 </button>
               )}
 
-              {/* SUGGESTED METADATA COMPILATION & DRIVE UPLOAD CONFIRMATION CONTROLS */}
+              {/* SUGGESTED METADATA COMPILATION CONTROLS */}
               {suggestedResult && (
                 <div className="bg-base-100 p-4 rounded-xl border border-success/30 space-y-3 text-xs shadow-inner">
                   <div className="badge badge-success text-white font-medium">
@@ -393,7 +408,7 @@ export function AIImageAnalyzer({
           document.body
         )}
 
-      {/* NESTED SUB-POPUP: DRIVE BROWSER MODAL (HIGHER Z-INDEX PORTAL) */}
+      {/* NESTED SUB-POPUP: DRIVE BROWSER MODAL */}
       {isDriveOpen &&
         createPortal(
           <div className="modal modal-open z-[10000] backdrop-blur-sm fixed inset-0 flex items-center justify-center bg-black/60">

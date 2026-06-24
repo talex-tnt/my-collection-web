@@ -108,8 +108,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Standard Web encoder to handle the string parts
     const encoder = new TextEncoder();
 
-    // 2. Upload images sequentially into the newly created folder
-    await Promise.all(
+    // 2. Upload images sequentially into the newly created folder and return their drive details
+    const uploadedFiles = await Promise.all(
       imageFiles.map(async (file, index) => {
         const arrayBuffer = await file.arrayBuffer();
         const fileBytes = new Uint8Array(arrayBuffer);
@@ -149,18 +149,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             Authorization: `Bearer ${driveToken}`,
             'Content-Type': `multipart/related; boundary=${boundary}`,
           },
-          body: webBody, // Pure standard web collection, TypeScript will be completely silent now
+          body: webBody,
         });
 
         if (!uploadResponse.ok) {
           const uploadErrorText = await uploadResponse.text();
           throw new Error(`Failed uploading file ${file.name}: ${uploadErrorText}`);
         }
+
+        // Fixed: Parse the body response JSON to extract the newly created Drive File metadata block
+        const fileData = (await uploadResponse.json()) as { id: string; name: string };
+        return {
+          id: fileData.id,
+          name: fileData.name,
+        };
       })
     );
 
+    // Fixed: Return folderId along with the array of uploaded file identities 
     return res.status(200).json({
       folderId: createdFolderId,
+      files: uploadedFiles,
     });
 
   } catch (error: unknown) {

@@ -114,16 +114,41 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       properties: {
         suggestedTitle: {
           type: 'string',
-          description: 'A concise, professional folder title for the product (max 40 characters), without punctuation or forbidden characters like slashes.',
+          description: `
+          A concise, professional folder title for the product (max 40 characters), 
+          without punctuation or forbidden characters like slashes.
+          If the product is a special version, you can add that to the title.`,
         },
         descriptionEn: {
-          type: 'string',
-          description: 'A very short description of the physical product written in English highlighting key unique or rare features visible only in the image layout.',
+            type: 'string',
+            description: `
+            A very short description of the physical product written in English. 
+            It should be clear, very concise, highlighting key features such as imperfections, serial number/code, special versions, 
+            and other notable characteristics that are not ordinary for that production (something unique or rare compare to other copies of the same product). 
+            If the product is a media software, do not include information on the software itself but only on the physical media (e.g., disc, cartridge, etc.).
+            IMPORTANT: The description should be about what's on the picture and not about what is supposed to be in that product in general.
+            Keep it short and to the point, avoiding unnecessary details that not uniquely identify the product. 
+            E.g. avoid adding text that is in the product itself, unless it is short like the serial number or a special edition name. 
+            Avoid adding information that is not visible in the images provided.`,
         },
         productTags: {
           type: 'array',
           items: { type: 'string' },
-          description: 'A list of evaluated, refined lowercase tags matching the format rules.',
+          description: `A list of relevant product tags. 
+          Evaluate the optional input tags provided, 
+          filtering out irrelevant ones and expanding the list with new accurate tags found from the images. 
+          Tags should be concise, lowercase, and relevant. 
+          Avoid new categories of tags, if in the input list there is PS4 and P55 is missing then you can add PS5 since it is the same category. 
+          Avoid adding redundant tags such as "videogame" if "game" is already present. 
+          Avoid adding tags that are too generic or not directly related to the product. 
+          Avoid adding tags that are the same as the title of the product, or "playstation 4" if the input already has "PS4", 
+          or the genre of the product.
+          If tags such as ita, eng, fr, de, es, pt are present in the input list, they should be kept as they are. Do not add new duplicate language tags under different formats (e.g., "english" or "en" for "eng").
+          Do NOT add the product's name or brand as a tag.
+          If a game is a special edition, you can add a tag for that (e.g., "special edition", "limited edition", "collector's edition", etc.).
+          If a game is associated with a specific platform publisher, make sure to set or add tag for that (e.g., "sony", "microsoft", "nintendo", etc.).
+          Max 2 new tags can be added (that are not present in the input tags), and they should be highly relevant to the product.`,
+
         },
       },
       required: ['suggestedTitle', 'descriptionEn', 'productTags'],
