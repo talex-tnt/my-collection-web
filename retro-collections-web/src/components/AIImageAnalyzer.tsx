@@ -23,7 +23,7 @@ interface AIImageAnalyzerProps {
     title: string;
     description: string;
     tags: string[];
-    uploadedFolderId?: string; // Enhanced payload to return the created drive id if needed
+    uploadedFolderId?: { id: string; name: string }; // Typed to match FolderType structure
   }) => void;
 }
 
@@ -101,7 +101,7 @@ export function AIImageAnalyzer({
     }
   };
 
-  // NEW STEP: Confirms execution, summons the folder creation/upload API, and pipes the result forward
+  // CONFIRMS EXECUTION AND PIPES COMPLETE OBJECT FORWARD TO NEWITEM STATE MANAGER
   const handleConfirmAndUpload = async () => {
     if (!suggestedResult || !selectedFolder?.id || images.length === 0) return;
     setErrorMessage(null);
@@ -120,12 +120,14 @@ export function AIImageAnalyzer({
         driveToken: token,
       }).unwrap();
 
-      // Fire completion event returning metadata as well as the newly created folder reference ID
+      // FIXED: Packages the string response folderId into an object matching FolderType schema
       onAnalysisSuccess({
         title: suggestedResult.suggestedTitle,
         description: suggestedResult.descriptionEn,
         tags: suggestedResult.productTags,
-        uploadedFolderId: uploadResult.folderId,
+        uploadedFolderId: uploadResult.folderId
+          ? { id: uploadResult.folderId, name: suggestedResult.suggestedTitle }
+          : undefined,
       });
 
       handleCloseModal();
@@ -166,14 +168,14 @@ export function AIImageAnalyzer({
   const globalLoading = isAnalyzing || isUploading;
 
   return (
-    <>
+    <div className="ml-auto">
       {/* COMPONENT ENTRY POINT: THE TRIGGER BUTTON */}
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="btn btn-sm btn-outline btn-primary gap-2 w-full rounded-xl shadow-sm font-medium normal-case"
+        className="btn btn-xs btn-tertiary gap-2 rounded-xl shadow-sm font-medium normal-case"
       >
-        ✨ Use AI Assistant
+        AI ✨
       </button>
 
       {/* RENDER MODALS OUTSIDE COMPONENT LAYOUT USING PORTALS */}
@@ -428,6 +430,6 @@ export function AIImageAnalyzer({
           </div>,
           document.body
         )}
-    </>
+    </div>
   );
 }

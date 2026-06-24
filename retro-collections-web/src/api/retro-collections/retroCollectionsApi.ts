@@ -267,7 +267,7 @@ export const retroCollectionsApi = createApi({
         }
 
         return {
-          url: 'analyze-item', // Routes relative to your Vercel VITE_RETRO_COLLECTIONS_BASEURL context
+          url: 'analyze-item-github-ai', // Routes relative to your Vercel VITE_RETRO_COLLECTIONS_BASEURL context
           method: 'POST',
           headers: {
             'X-Drive-Token': driveToken, // Injects your Google token into headers alongside the Firebase standard Bearer token

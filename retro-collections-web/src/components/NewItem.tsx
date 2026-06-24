@@ -10,6 +10,7 @@ import {
 import { useSearchGamesQuery } from '../api/games/rawgApi';
 import { useSearchQuery } from '../api/wikipedia/wikipediaApi';
 import { useRawgSettings, useWikiSettings } from '../utils/hooks';
+import { findPreviewImage } from '../utils/findPreviewImage'; // Imported utility
 import AutocompleteInput from './AutocompleteInput';
 import CollapsePanel from './CollapsePanel';
 import SelectTags from './SelectTags';
@@ -43,8 +44,12 @@ function NewItem({
   const [tagError] = useState<string | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState<boolean>(false);
 
-  // Drive state variables
+  // Drive state variables (Keep track of both folder and optional local preview calculations)
   const [imageFolder, setImageFolder] = useState<FolderType | null>(null);
+  const [previewImage, setPreviewImage] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [showDrivePopup, setShowDrivePopup] = useState<boolean>(false);
 
   const isGame = selectedTags.map((tag) => tag.toLowerCase()).includes('game');
@@ -83,7 +88,7 @@ function NewItem({
     title: string;
     description: string;
     tags: string[];
-    uploadedFolderId?: string;
+    uploadedFolderId?: { id: string; name: string };
   }) => {
     setName(suggestions.title);
     setDescription(suggestions.description);
@@ -94,10 +99,10 @@ function NewItem({
     setSelectedTags(mergedTags);
 
     if (suggestions.uploadedFolderId) {
-      setImageFolder({
-        id: suggestions.uploadedFolderId,
-        name: suggestions.title,
-      });
+      setImageFolder(suggestions.uploadedFolderId);
+      // When uploading brand new images from scratch via AI analyzer,
+      // previewImage will get resolved automatically down the line by your storage backend/preview loader.
+      setPreviewImage(null);
     }
   };
 
@@ -120,9 +125,11 @@ function NewItem({
         itemData.tags = selectedTags;
       }
 
+      // --- STRUCTURING NESTED METADATA EXACTLY LIKE THE UPDATE ACTION ---
       if (imageFolder) {
         itemData.metadata = {
           imageFolder: imageFolder.id ? imageFolder : {},
+          previewImage: previewImage?.id ? previewImage : {},
         };
       }
 
@@ -136,6 +143,7 @@ function NewItem({
       setDescription('');
       setSelectedTags([]);
       setImageFolder(null);
+      setPreviewImage(null);
 
       requestAnimationFrame(() => {
         nameInputRef.current?.focus();
@@ -196,6 +204,24 @@ function NewItem({
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex flex-col gap-3">
+          {/* TAG SELECTION */}
+          <label className="form-control w-full">
+            <span className="label-text">Tags</span>
+            <div className="flex flex-wrap gap-2 mt-1 items-center">
+              {allTags.length === 0 && (
+                <span className="text-xs opacity-60">No tags available</span>
+              )}
+              <SelectTags
+                selectedTags={selectedTags}
+                userTags={allTags}
+                onSelectedTagsChange={setSelectedTags}
+              />
+            </div>
+            {tagError && (
+              <div className="text-xs text-error mt-1">{tagError}</div>
+            )}
+          </label>
+
           {/* NAME INPUT WITH AUTOCOMPLETE */}
           <label className="form-control w-full">
             <span className="label-text mb-1">Name</span>
@@ -223,24 +249,6 @@ function NewItem({
           </label>
         </div>
 
-        {/* TAG SELECTION */}
-        <label className="form-control w-full">
-          <span className="label-text">Tags</span>
-          <div className="flex flex-wrap gap-2 mt-1 items-center">
-            {allTags.length === 0 && (
-              <span className="text-xs opacity-60">No tags available</span>
-            )}
-            <SelectTags
-              selectedTags={selectedTags}
-              userTags={allTags}
-              onSelectedTagsChange={setSelectedTags}
-            />
-          </div>
-          {tagError && (
-            <div className="text-xs text-error mt-1">{tagError}</div>
-          )}
-        </label>
-
         {/* COMPACT PURE VISUAL TOGGLE WITH FOLDER TEXT NAME RENDERED */}
         <div className="flex flex-row items-center gap-3 mt-1">
           <button
@@ -253,6 +261,7 @@ function NewItem({
             onClick={() => {
               if (imageFolder) {
                 setImageFolder(null);
+                setPreviewImage(null);
               } else {
                 setShowDrivePopup(true);
               }
@@ -283,12 +292,12 @@ function NewItem({
               </span>
             </div>
           )}
+          {/* AI IMAGE ANALYZER TRIGGER PANEL */}
+          <AIImageAnalyzer
+            currentTags={selectedTags}
+            onAnalysisSuccess={handleApplyAISuggestions}
+          />
         </div>
-        {/* AI IMAGE ANALYZER TRIGGER PANEL */}
-        <AIImageAnalyzer
-          currentTags={selectedTags}
-          onAnalysisSuccess={handleApplyAISuggestions}
-        />
 
         {/* COMPACT INTERACTIVE ACTIONS CONTAINER */}
         <div className="flex gap-2 mt-2 w-full">
@@ -333,6 +342,17 @@ function NewItem({
                 onSelectFolder={(data) => {
                   if (data.folder) {
                     setImageFolder(data.folder);
+
+                    // --- RESOLVING PREVIEW IMAGES EXTRACTED FROM CHOSEN FILES ---
+                    const resolvedPreview = findPreviewImage(data.files || []);
+                    if (resolvedPreview?.id) {
+                      setPreviewImage({
+                        id: resolvedPreview.id,
+                        name: resolvedPreview.name,
+                      });
+                    } else {
+                      setPreviewImage(null);
+                    }
                   }
                   setShowDrivePopup(false);
                 }}
