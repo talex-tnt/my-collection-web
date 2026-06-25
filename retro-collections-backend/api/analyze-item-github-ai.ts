@@ -7,12 +7,13 @@ export const config = {
   },
 };
 
-// Initialize the GitHub Models client directly with options
-const githubToken = process.env.GITHUB_TOKEN || '';
-const client = ModelClient(
-  'https://models.inference.ai.azure.com',
-  { key: githubToken }
-);
+function getHeaderValue(value: string | string[] | undefined): string {
+  if (!value) {
+    return '';
+  }
+
+  return Array.isArray(value) ? (value[0] || '') : value;
+}
 
 // Helper to convert Vercel's Node request stream into a Web standard ReadableStream
 function toReadableStream(req: VercelRequest): ReadableStream {
@@ -43,8 +44,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
   res.setHeader(
     'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, X-Drive-Token'
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, X-Drive-Token, X-Github-Token, X-Api-Key, X-AI-Token'
   );
+  res.setHeader('Access-Control-Expose-Headers', 'X-AI-Token-Source');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -55,6 +57,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    const clientGithubToken =
+      getHeaderValue(req.headers['x-github-token']) ||
+      getHeaderValue(req.headers['x-api-key']) ||
+      getHeaderValue(req.headers['x-ai-token']);
+    const githubToken = clientGithubToken || process.env.GITHUB_TOKEN || '';
+
+    if (!githubToken) {
+      return res.status(500).json({ error: 'Missing GitHub token configuration.' });
+    }
+
+    const tokenSource = clientGithubToken ? 'client' : 'server';
+    res.setHeader('X-AI-Token-Source', tokenSource);
+
+    const client = ModelClient(
+      'https://models.inference.ai.azure.com',
+      { key: githubToken }
+    );
+
     const driveToken = req.headers['x-drive-token'] as string;
     if (!driveToken) {
       return res.status(401).json({ error: 'Missing Google Drive Access Token.' });

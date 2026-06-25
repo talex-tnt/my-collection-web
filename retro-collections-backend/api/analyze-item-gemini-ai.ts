@@ -7,7 +7,13 @@ export const config = {
   },
 };
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+function getHeaderValue(value: string | string[] | undefined): string {
+  if (!value) {
+    return '';
+  }
+
+  return Array.isArray(value) ? (value[0] || '') : value;
+}
 
 // Helper to convert Vercel's Node request stream into a Web standard ReadableStream
 function toReadableStream(req: VercelRequest): ReadableStream {
@@ -38,8 +44,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
   res.setHeader(
     'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, X-Drive-Token'
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, X-Drive-Token, X-Gemini-Api-Key, X-Api-Key, X-AI-Token'
   );
+  res.setHeader('Access-Control-Expose-Headers', 'X-AI-Token-Source');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -50,6 +57,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    const clientGeminiApiKey =
+      getHeaderValue(req.headers['x-gemini-api-key']) ||
+      getHeaderValue(req.headers['x-api-key']) ||
+      getHeaderValue(req.headers['x-ai-token']);
+    const geminiApiKey = clientGeminiApiKey || process.env.GEMINI_API_KEY || '';
+
+    if (!geminiApiKey) {
+      return res.status(500).json({ error: 'Missing Gemini API key configuration.' });
+    }
+
+    const tokenSource = clientGeminiApiKey ? 'client' : 'server';
+    res.setHeader('X-AI-Token-Source', tokenSource);
+
+    const ai = new GoogleGenAI({ apiKey: geminiApiKey });
+
     const driveToken = req.headers['x-drive-token'] as string;
     if (!driveToken) {
       return res.status(401).json({ error: 'Missing Google Drive Access Token.' });
