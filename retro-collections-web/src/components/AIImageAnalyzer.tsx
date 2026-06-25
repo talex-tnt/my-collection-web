@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, type ChangeEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { useAnalyzeProductImagesMutation } from '../api/retro-collections/retroCollectionsApi';
 import { useCreateAndUploadFolderMutation } from '../api/google-drive/googleDriveWriteApi';
+import { useGetPublicUserTagsQuery } from '../api/firestore/firestoreApi'; // 👈 Hook imported to match styles
 import DriveBrowser from './DriveBrowser';
+import TagBadge from './TagBadge';
 import type { FolderType, FileType } from '../api/firestore/types/shared';
 import {
   getDriveToken,
@@ -10,6 +12,8 @@ import {
 } from '../api/google-drive/googleDriveAuth';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import type { SerializedError } from '@reduxjs/toolkit';
+import type { UserTag } from '../api/firestore/services/public/userTags'; // 👈 Style type mapping contract
+import { useCurrentUser } from '../utils/hooks';
 
 interface AIImageAnalyzerProps {
   currentTags?: string[];
@@ -28,6 +32,7 @@ export function AIImageAnalyzer({
 }: AIImageAnalyzerProps) {
   // Main Assistant Modal toggle state
   const [isOpen, setIsOpen] = useState(false);
+  const user = useCurrentUser();
 
   // Core workflow states
   const [images, setImages] = useState<File[]>([]);
@@ -43,11 +48,16 @@ export function AIImageAnalyzer({
   // Error messaging state
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // API mutations
+  // API mutations & queries
+  const userId = user?.uid ?? '';
+  const { data: userTags = [] } = useGetPublicUserTagsQuery(
+    { userId },
+    { skip: !userId }
+  );
   const [analyzeImages, { isLoading: isAnalyzing }] =
     useAnalyzeProductImagesMutation();
   const [createAndUpload, { isLoading: isUploading }] =
-    useCreateAndUploadFolderMutation(); // 👈 Linked to your fresh frontend direct Google Drive pipeline
+    useCreateAndUploadFolderMutation();
 
   const [suggestedResult, setSuggestedResult] = useState<{
     suggestedTitle: string;
@@ -55,14 +65,33 @@ export function AIImageAnalyzer({
     productTags: string[];
   } | null>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Build a map for fast style lookup, mapping values straight out of store cache metrics
+  const styleMap = userTags.reduce<
+    Record<string, NonNullable<UserTag['style']> & { imageUrl?: string | null }>
+  >((acc, t) => {
+    acc[t.id] = {
+      backgroundColor: t.style?.backgroundColor || null,
+      foregroundColor: t.style?.foregroundColor || null,
+      imageUrl: (t.style as { imageUrl?: string | null })?.imageUrl || null,
+    };
+    return acc;
+  }, {});
+
+  // Fallback empty style structure required by the TagBadge component contract
+  const fallbackTagStyle = {
+    backgroundColor: null,
+    foregroundColor: null,
+    imageUrl: null,
+  };
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
-    setErrorMessage(null); // Clear errors on new upload
+    setErrorMessage(null);
 
     // Revoke old object URLs to clear memory allocation space before mapping new ones
     previews.forEach((url) => URL.revokeObjectURL(url));
 
-    const filesArray = Array.from(e.target.files);
+    const filesArray = Array.from(e.target.files) as File[];
     setImages(filesArray);
 
     const filePreviews = filesArray.map((file) => URL.createObjectURL(file));
@@ -74,7 +103,7 @@ export function AIImageAnalyzer({
     files: FileType[];
   }) => {
     if (data.folder?.id) {
-      setErrorMessage(null); // Clear errors on new target selection
+      setErrorMessage(null);
       setSelectedFolder(data.folder);
       setIsDriveOpen(false);
     }
@@ -91,10 +120,10 @@ export function AIImageAnalyzer({
       }
       const result = await analyzeImages({
         parentFolderId: selectedFolder.id,
-        images: images?.length > 0 ? [images[0]] : [],
+        images: images.length > 0 ? [images[0]] : [],
         optionalTags: currentTags,
         driveToken: token,
-        engine, // Forward chosen engine selection variable directly to your RTK pipeline query
+        engine,
       }).unwrap();
 
       setSuggestedResult(result);
@@ -104,26 +133,19 @@ export function AIImageAnalyzer({
     }
   };
 
-  // CONFIRMS EXECUTION AND PIPES COMPLETE OBJECT FORWARD TO NEWITEM STATE MANAGER
   const handleConfirmAndUpload = async () => {
     if (!suggestedResult || !selectedFolder?.id || images.length === 0) return;
     setErrorMessage(null);
 
     try {
-      // Note: Local token check logic removed here because driveApi's baseQuery
-      // automatically handles implicit token retrieval, auto-refresh, and injection.
-
-      // Trigger the direct direct frontend folder creation + binary upload task pipeline
       const uploadResult = await createAndUpload({
         parentFolderId: selectedFolder.id,
         newFolderName: suggestedResult.suggestedTitle,
         images: images,
       }).unwrap();
 
-      // Extract the live uploaded image metadata array returned natively from your driveApi mutation
       const primaryUploadedFile = uploadResult.files?.[0];
 
-      // Fire completion event returning metadata along with the newly created folder reference ID
       onAnalysisSuccess({
         title: suggestedResult.suggestedTitle,
         description: suggestedResult.descriptionEn,
@@ -131,7 +153,6 @@ export function AIImageAnalyzer({
         uploadedFolderId: uploadResult.folderId
           ? { id: uploadResult.folderId, name: suggestedResult.suggestedTitle }
           : undefined,
-        // Map the real Google Drive File ID instead of the local static filename instance
         fallbackPreview: primaryUploadedFile
           ? { id: primaryUploadedFile.id, name: primaryUploadedFile.name }
           : undefined,
@@ -147,7 +168,6 @@ export function AIImageAnalyzer({
     }
   };
 
-  // Isolated type-safe error parsing utility wrapper
   const parseAndSetError = (error: unknown) => {
     let extractMessage = 'An unexpected error occurred.';
     const fetchError = error as FetchBaseQueryError;
@@ -164,15 +184,13 @@ export function AIImageAnalyzer({
   };
 
   const handleCloseModal = () => {
-    // Revoke temporary object URLs out of browser local memory allocations
     previews.forEach((url) => URL.revokeObjectURL(url));
-
     setSuggestedResult(null);
     setImages([]);
     setPreviews([]);
     setSelectedFolder(null);
     setErrorMessage(null);
-    setEngine('github'); // Reset selector baseline safely back to standard context
+    setEngine('github');
     setIsOpen(false);
   };
 
@@ -180,7 +198,6 @@ export function AIImageAnalyzer({
 
   return (
     <div className="ml-auto">
-      {/* COMPONENT ENTRY POINT: THE TRIGGER BUTTON */}
       <button
         type="button"
         onClick={() => setIsOpen(true)}
@@ -189,7 +206,6 @@ export function AIImageAnalyzer({
         AI ✨
       </button>
 
-      {/* RENDER MODALS OUTSIDE COMPONENT LAYOUT USING PORTALS */}
       {isOpen &&
         createPortal(
           <div className="modal modal-open z-[9999] backdrop-blur-sm fixed inset-0 flex items-center justify-center bg-black/50">
@@ -269,7 +285,7 @@ export function AIImageAnalyzer({
                 </div>
               )}
 
-              {/* STEP 3: DROPDOWN ENGINE SELECTOR VIEW CONTROLLER (Stays visible if photos exist) */}
+              {/* STEP 3: DROPDOWN ENGINE SELECTOR VIEW CONTROLLER */}
               {images.length > 0 && selectedFolder && (
                 <div className="form-control w-full space-y-1 animate-fadeIn">
                   <span className="label-text font-semibold text-xs opacity-80">
@@ -290,7 +306,7 @@ export function AIImageAnalyzer({
                       <option value="gemini">Gemini Pro Vision Engine</option>
                     </select>
 
-                    {/* Inline Re-run button variant shown only when an active result is ready to swap */}
+                    {/* Inline Re-run button */}
                     {suggestedResult && (
                       <button
                         type="button"
@@ -392,19 +408,31 @@ export function AIImageAnalyzer({
                     </div>
                   )}
 
+                  {/* 💡 REFRACTORED SECTION: CORRECTED LOOKUP ASSIGNMENT */}
                   {suggestedResult.productTags?.length > 0 && (
                     <div>
-                      <span className="font-bold block opacity-70 mb-1">
+                      <span className="font-bold block opacity-70 mb-1.5">
                         Detected Tags:
                       </span>
-                      <div className="flex flex-wrap gap-1">
-                        {suggestedResult.productTags.map((t, i) => (
-                          <span
-                            key={i}
-                            className="badge badge-sm badge-outline"
-                          >
-                            {t}
-                          </span>
+                      <div className="flex flex-wrap gap-1.5 items-center">
+                        {suggestedResult.productTags.map((tag, index) => (
+                          <TagBadge
+                            key={`${tag}-${index}`}
+                            tag={tag}
+                            style={styleMap[tag] || fallbackTagStyle} // 👈 Dynamic reference mapping style configurations
+                            readOnly={false}
+                            onRemove={(removedTag) => {
+                              setSuggestedResult((prev) => {
+                                if (!prev) return prev;
+                                return {
+                                  ...prev,
+                                  productTags: prev.productTags.filter(
+                                    (t) => t !== removedTag
+                                  ),
+                                };
+                              });
+                            }}
+                          />
                         ))}
                       </div>
                     </div>

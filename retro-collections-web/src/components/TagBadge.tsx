@@ -4,20 +4,20 @@ interface TagBadgeProps {
   tag: string;
   style: NonNullable<UserTag['style']> & { imageUrl?: string | null };
   readOnly: boolean;
-  onRemove: (tag: string) => void;
+  onRemove?: (tag: string) => void;
 }
 
 export default function TagBadge({
   tag,
   style,
   readOnly,
-  onRemove,
+  onRemove = () => {},
 }: TagBadgeProps) {
   return (
     <span
       className={
         'badge badge-outline flex items-center' +
-        (style.imageUrl ? ' p-0 px-0' : ' gap-2 py-3 px-2.5')
+        (style.imageUrl ? ' p-0 px-0 gap-0' : ' gap-2 py-3 px-2.5')
       }
       style={{
         backgroundColor: style.backgroundColor || undefined,
@@ -41,7 +41,7 @@ export default function TagBadge({
       {!readOnly && (
         <button
           type="button"
-          className="ml-1 text-xs text-error hover:text-error-content font-bold transition-colors"
+          className="mx-2 text-xs text-error hover:text-error-content font-bold transition-colors"
           aria-label={`Remove tag ${tag}`}
           onClick={() => onRemove(tag)}
           tabIndex={0}
