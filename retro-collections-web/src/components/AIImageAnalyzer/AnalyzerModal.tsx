@@ -18,6 +18,7 @@ interface AnalyzerModalProps {
   onClose: () => void;
   onOpenDrive: () => void;
   onFileChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  onEditPreview: (index: number) => void;
   onRemovePreview: (index: number) => void;
   onMovePreviewToFirst: (index: number) => void;
   onEngineChange: (engine: AnalyzerEngine) => void;
@@ -43,6 +44,7 @@ export function AnalyzerModal({
   onClose,
   onOpenDrive,
   onFileChange,
+  onEditPreview,
   onRemovePreview,
   onMovePreviewToFirst,
   onEngineChange,
@@ -119,6 +121,16 @@ export function AnalyzerModal({
                   alt={`Preview ${index}`}
                   className="w-14 h-14 object-cover rounded-md border border-base-300"
                 />
+                <button
+                  type="button"
+                  onClick={() => onEditPreview(index)}
+                  disabled={globalLoading}
+                  className="btn btn-circle btn-xs btn-neutral absolute -top-1 -left-1 min-h-0 h-5 w-5"
+                  aria-label={`Edit photo ${index + 1}`}
+                  title="Edit photo"
+                >
+                  ✎
+                </button>
                 <button
                   type="button"
                   onClick={() => onRemovePreview(index)}

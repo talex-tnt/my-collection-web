@@ -13,6 +13,7 @@ import type { SerializedError } from '@reduxjs/toolkit';
 import { useCurrentUser } from '../../utils/hooks';
 import { AnalyzerModal } from './AnalyzerModal';
 import { DriveFolderModal } from './DriveFolderModal';
+import { PhotoEditorModal } from './PhotoEditorModal';
 import type { AnalyzerEngine, SuggestedResult, TagStyle } from './types';
 
 interface AIImageAnalyzerProps {
@@ -38,6 +39,7 @@ export function AIImageAnalyzer({
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [selectedFolder, setSelectedFolder] = useState<FolderType | null>(null);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
   const [engine, setEngine] = useState<AnalyzerEngine>('github');
 
@@ -127,6 +129,42 @@ export function AIImageAnalyzer({
       next.unshift(moved);
       return next;
     });
+  };
+
+  const handleOpenPhotoEditor = (indexToEdit: number) => {
+    if (indexToEdit < 0 || indexToEdit >= previews.length) return;
+    setEditingIndex(indexToEdit);
+  };
+
+  const handleClosePhotoEditor = () => {
+    setEditingIndex(null);
+  };
+
+  const handleSaveEditedPhoto = (editedFile: File) => {
+    if (editingIndex === null || editingIndex < 0) return;
+
+    setErrorMessage(null);
+    setSuggestedResult(null);
+
+    const nextPreviewUrl = URL.createObjectURL(editedFile);
+    const indexToReplace = editingIndex;
+
+    setImages((prev) => {
+      if (indexToReplace >= prev.length) return prev;
+      const next = [...prev];
+      next[indexToReplace] = editedFile;
+      return next;
+    });
+
+    setPreviews((prev) => {
+      if (indexToReplace >= prev.length) return prev;
+      const next = [...prev];
+      URL.revokeObjectURL(next[indexToReplace]);
+      next[indexToReplace] = nextPreviewUrl;
+      return next;
+    });
+
+    setEditingIndex(null);
   };
 
   const handleFolderSelect = (data: {
@@ -240,6 +278,7 @@ export function AIImageAnalyzer({
     setImages([]);
     setPreviews([]);
     setSelectedFolder(null);
+    setEditingIndex(null);
     setErrorMessage(null);
     setEngine('github');
     setIsOpen(false);
@@ -274,6 +313,7 @@ export function AIImageAnalyzer({
             onClose={handleCloseModal}
             onOpenDrive={() => setIsDriveOpen(true)}
             onFileChange={handleFileChange}
+            onEditPreview={handleOpenPhotoEditor}
             onRemovePreview={handleRemovePreview}
             onMovePreviewToFirst={handleMovePreviewToFirst}
             onEngineChange={setEngine}
@@ -282,6 +322,20 @@ export function AIImageAnalyzer({
             onDiscardSuggested={() => setSuggestedResult(null)}
             onSuggestedTitleChange={handleSuggestedTitleChange}
             onRemoveTag={handleRemoveTag}
+          />,
+          document.body
+        )}
+
+      {editingIndex !== null &&
+        previews[editingIndex] &&
+        images[editingIndex] &&
+        createPortal(
+          <PhotoEditorModal
+            imageSrc={previews[editingIndex]}
+            fileName={images[editingIndex].name}
+            mimeType={images[editingIndex].type}
+            onCancel={handleClosePhotoEditor}
+            onSave={handleSaveEditedPhoto}
           />,
           document.body
         )}
