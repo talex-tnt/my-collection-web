@@ -18,6 +18,8 @@ interface AnalyzerModalProps {
   onClose: () => void;
   onOpenDrive: () => void;
   onFileChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  onRemovePreview: (index: number) => void;
+  onMovePreviewToFirst: (index: number) => void;
   onEngineChange: (engine: AnalyzerEngine) => void;
   onAnalyze: () => void;
   onConfirmAndUpload: () => void;
@@ -41,6 +43,8 @@ export function AnalyzerModal({
   onClose,
   onOpenDrive,
   onFileChange,
+  onRemovePreview,
+  onMovePreviewToFirst,
   onEngineChange,
   onAnalyze,
   onConfirmAndUpload,
@@ -85,7 +89,8 @@ export function AnalyzerModal({
 
           {selectedFolder && (
             <div className="text-[11px] text-success font-medium bg-base-100 px-3 py-1.5 rounded-lg border border-base-300 mt-1 truncate">
-              📁 Location: <span className="underline font-bold">{selectedFolder.name}</span>
+              📁 Location:{' '}
+              <span className="underline font-bold">{selectedFolder.name}</span>
             </div>
           )}
         </div>
@@ -108,12 +113,40 @@ export function AnalyzerModal({
         {previews.length > 0 && (
           <div className="flex gap-2 overflow-x-auto py-1 bg-base-100 p-2 rounded-lg border border-base-300">
             {previews.map((src, index) => (
-              <img
-                key={index}
-                src={src}
-                alt={`Preview ${index}`}
-                className="w-14 h-14 object-cover rounded-md border border-base-300 flex-shrink-0"
-              />
+              <div key={index} className="relative w-14 h-14 flex-shrink-0">
+                <img
+                  src={src}
+                  alt={`Preview ${index}`}
+                  className="w-14 h-14 object-cover rounded-md border border-base-300"
+                />
+                <button
+                  type="button"
+                  onClick={() => onRemovePreview(index)}
+                  disabled={globalLoading}
+                  className="btn btn-circle btn-xs btn-error text-white absolute -top-1 -right-1 min-h-0 h-5 w-5"
+                  aria-label={`Remove photo ${index + 1}`}
+                  title="Remove photo"
+                >
+                  ✕
+                </button>
+                {index === 0 && (
+                  <span className="badge badge-primary badge-xs absolute -bottom-1 left-1/2 -translate-x-1/2 px-1.5 w-10">
+                    AI ✨
+                  </span>
+                )}
+                {index > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => onMovePreviewToFirst(index)}
+                    disabled={globalLoading}
+                    className="btn btn-circle btn-xs btn-primary absolute -bottom-1 left-1/2 -translate-x-1/2 min-h-0 h-4 w-4 p-0 text-[10px] leading-none"
+                    aria-label={`Move photo ${index + 1} to first position`}
+                    title="Move to first"
+                  >
+                    {'←'}
+                  </button>
+                )}
+              </div>
             ))}
           </div>
         )}
@@ -127,7 +160,9 @@ export function AnalyzerModal({
               <select
                 className="select select-bordered select-sm flex-1 font-medium"
                 value={engine}
-                onChange={(e) => onEngineChange(e.target.value as AnalyzerEngine)}
+                onChange={(e) =>
+                  onEngineChange(e.target.value as AnalyzerEngine)
+                }
                 disabled={globalLoading}
               >
                 <option value="github">GitHub AI Pipeline (Default)</option>
@@ -169,7 +204,9 @@ export function AnalyzerModal({
             </svg>
             <div className="flex-1">
               <span className="font-bold block">Something went wrong</span>
-              <p className="opacity-90 mt-0.5 font-mono break-all">{errorMessage}</p>
+              <p className="opacity-90 mt-0.5 font-mono break-all">
+                {errorMessage}
+              </p>
             </div>
           </div>
         )}
@@ -192,11 +229,14 @@ export function AnalyzerModal({
         {suggestedResult && (
           <div className="bg-base-100 p-4 rounded-xl border border-success/30 space-y-3 text-xs shadow-inner">
             <div className="badge badge-success text-white font-medium">
-              AI Analysis Completed ({engine === 'github' ? 'GitHub' : 'Gemini'})
+              AI Analysis Completed ({engine === 'github' ? 'GitHub' : 'Gemini'}
+              )
             </div>
 
             <div>
-              <span className="font-bold block opacity-70">Suggested Title:</span>
+              <span className="font-bold block opacity-70">
+                Suggested Title:
+              </span>
               <input
                 type="text"
                 className="input input-sm input-bordered w-full font-medium mt-1 text-sm text-base-content"
@@ -211,7 +251,9 @@ export function AnalyzerModal({
 
             {suggestedResult.descriptionEn && (
               <div>
-                <span className="font-bold block opacity-70">Description (EN):</span>
+                <span className="font-bold block opacity-70">
+                  Description (EN):
+                </span>
                 <p className="italic mt-0.5 max-h-24 overflow-y-auto bg-base-200/50 p-2 rounded">
                   {suggestedResult.descriptionEn}
                 </p>
@@ -220,7 +262,9 @@ export function AnalyzerModal({
 
             {suggestedResult.productTags?.length > 0 && (
               <div>
-                <span className="font-bold block opacity-70 mb-1.5">Detected Tags:</span>
+                <span className="font-bold block opacity-70 mb-1.5">
+                  Detected Tags:
+                </span>
                 <div className="flex flex-wrap gap-1.5 items-center">
                   {suggestedResult.productTags.map((tag, index) => (
                     <TagBadge

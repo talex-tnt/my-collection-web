@@ -77,17 +77,56 @@ export function AIImageAnalyzer({
   };
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return;
+    if (!e.target.files || e.target.files.length === 0) return;
     setErrorMessage(null);
-
-    // Revoke old object URLs to clear memory allocation space before mapping new ones
-    previews.forEach((url) => URL.revokeObjectURL(url));
+    setSuggestedResult(null);
 
     const filesArray = Array.from(e.target.files) as File[];
-    setImages(filesArray);
-
     const filePreviews = filesArray.map((file) => URL.createObjectURL(file));
-    setPreviews(filePreviews);
+
+    setImages((prev) => [...prev, ...filesArray]);
+    setPreviews((prev) => [...prev, ...filePreviews]);
+
+    // Allow selecting the same file again in the next interaction.
+    e.target.value = '';
+  };
+
+  const handleRemovePreview = (indexToRemove: number) => {
+    setErrorMessage(null);
+    setSuggestedResult(null);
+
+    setPreviews((prev) => {
+      const urlToRemove = prev[indexToRemove];
+      if (urlToRemove) {
+        URL.revokeObjectURL(urlToRemove);
+      }
+      return prev.filter((_, index) => index !== indexToRemove);
+    });
+
+    setImages((prev) => prev.filter((_, index) => index !== indexToRemove));
+  };
+
+  const handleMovePreviewToFirst = (indexToMove: number) => {
+    if (indexToMove <= 0) return;
+
+    setErrorMessage(null);
+    setSuggestedResult(null);
+
+    setPreviews((prev) => {
+      if (indexToMove >= prev.length) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(indexToMove, 1);
+      next.unshift(moved);
+      return next;
+    });
+
+    setImages((prev) => {
+      if (indexToMove >= prev.length) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(indexToMove, 1);
+      next.unshift(moved);
+      return next;
+    });
   };
 
   const handleFolderSelect = (data: {
@@ -235,6 +274,8 @@ export function AIImageAnalyzer({
             onClose={handleCloseModal}
             onOpenDrive={() => setIsDriveOpen(true)}
             onFileChange={handleFileChange}
+            onRemovePreview={handleRemovePreview}
+            onMovePreviewToFirst={handleMovePreviewToFirst}
             onEngineChange={setEngine}
             onAnalyze={handleAnalyze}
             onConfirmAndUpload={handleConfirmAndUpload}
