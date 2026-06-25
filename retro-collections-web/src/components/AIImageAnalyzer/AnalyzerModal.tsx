@@ -1,4 +1,4 @@
-import type { ChangeEvent } from 'react';
+import { useId, type ChangeEvent } from 'react';
 import TagBadge from '../TagBadge';
 import type { FolderType } from '../../api/firestore/types/shared';
 import type { AnalyzerEngine, SuggestedResult, TagStyle } from './types';
@@ -54,6 +54,8 @@ export function AnalyzerModal({
   onSuggestedTitleChange,
   onRemoveTag,
 }: AnalyzerModalProps) {
+  const fileInputId = useId();
+
   return (
     <div className="modal modal-open z-[9999] backdrop-blur-sm fixed inset-0 flex items-center justify-center bg-black/50">
       <div className="modal-box bg-base-200 max-w-md w-full p-6 border border-base-300 rounded-2xl shadow-xl space-y-4 relative">
@@ -102,14 +104,32 @@ export function AnalyzerModal({
             2. Capture or Upload Photos
           </span>
           <input
+            id={fileInputId}
             type="file"
             accept="image/*"
             multiple
             capture="environment"
             onChange={onFileChange}
-            className="file-input file-input-bordered file-input-sm file-input-primary w-full"
+            className="sr-only"
             disabled={globalLoading}
           />
+          <label
+            htmlFor={fileInputId}
+            className={`btn btn-sm btn-outline w-full min-h-0 h-auto py-2  normal-case ${globalLoading ? 'pointer-events-none opacity-50' : ''}`}
+          >
+            Take photo or choose files
+          </label>
+          <p className="text-[11px] opacity-60 leading-snug">
+            Open the camera on mobile or pick one or more images from your
+            gallery.
+          </p>
+          {images.length > 0 && (
+            <div className="text-[11px] text-success font-medium bg-base-100 px-3 py-1.5 rounded-lg border border-base-300 mt-1 truncate">
+              {images.length === 1
+                ? `Selected photo: ${images[0].name}`
+                : `${images.length} photos selected. First: ${images[0].name}`}
+            </div>
+          )}
         </div>
 
         {previews.length > 0 && (
