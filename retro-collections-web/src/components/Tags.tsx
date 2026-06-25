@@ -5,6 +5,7 @@ import {
 } from '../api/firestore/firestoreApi';
 import type { UserTag } from '../api/firestore/services/public/userTags';
 import AddUserTag from './AddUserTag';
+import TagBadge from './TagBadge'; // Import the new component
 
 interface TagsProps {
   userId: string;
@@ -33,7 +34,7 @@ export default function Tags({
   const [updateItem] = useUpdateUserItemMutation();
   const [addTagError, setAddTagError] = useState<string | null>(null);
 
-  // Build a map for fast style lookup, including the new imageUrl field
+  // Build a map for fast style lookup
   const styleMap = userTags.reduce<
     Record<string, NonNullable<UserTag['style']> & { imageUrl?: string | null }>
   >((acc, t) => {
@@ -70,57 +71,26 @@ export default function Tags({
     return orderA - orderB;
   });
 
+  const fallbackStyle = {
+    backgroundColor: null,
+    foregroundColor: null,
+    imageUrl: null,
+  };
+
   return (
     <div className="w-full">
       <div className="flex flex-row flex-wrap gap-2 items-center justify-start">
         {/* RENDER CURRENT ITEM BADGES */}
         {sortedTags && sortedTags.length > 0 ? (
-          sortedTags.map((tag) => {
-            const style = styleMap[tag] || {
-              backgroundColor: null,
-              foregroundColor: null,
-              imageUrl: null,
-            };
-            return (
-              <span
-                key={tag}
-                className={
-                  'badge badge-outline flex items-center' +
-                  (style.imageUrl ? ' p-0 px-0' : ' gap-2 py-3 px-2.5')
-                }
-                style={{
-                  backgroundColor: style.backgroundColor || undefined,
-                  color: style.foregroundColor || undefined,
-                }}
-              >
-                {/* RENDER THE IMAGE IF PRESET IN THE TAG DESIGN */}
-                {style.imageUrl && (
-                  <img
-                    src={style.imageUrl}
-                    alt=""
-                    className={`max-w-[100px] max-h-[22px] object-contain shrink-0 ${style.backgroundColor === 'transparent' ? 'px-0' : 'px-2'}`} // Add padding if no background color
-                    loading="lazy"
-                  />
-                )}
-
-                {!style.imageUrl && (
-                  <span className="truncate max-w-[120px]">{tag}</span>
-                )}
-
-                {!readOnly && (
-                  <button
-                    type="button"
-                    className="ml-1 text-xs text-error hover:text-error-content font-bold transition-colors"
-                    aria-label={`Remove tag ${tag}`}
-                    onClick={() => handleRemoveTag(tag)}
-                    tabIndex={0}
-                  >
-                    ×
-                  </button>
-                )}
-              </span>
-            );
-          })
+          sortedTags.map((tag) => (
+            <TagBadge
+              key={tag}
+              tag={tag}
+              style={styleMap[tag] || fallbackStyle}
+              readOnly={readOnly}
+              onRemove={handleRemoveTag}
+            />
+          ))
         ) : (
           <span className="text-xs text-base-content/50 italic">No tags</span>
         )}

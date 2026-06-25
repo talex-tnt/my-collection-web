@@ -1,4 +1,6 @@
 import { useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { FiImage } from 'react-icons/fi';
 
 import {
   useCreateUserItemMutation,
@@ -8,11 +10,15 @@ import {
 import { useSearchGamesQuery } from '../api/games/rawgApi';
 import { useSearchQuery } from '../api/wikipedia/wikipediaApi';
 import { useRawgSettings, useWikiSettings } from '../utils/hooks';
+import { findPreviewImage } from '../utils/findPreviewImage';
 import AutocompleteInput from './AutocompleteInput';
 import CollapsePanel from './CollapsePanel';
 import SelectTags from './SelectTags';
 import ImportModal from './ImportModal';
+import DriveBrowser from './DriveBrowser';
+import { AIImageAnalyzer } from './AIImageAnalyzer';
 import type { PreparedImportItem } from '../utils/useDriveImport';
+import type { FolderType } from '../api/firestore/types/shared';
 
 interface NewItemProps {
   userId: string;
@@ -37,6 +43,14 @@ function NewItem({
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [tagError] = useState<string | null>(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState<boolean>(false);
+
+  // Drive state variables
+  const [imageFolder, setImageFolder] = useState<FolderType | null>(null);
+  const [previewImage, setPreviewImage] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [showDrivePopup, setShowDrivePopup] = useState<boolean>(false);
 
   const isGame = selectedTags.map((tag) => tag.toLowerCase()).includes('game');
 
@@ -70,6 +84,35 @@ function NewItem({
     useCreateUserItemMutation();
   const [createPublicUserTag] = useCreatePublicUserTagMutation();
 
+  const handleApplyAISuggestions = (suggestions: {
+    title: string;
+    description: string;
+    tags: string[];
+    uploadedFolderId?: { id: string; name: string };
+    fallbackPreview?: { id: string; name: string };
+  }) => {
+    setName(suggestions.title);
+    setDescription(suggestions.description);
+
+    const mergedTags = Array.from(
+      new Set([...selectedTags, ...suggestions.tags])
+    );
+    setSelectedTags(mergedTags);
+
+    if (suggestions.uploadedFolderId) {
+      setImageFolder(suggestions.uploadedFolderId);
+
+      if (suggestions.fallbackPreview) {
+        setPreviewImage({
+          id: suggestions.fallbackPreview.id,
+          name: suggestions.fallbackPreview.name,
+        });
+      } else {
+        setPreviewImage(null);
+      }
+    }
+  };
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -89,6 +132,14 @@ function NewItem({
         itemData.tags = selectedTags;
       }
 
+      // Structures nested data matching identical layout state required by MyListItem
+      if (imageFolder) {
+        itemData.metadata = {
+          imageFolder: imageFolder.id ? imageFolder : {},
+          previewImage: previewImage?.id ? previewImage : {},
+        };
+      }
+
       await createItem({
         ...itemData,
         isPublicItem,
@@ -97,6 +148,9 @@ function NewItem({
 
       setName('');
       setDescription('');
+      setSelectedTags([]);
+      setImageFolder(null);
+      setPreviewImage(null);
 
       requestAnimationFrame(() => {
         nameInputRef.current?.focus();
@@ -115,11 +169,9 @@ function NewItem({
     if (!cleanedTag) return;
 
     try {
-      // 2. Create the tag in Firestore first so it registers in your tag collection
       await createPublicUserTag({ userId, tag: cleanedTag }).unwrap();
     } catch (error) {
       console.error(`Failed to register batch tag "${cleanedTag}":`, error);
-      // Optional: return or continue depending on whether you want to proceed if tag creation fails
     }
 
     for (const item of items) {
@@ -204,7 +256,56 @@ function NewItem({
           </label>
         </div>
 
-        {/* COMPACT INTERACTIVE ACTIONS CONTAINER */}
+        {/* CONTROLS BAR CONTAINER */}
+        <div className="flex flex-row items-center gap-3 mt-1">
+          <button
+            type="button"
+            disabled={isCreatingItem}
+            className="btn btn-sm btn-ghost p-0 h-fit min-h-fit hover:bg-transparent tooltip tooltip-right"
+            data-tip={
+              imageFolder ? 'Click to remove link' : 'Link Drive image folder'
+            }
+            onClick={() => {
+              if (imageFolder) {
+                setImageFolder(null);
+                setPreviewImage(null);
+              } else {
+                setShowDrivePopup(true);
+              }
+            }}
+          >
+            <div className="relative inline-block select-none cursor-pointer">
+              <FiImage
+                size={22}
+                className={
+                  imageFolder ? 'text-primary' : 'text-base-content/60'
+                }
+              />
+              <span
+                className={`absolute -top-1 -right-1.5 font-bold rounded-full w-3.5 h-3.5 flex items-center justify-center text-[10px] text-white shadow-sm transition-colors duration-150 ${
+                  imageFolder ? 'bg-error' : 'bg-primary'
+                }`}
+              >
+                {imageFolder ? '−' : '+'}
+              </span>
+            </div>
+          </button>
+
+          {imageFolder && (
+            <div className="flex items-center gap-1 bg-base-200 rounded py-1 px-2 border border-base-300 max-w-[180px] truncate shadow-sm">
+              <span className="text-[10px] font-medium opacity-80 truncate">
+                {imageFolder.name}
+              </span>
+            </div>
+          )}
+
+          {/* AI IMAGE ANALYZER TRIGGER PANEL */}
+          <AIImageAnalyzer
+            currentTags={selectedTags}
+            onAnalysisSuccess={handleApplyAISuggestions}
+          />
+        </div>
+
         <div className="flex gap-2 mt-2 w-full">
           <button
             type="submit"
@@ -229,6 +330,43 @@ function NewItem({
         onClose={() => setIsImportModalOpen(false)}
         onConfirmImport={handleBulkImport}
       />
+
+      {/* DRIVE BROWSER MODAL PORTAL */}
+      {showDrivePopup &&
+        createPortal(
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm">
+            <div className="bg-base-100 rounded-lg shadow-lg p-6 relative min-w-[320px] max-w-[90vw] max-h-[80vh] overflow-auto border border-base-200">
+              <button
+                type="button"
+                className="absolute top-2 right-2 btn btn-xs btn-circle"
+                onClick={() => setShowDrivePopup(false)}
+              >
+                ✕
+              </button>
+              <DriveBrowser
+                disableScroll
+                onSelectFolder={(data) => {
+                  if (data.folder) {
+                    setImageFolder(data.folder);
+
+                    const resolvedPreview = findPreviewImage(data.files || []);
+                    if (resolvedPreview?.id) {
+                      setPreviewImage({
+                        id: resolvedPreview.id,
+                        name: resolvedPreview.name ?? '',
+                      });
+                    } else {
+                      setPreviewImage(null);
+                    }
+                  }
+                  setShowDrivePopup(false);
+                }}
+                selectedFolder={imageFolder || undefined}
+              />
+            </div>
+          </div>,
+          document.body
+        )}
     </CollapsePanel>
   );
 }

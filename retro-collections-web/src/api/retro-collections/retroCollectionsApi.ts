@@ -94,11 +94,43 @@ export type GetPublicItemsResponse = {
   };
 };
 
+// --- AI Image Analyzer Types ---
+export type AnalyzeArgs = {
+  parentFolderId: string;
+  images: File[];
+  optionalTags?: string[];
+  driveToken: string;
+  engine?: 'github' | 'gemini';
+};
+
+export type AnalyzeResponse = {
+  suggestedTitle: string;
+  descriptionEn: string;
+  productTags: string[];
+};
+
+// --- New Create and Upload Target Directory Types ---
+export type CreateAndUploadArgs = {
+  parentFolderId: string;
+  newFolderName: string;
+  images: File[];
+  driveToken: string;
+};
+
+export type CreateAndUploadResponse = {
+  folderId: string;
+  files: { id: string; name: string }[];
+};
+
 // 1. Core API base path resolved directly from build-time environment variables
 const baseUrl = import.meta.env.VITE_RETRO_COLLECTIONS_BASEURL;
 
 export const retroCollectionsApi = createApi({
   reducerPath: 'retroCollectionsApi',
+
+  // Fixed: Declare cache tag identifiers so the API can coordinate auto-refresh operations
+  tagTypes: ['DriveFolders'],
+
   baseQuery: async (args, api, extraOptions) => {
     const auth = getAuth();
     const currentUser = auth.currentUser;
@@ -152,9 +184,10 @@ export const retroCollectionsApi = createApi({
         url: 'drive-proxy',
         method: 'GET',
         params: {
-          id: fileId, // Aligned to map to the 'id' parameter expected by your backend query extractor
+          id: fileId,
         },
       }),
+      providesTags: ['DriveFolders'],
       transformResponse: (response: DriveProxyResponse): DriveProxyResponse => {
         console.log('Drive Proxy API response:', response);
         return response;
@@ -229,6 +262,55 @@ export const retroCollectionsApi = createApi({
         },
       }),
     }),
+
+    analyzeProductImages: builder.mutation<AnalyzeResponse, AnalyzeArgs>({
+      query: ({
+        parentFolderId,
+        images,
+        optionalTags,
+        driveToken,
+        engine = 'github',
+      }) => {
+        const formData = new FormData();
+        formData.append('parentFolderId', parentFolderId);
+        images.forEach((img) => formData.append('images', img));
+
+        if (optionalTags && optionalTags.length > 0) {
+          formData.append('optionalTags', optionalTags.join(','));
+        }
+
+        return {
+          url: `analyze-item-${engine}-ai`,
+          method: 'POST',
+          headers: {
+            'X-Drive-Token': driveToken,
+          },
+          body: formData,
+        };
+      },
+    }),
+
+    createAndUploadFolder: builder.mutation<
+      CreateAndUploadResponse,
+      CreateAndUploadArgs
+    >({
+      query: ({ parentFolderId, newFolderName, images, driveToken }) => {
+        const formData = new FormData();
+        formData.append('parentFolderId', parentFolderId);
+        formData.append('newFolderName', newFolderName);
+        images.forEach((img) => formData.append('images', img));
+
+        return {
+          url: 'create-and-upload',
+          method: 'POST',
+          headers: {
+            'X-Drive-Token': driveToken,
+          },
+          body: formData,
+        };
+      },
+      invalidatesTags: ['DriveFolders'],
+    }),
   }),
 });
 
@@ -238,4 +320,6 @@ export const {
   useRequestUserAccessMutation,
   useApproveUserAccessMutation,
   useGetPublicItemsQuery,
+  useAnalyzeProductImagesMutation,
+  useCreateAndUploadFolderMutation,
 } = retroCollectionsApi;

@@ -10,6 +10,7 @@ import {
   useUpdateUISettingsMutation,
 } from '../api/firestore/firestoreApi';
 import { initGoogleDriveAuth } from '../api/google-drive/googleDriveAuth';
+import { initGoogleDriveAuthWrite } from '../api/google-drive/googleDriveAuthWrite';
 
 export const useCurrentUser = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -91,6 +92,7 @@ export const useGoogleDriveAuth = () => {
       (window as Google).google.accounts
     ) {
       initGoogleDriveAuth(clientId);
+      initGoogleDriveAuthWrite(clientId);
     } else {
       const interval = setInterval(() => {
         if (
@@ -98,6 +100,7 @@ export const useGoogleDriveAuth = () => {
           (window as Google).google.accounts
         ) {
           initGoogleDriveAuth(clientId);
+          initGoogleDriveAuthWrite(clientId);
           clearInterval(interval);
         }
       }, 50);
