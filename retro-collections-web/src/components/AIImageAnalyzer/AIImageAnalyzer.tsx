@@ -14,6 +14,7 @@ import { useCurrentUser } from '../../utils/hooks';
 import { AnalyzerModal } from './AnalyzerModal';
 import { DriveFolderModal } from './DriveFolderModal';
 import { PhotoEditorModal } from './PhotoEditorModal';
+import { stripImageMetadata } from './imageEditing';
 import type { AnalyzerEngine, SuggestedResult, TagStyle } from './types';
 
 interface AIImageAnalyzerProps {
@@ -40,6 +41,7 @@ export function AIImageAnalyzer({
   const [previews, setPreviews] = useState<string[]>([]);
   const [selectedFolder, setSelectedFolder] = useState<FolderType | null>(null);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [isImportingImages, setIsImportingImages] = useState(false);
 
   const [engine, setEngine] = useState<AnalyzerEngine>('github');
 
@@ -78,16 +80,30 @@ export function AIImageAnalyzer({
     imageUrl: null,
   };
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     setErrorMessage(null);
     setSuggestedResult(null);
 
     const filesArray = Array.from(e.target.files) as File[];
-    const filePreviews = filesArray.map((file) => URL.createObjectURL(file));
+    setIsImportingImages(true);
 
-    setImages((prev) => [...prev, ...filesArray]);
-    setPreviews((prev) => [...prev, ...filePreviews]);
+    try {
+      const sanitizedFiles = await Promise.all(
+        filesArray.map((file) => stripImageMetadata(file))
+      );
+      const filePreviews = sanitizedFiles.map((file) =>
+        URL.createObjectURL(file)
+      );
+
+      setImages((prev) => [...prev, ...sanitizedFiles]);
+      setPreviews((prev) => [...prev, ...filePreviews]);
+    } catch (error) {
+      console.error('Failed to strip image metadata:', error);
+      setErrorMessage('Unable to load photos safely. Please try again.');
+    } finally {
+      setIsImportingImages(false);
+    }
 
     // Allow selecting the same file again in the next interaction.
     e.target.value = '';
@@ -284,7 +300,7 @@ export function AIImageAnalyzer({
     setIsOpen(false);
   };
 
-  const globalLoading = isAnalyzing || isUploading;
+  const globalLoading = isAnalyzing || isUploading || isImportingImages;
 
   return (
     <div className="ml-auto">

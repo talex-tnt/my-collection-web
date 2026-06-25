@@ -25,6 +25,65 @@ const rotatedBounds = (
   };
 };
 
+const resolveOutputType = (mimeType?: string) => {
+  if (
+    mimeType === 'image/jpeg' ||
+    mimeType === 'image/png' ||
+    mimeType === 'image/webp'
+  ) {
+    return mimeType;
+  }
+
+  return 'image/jpeg';
+};
+
+const exportCanvasToFile = async ({
+  canvas,
+  fileName,
+  mimeType,
+}: {
+  canvas: HTMLCanvasElement;
+  fileName: string;
+  mimeType?: string;
+}): Promise<File> => {
+  const outputType = resolveOutputType(mimeType);
+
+  const blob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob(resolve, outputType, 0.92);
+  });
+
+  if (!blob) {
+    throw new Error('Unable to export edited image.');
+  }
+
+  return new File([blob], fileName, {
+    type: blob.type || outputType,
+    lastModified: Date.now(),
+  });
+};
+
+export const stripImageMetadata = async (file: File): Promise<File> => {
+  const objectUrl = URL.createObjectURL(file);
+  const image = await createImage(objectUrl);
+  URL.revokeObjectURL(objectUrl);
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+
+  if (!ctx) {
+    throw new Error('Canvas context is not available.');
+  }
+
+  canvas.width = image.width;
+  canvas.height = image.height;
+  ctx.drawImage(image, 0, 0);
+
+  return exportCanvasToFile({
+    canvas,
+    fileName: file.name,
+    mimeType: file.type,
+  });
+};
+
 export const createEditedImageFile = async ({
   imageSrc,
   pixelCrop,
@@ -78,18 +137,9 @@ export const createEditedImageFile = async ({
     Math.round(pixelCrop.height)
   );
 
-  const outputType = mimeType && mimeType.startsWith('image/') ? mimeType : 'image/jpeg';
-
-  const blob = await new Promise<Blob | null>((resolve) => {
-    cropCanvas.toBlob(resolve, outputType, 0.92);
-  });
-
-  if (!blob) {
-    throw new Error('Unable to export edited image.');
-  }
-
-  return new File([blob], fileName, {
-    type: blob.type || outputType,
-    lastModified: Date.now(),
+  return exportCanvasToFile({
+    canvas: cropCanvas,
+    fileName,
+    mimeType,
   });
 };
