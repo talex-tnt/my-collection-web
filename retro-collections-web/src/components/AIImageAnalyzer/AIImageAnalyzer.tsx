@@ -63,6 +63,9 @@ export function AIImageAnalyzer({
   const [hasConfirmedDriveSync, setHasConfirmedDriveSync] = useState(false);
   const driveSyncRunningRef = useRef(false);
   const driveSyncQueuedRef = useRef(false);
+  const driveRenameRunningRef = useRef(false);
+  const folderNameDirtyRef = useRef(false);
+  const latestFolderNameRef = useRef('');
   const managedDriveFolderRef = useRef<{
     id: string;
     name: string;
@@ -73,6 +76,13 @@ export function AIImageAnalyzer({
   useEffect(() => {
     managedDriveFolderRef.current = managedDriveFolder;
   }, [managedDriveFolder]);
+
+  useEffect(() => {
+    latestFolderNameRef.current = newFolderName.trim();
+    if (driveSyncEnabled) {
+      folderNameDirtyRef.current = true;
+    }
+  }, [driveSyncEnabled, newFolderName]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -390,7 +400,6 @@ export function AIImageAnalyzer({
     const selectedFolderId = selectedFolder?.id;
     const trimmedFolderName = debouncedFolderName.trim();
     const managedFolder = managedDriveFolderRef.current;
-    const managedFolderName = managedFolder?.name ?? '';
 
     const hasPendingUpload = images.some(
       (image, index) => Boolean(image) && !driveFileIds[index]
@@ -406,13 +415,7 @@ export function AIImageAnalyzer({
       Boolean(selectedFolderId) &&
       Boolean(trimmedFolderName) &&
       !managedFolder;
-    const needsFolderRename =
-      driveSyncEnabled &&
-      Boolean(selectedFolderId) &&
-      Boolean(trimmedFolderName) &&
-      Boolean(managedFolder?.id) &&
-      managedFolderName !== trimmedFolderName;
-    const hasNoPendingFileWork = !needsFolderCreate && !needsFolderRename;
+    const hasNoPendingFileWork = !needsFolderCreate;
     const hasNoPendingImageWork = !hasPendingUpload && !hasPendingDelete;
 
     if (
@@ -460,20 +463,8 @@ export function AIImageAnalyzer({
               id: createdFolder.id,
               name: createdFolder.name,
             });
-          }
-
-          if (folderId && folderName !== trimmedFolderName) {
-            const renamedFolder = await renameDriveNode({
-              id: folderId,
-              name: trimmedFolderName,
-            }).unwrap();
-
-            folderName = renamedFolder.name;
-            managedDriveFolderRef.current = {
-              id: folderId,
-              name: renamedFolder.name,
-            };
-            setManagedDriveFolder({ id: folderId, name: renamedFolder.name });
+            folderNameDirtyRef.current =
+              latestFolderNameRef.current.trim() !== createdFolder.name;
           }
 
           if (!folderId) return;
@@ -597,11 +588,84 @@ export function AIImageAnalyzer({
     managedDriveFolder?.id,
     managedDriveFolder?.name,
     previews,
-    renameDriveNode,
     selectedFolder?.id,
     suggestedResult?.descriptionEn,
     suggestedResult?.productTags,
     uploadFileToFolder,
+  ]);
+
+  useEffect(() => {
+    if (!driveSyncEnabled || !selectedFolder?.id || !managedDriveFolder?.id) {
+      return;
+    }
+
+    const runRenameQueue = async () => {
+      if (driveRenameRunningRef.current) {
+        return;
+      }
+
+      driveRenameRunningRef.current = true;
+
+      try {
+        while (folderNameDirtyRef.current) {
+          const currentFolder = managedDriveFolderRef.current;
+          const nextFolderName = latestFolderNameRef.current.trim();
+
+          if (
+            !driveSyncEnabled ||
+            !selectedFolder?.id ||
+            !currentFolder?.id ||
+            !nextFolderName
+          ) {
+            folderNameDirtyRef.current = false;
+            break;
+          }
+
+          if (currentFolder.name === nextFolderName) {
+            folderNameDirtyRef.current = false;
+            break;
+          }
+
+          folderNameDirtyRef.current = false;
+
+          const renamedFolder = await renameDriveNode({
+            id: currentFolder.id,
+            name: nextFolderName,
+          }).unwrap();
+
+          managedDriveFolderRef.current = {
+            id: currentFolder.id,
+            name: renamedFolder.name,
+          };
+          setManagedDriveFolder({
+            id: currentFolder.id,
+            name: renamedFolder.name,
+          });
+
+          if (latestFolderNameRef.current.trim() !== renamedFolder.name) {
+            folderNameDirtyRef.current = true;
+          }
+        }
+      } catch (error) {
+        parseAndSetError(error);
+      } finally {
+        driveRenameRunningRef.current = false;
+
+        if (folderNameDirtyRef.current) {
+          void runRenameQueue();
+        }
+      }
+    };
+
+    void runRenameQueue();
+
+    return undefined;
+  }, [
+    driveSyncEnabled,
+    managedDriveFolder?.id,
+    newFolderName,
+    renameDriveNode,
+    selectedFolder?.id,
   ]);
 
   const handleRemoveTag = (removedTag: string) => {

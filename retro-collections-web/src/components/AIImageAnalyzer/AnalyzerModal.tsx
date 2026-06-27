@@ -253,7 +253,7 @@ export function AnalyzerModal({
                     type="button"
                     onClick={() => onToggleImageForAI(index)}
                     disabled={isLocalMissing}
-                    className={`btn btn-circle btn-xs absolute bottom-1 left-1/2 -translate-x-1/2 min-h-0 h-7 w-7 p-0 text-[10px] leading-none ${
+                    className={`btn btn-circle btn-xs absolute bottom-1 left-1 min-h-0 h-7 w-7 p-0 text-[10px] leading-none ${
                       selectedAIIndexes.includes(index)
                         ? 'btn-secondary text-white shadow-sm'
                         : 'btn-outline btn-secondary bg-base-100/90'
@@ -298,7 +298,7 @@ export function AnalyzerModal({
               placeholder="Type a folder name or run AI to suggest one"
               value={newFolderName}
               onChange={(e) => onFolderNameChange(e.target.value)}
-              disabled={globalLoading}
+              disabled={isAnalyzing}
             />
             <p className="text-[11px] opacity-60">
               Drive Sync requires this field.
