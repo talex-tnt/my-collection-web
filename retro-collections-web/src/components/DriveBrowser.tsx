@@ -9,10 +9,10 @@ import { usePrefixGroupedList } from '../hooks/usePrefixGroupedList';
 import { useDisableScroll } from '../utils/hooks';
 import {
   FiArrowUp as ArrowUp,
-  FiArrowUpCircle as ArrowUpCicle,
   FiChevronDown,
   FiChevronRight,
   FiFolder as FolderIcon,
+  FiHome as HomeIcon,
 } from 'react-icons/fi';
 
 type DriveBrowserProps = {
@@ -95,25 +95,31 @@ const DriveBrowser = ({
           {/* Optional: Root shortcut */}
           {currentFolder.id !== 'root' && (
             <button
-              className="btn btn-xs ml-2"
+              className="btn btn-xs btn-ghost tooltip"
+              title="Go to root folder"
               onClick={() => setCurrentFolder({ id: 'root', name: 'Root' })}
             >
-              <FolderIcon className="w-6 h-6" />
-              <ArrowUpCicle className="w-6 h-6" />
+              <span className="relative inline-flex items-center justify-center w-6 h-6">
+                <FolderIcon className="w-6 h-6" strokeWidth={1} />
+                <HomeIcon className="absolute w-3 h-3" />
+              </span>
             </button>
           )}
         </div>
 
         <div className="mb-2">
           <span className="text-xs opacity-70">Current folder:</span>
-          <span className="ml-2 font-mono text-sm">{currentFolder.name}</span>
+          <span className="ml-2 font-mono text-sm text-primary">
+            {currentFolder.name}
+          </span>
         </div>
 
         {/* Actions */}
         <div className="flex items-center gap-2 mb-2">
           {currentFolderParentId && currentFolderName && (
             <button
-              className="btn btn-xs ml-1"
+              className="btn btn-xs ml-1 btn-ghost tooltip"
+              title={`Go to parent folder`}
               onClick={() =>
                 setCurrentFolder({
                   id: currentFolderParentId,
@@ -121,8 +127,8 @@ const DriveBrowser = ({
                 })
               }
             >
-              <FolderIcon className="w-4 h-4" />
-              <ArrowUp className="w-6 h-6" />
+              <FolderIcon className="w-6 h-6" strokeWidth={1.5} />
+              <ArrowUp className="absolute w-3 h-3" />
             </button>
           )}
 
@@ -192,7 +198,10 @@ const DriveBrowser = ({
                                 onClick={() => setCurrentFolder(entry.item)}
                                 title={`Open ${entry.item.name}`}
                               >
-                                <FolderIcon className="w-4 h-4 min-w-[16px] min-h-[16px] mr-2" />
+                                <FolderIcon
+                                  className="w-4 h-4 min-w-[16px] min-h-[16px] mr-2"
+                                  strokeWidth={1.5}
+                                />
                                 <span className="text-left">
                                   {entry.childLabel}
                                 </span>
@@ -217,7 +226,10 @@ const DriveBrowser = ({
                           onClick={() => setCurrentFolder(folder)}
                           title={`Open ${folder.name}`}
                         >
-                          <FolderIcon className="w-4 h-4 min-w-[16px] min-h-[16px] mr-2" />
+                          <FolderIcon
+                            className="w-4 h-4 min-w-[16px] min-h-[16px] mr-2"
+                            strokeWidth={1.5}
+                          />
                           <span className="text-left">{folder.name}</span>
                         </button>
                       </li>
@@ -237,7 +249,10 @@ const DriveBrowser = ({
                       onClick={() => setCurrentFolder(folder)}
                       title={`Open ${folder.name}`}
                     >
-                      <FolderIcon className="w-4 h-4 min-w-[16px] min-h-[16px] mr-2" />
+                      <FolderIcon
+                        className="w-4 h-4 min-w-[16px] min-h-[16px] mr-2"
+                        strokeWidth={1.5}
+                      />
                       <span className="text-left">{folder.name}</span>
                     </button>
                   </li>
@@ -299,18 +314,22 @@ const DriveBrowser = ({
             Unset
           </button>
 
-          <button
-            className="btn btn-outline btn-xs btn-primary"
-            onClick={() =>
-              onSelectFolder({
-                folder: currentFolder,
-                files,
-              })
-            }
-          >
-            {/* Select {currentFolder.name} */}
-            Select Current
-          </button>
+          <div className="flex items-center gap-2">
+            Set current:
+            <button
+              className="btn btn-outline btn-xs btn-primary w-full max-w-[100px] justify-start overflow-hidden"
+              onClick={() =>
+                onSelectFolder({
+                  folder: currentFolder,
+                  files,
+                })
+              }
+            >
+              <span className="block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-left">
+                {currentFolder?.name ?? 'Current'}
+              </span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
