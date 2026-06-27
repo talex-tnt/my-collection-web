@@ -51,10 +51,16 @@ const DriveBrowser = ({
 
   const files = data?.files || [];
 
-  const folders = files.filter(
-    (f: { mimeType: string }) =>
-      f.mimeType === 'application/vnd.google-apps.folder'
-  );
+  const folders = files
+    .filter(
+      (f: { mimeType: string }) =>
+        f.mimeType === 'application/vnd.google-apps.folder'
+    )
+    .sort((a: FolderType, b: FolderType) =>
+      (a.name || '').localeCompare(b.name || '', undefined, {
+        sensitivity: 'base',
+      })
+    );
 
   const images = files.filter((f: { mimeType: string }) =>
     f.mimeType.startsWith('image/')
