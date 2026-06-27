@@ -28,6 +28,7 @@ const DriveBrowser = ({
   const [currentFolder, setCurrentFolder] = useState<FolderType>(
     selectedFolder || { id: 'root', name: 'Root' }
   );
+  const [folderFilter, setFolderFilter] = useState('');
 
   const { data: currentData } = useGetFileQuery(currentFolder?.id ?? '', {
     skip: currentFolder?.id === undefined || currentFolder?.id === 'root',
@@ -62,6 +63,14 @@ const DriveBrowser = ({
       })
     );
 
+  const normalizedFilter = folderFilter.trim().toLowerCase();
+  const filteredFolders =
+    normalizedFilter.length === 0
+      ? folders
+      : folders.filter((folder) =>
+          (folder.name || '').toLowerCase().includes(normalizedFilter)
+        );
+
   const images = files.filter((f: { mimeType: string }) =>
     f.mimeType.startsWith('image/')
   );
@@ -92,7 +101,7 @@ const DriveBrowser = ({
         </div>
 
         {/* Actions */}
-        <div className="flex justify-between mb-2">
+        <div className="flex items-center gap-2 mb-2">
           {currentFolderParentId && currentFolderName && (
             <button
               className="btn btn-xs ml-1"
@@ -103,11 +112,18 @@ const DriveBrowser = ({
                 })
               }
             >
-              {/* <span className="text-xl">📁</span> */}
               <FolderIcon className="w-4 h-4" />
               <ArrowUp className="w-6 h-6" />
             </button>
           )}
+
+          <input
+            type="text"
+            className="input input-xs input-bordered flex-1"
+            placeholder="Search folders..."
+            value={folderFilter}
+            onChange={(e) => setFolderFilter(e.target.value)}
+          />
         </div>
 
         {/* Folders */}
@@ -119,9 +135,9 @@ const DriveBrowser = ({
         )}
 
         <div className="mb-4 rounded-lg border border-base-200 bg-base-100/60 p-2 max-h-[60vh] sm:max-h-[40vh] overflow-y-auto">
-          {folders.length > 0 ? (
+          {filteredFolders.length > 0 ? (
             <ul className="space-y-2">
-              {folders.map((folder: FolderType) => (
+              {filteredFolders.map((folder: FolderType) => (
                 <li key={folder.id} className="flex items-center gap-2">
                   <button
                     className="btn btn-ghost btn-sm flex items-center gap-1"
@@ -137,7 +153,9 @@ const DriveBrowser = ({
           ) : (
             !isLoading && (
               <div className="text-xs opacity-60 mt-0">
-                No folders found in this directory.
+                {folders.length === 0
+                  ? 'No folders found in this directory.'
+                  : 'No folders match your filter.'}
               </div>
             )
           )}
