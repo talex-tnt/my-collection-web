@@ -61,7 +61,7 @@ const DriveBrowser = ({
   );
 
   return (
-    <div className="card bg-transparent w-full max-w-md mx-auto max-h-[85vh] flex flex-col">
+    <div className="card bg-transparent w-full max-w-md mx-auto flex flex-col h-full">
       <div className="card-body p-2 sm:p-6 flex flex-col overflow-hidden">
         <div className="flex items-center justify-between mb-2">
           <h3 className="card-title text-base-content text-lg font-semibold">

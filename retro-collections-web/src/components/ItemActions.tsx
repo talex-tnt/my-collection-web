@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { FiEdit2, FiTrash2, FiFolderPlus, FiFolder } from 'react-icons/fi';
-import DriveBrowser from './DriveBrowser';
 import ActionConflictModal from './ActionConflictModal';
 import ItemActionsDropdown from './ItemActionsDropdown';
+import DriveFolderModal from './DriveFolderModal';
 
 import type { FileType, ImageFolder } from '../api/firestore/types/shared';
 import type { Item } from '../api/firestore/services/misc/userItems';
@@ -103,27 +103,17 @@ function ItemActions({
       />
 
       {/* 2. DriveBrowser Modal Pipeline */}
-      {showDrivePopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-base-100 rounded-lg shadow-lg p-6 relative min-w-[320px] max-w-[90vw] max-h-[80vh] overflow-auto">
-            <button
-              type="button"
-              className="absolute top-2 right-2 btn btn-xs btn-circle"
-              onClick={() => setShowDrivePopup(false)}
-            >
-              ✕
-            </button>
-            <DriveBrowser
-              disableScroll
-              onSelectFolder={(data) => {
-                onImageFolderSelect(data);
-                setShowDrivePopup(false);
-              }}
-              selectedFolder={imageFolder}
-            />
-          </div>
-        </div>
-      )}
+      <DriveFolderModal
+        isOpen={showDrivePopup}
+        selectedFolder={imageFolder}
+        onClose={() => setShowDrivePopup(false)}
+        onSelectFolder={(data) => {
+          onImageFolderSelect({
+            folder: data.folder,
+            files: data.files,
+          });
+        }}
+      />
 
       {/* 3. Asset Attachments & Selection */}
       <div className="flex gap-0">

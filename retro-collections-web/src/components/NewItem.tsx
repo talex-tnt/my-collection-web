@@ -1,5 +1,4 @@
 import { useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { FiImage } from 'react-icons/fi';
 
 import {
@@ -10,12 +9,11 @@ import {
 import { useSearchGamesQuery } from '../api/games/rawgApi';
 import { useSearchQuery } from '../api/wikipedia/wikipediaApi';
 import { useRawgSettings, useWikiSettings } from '../utils/hooks';
-import { findPreviewImage } from '../utils/findPreviewImage';
 import AutocompleteInput from './AutocompleteInput';
 import CollapsePanel from './CollapsePanel';
 import SelectTags from './SelectTags';
 import ImportModal from './ImportModal';
-import DriveBrowser from './DriveBrowser';
+import DriveFolderModal from './DriveFolderModal';
 import { AIImageAnalyzer } from './AIImageAnalyzer';
 import type { PreparedImportItem } from '../utils/useDriveImport';
 import type { FolderType } from '../api/firestore/types/shared';
@@ -331,42 +329,15 @@ function NewItem({
         onConfirmImport={handleBulkImport}
       />
 
-      {/* DRIVE BROWSER MODAL PORTAL */}
-      {showDrivePopup &&
-        createPortal(
-          <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm">
-            <div className="bg-base-100 rounded-lg shadow-lg p-6 relative min-w-[320px] max-w-[90vw] max-h-[80vh] overflow-auto border border-base-200">
-              <button
-                type="button"
-                className="absolute top-2 right-2 btn btn-xs btn-circle"
-                onClick={() => setShowDrivePopup(false)}
-              >
-                ✕
-              </button>
-              <DriveBrowser
-                disableScroll
-                onSelectFolder={(data) => {
-                  if (data.folder) {
-                    setImageFolder(data.folder);
-
-                    const resolvedPreview = findPreviewImage(data.files || []);
-                    if (resolvedPreview?.id) {
-                      setPreviewImage({
-                        id: resolvedPreview.id,
-                        name: resolvedPreview.name ?? '',
-                      });
-                    } else {
-                      setPreviewImage(null);
-                    }
-                  }
-                  setShowDrivePopup(false);
-                }}
-                selectedFolder={imageFolder || undefined}
-              />
-            </div>
-          </div>,
-          document.body
-        )}
+      <DriveFolderModal
+        isOpen={showDrivePopup}
+        selectedFolder={imageFolder || undefined}
+        onClose={() => setShowDrivePopup(false)}
+        onSelectFolder={(data) => {
+          setImageFolder(data.folder);
+          setPreviewImage(data.previewImage);
+        }}
+      />
     </CollapsePanel>
   );
 }

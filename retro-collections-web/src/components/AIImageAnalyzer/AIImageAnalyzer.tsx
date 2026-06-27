@@ -12,7 +12,7 @@ import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import type { SerializedError } from '@reduxjs/toolkit';
 import { useCurrentUser } from '../../utils/hooks';
 import { AnalyzerModal } from './AnalyzerModal';
-import { DriveFolderModal } from './DriveFolderModal';
+import DriveFolderModal from '../DriveFolderModal';
 import { PhotoEditorModal } from './PhotoEditorModal';
 import { stripImageMetadata } from './imageEditing';
 import type { AnalyzerEngine, SuggestedResult, TagStyle } from './types';
@@ -356,14 +356,17 @@ export function AIImageAnalyzer({
           document.body
         )}
 
-      {isDriveOpen &&
-        createPortal(
-          <DriveFolderModal
-            onClose={() => setIsDriveOpen(false)}
-            onSelectFolder={handleFolderSelect}
-          />,
-          document.body
-        )}
+      <DriveFolderModal
+        isOpen={isDriveOpen}
+        selectedFolder={selectedFolder || undefined}
+        onClose={() => setIsDriveOpen(false)}
+        onSelectFolder={(data) => {
+          handleFolderSelect({
+            folder: data.folder,
+            files: data.files,
+          });
+        }}
+      />
     </div>
   );
 }
