@@ -135,17 +135,17 @@ export function AnalyzerModal({
         {previews.length > 0 && (
           <div className="flex gap-2 overflow-x-auto py-1 bg-base-100 p-2 rounded-lg border border-base-300">
             {previews.map((src, index) => (
-              <div key={index} className="relative w-14 h-14 flex-shrink-0">
+              <div key={index} className="relative w-30 h-30 flex-shrink-0">
                 <img
                   src={src}
                   alt={`Preview ${index}`}
-                  className="w-14 h-14 object-cover rounded-md border border-base-300"
+                  className="w-30 h-30 object-cover rounded-md border border-base-300"
                 />
                 <button
                   type="button"
                   onClick={() => onEditPreview(index)}
                   disabled={globalLoading}
-                  className="btn btn-circle btn-xs btn-neutral absolute -top-1 -left-1 min-h-0 h-5 w-5"
+                  className="btn btn-circle btn-xs btn-neutral absolute top-1 left-1 min-h-0 h-7 w-7"
                   aria-label={`Edit photo ${index + 1}`}
                   title="Edit photo"
                 >
@@ -155,14 +155,14 @@ export function AnalyzerModal({
                   type="button"
                   onClick={() => onRemovePreview(index)}
                   disabled={globalLoading}
-                  className="btn btn-circle btn-xs btn-error text-white absolute -top-1 -right-1 min-h-0 h-5 w-5"
+                  className="btn btn-circle btn-xs btn-error text-white absolute top-1 right-1 min-h-0 h-7 w-7"
                   aria-label={`Remove photo ${index + 1}`}
                   title="Remove photo"
                 >
                   ✕
                 </button>
                 {index === 0 && (
-                  <span className="badge badge-primary badge-xs absolute -bottom-1 left-1/2 -translate-x-1/2 px-1.5 w-10">
+                  <span className="badge badge-primary badge-xs absolute bottom-1 left-1/2 -translate-x-1/2 px-1.5 w-10 min-h-0 h-7 w-7">
                     AI ✨
                   </span>
                 )}
@@ -171,7 +171,7 @@ export function AnalyzerModal({
                     type="button"
                     onClick={() => onMovePreviewToFirst(index)}
                     disabled={globalLoading}
-                    className="btn btn-circle btn-xs btn-primary absolute -bottom-1 left-1/2 -translate-x-1/2 min-h-0 h-4 w-4 p-0 text-[10px] leading-none"
+                    className="btn btn-circle btn-xs btn-primary absolute bottom-1 left-1/2 -translate-x-1/2 min-h-0 h-4 w-4 p-0 text-[10px] leading-none min-h-0 h-7 w-7"
                     aria-label={`Move photo ${index + 1} to first position`}
                     title="Move to first"
                   >
