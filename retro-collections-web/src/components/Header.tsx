@@ -414,7 +414,7 @@ function Header() {
           {/* Mobile: select dropdown navigation */}
           <div className="relative w-full lg:hidden">
             <select
-              className="select w-full max-w-xs font-qwigley header-nav-glow text-3xl leading-none !border-0 !shadow-none focus:!border-0 focus:!shadow-none focus-visible:!border-0 focus-visible:!shadow-none !outline-none focus:!outline-none focus-visible:!outline-none"
+              className="select w-full max-w-md font-qwigley header-nav-glow text-3xl leading-none !border-0 !shadow-none focus:!border-0 focus:!shadow-none focus-visible:!border-0 focus-visible:!shadow-none !outline-none focus:!outline-none focus-visible:!outline-none"
               value={(() => {
                 if (location.pathname.startsWith('/my-collectibles'))
                   return '/my-collectibles';
