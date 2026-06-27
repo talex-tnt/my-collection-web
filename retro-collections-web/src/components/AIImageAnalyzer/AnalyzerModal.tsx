@@ -58,7 +58,7 @@ export function AnalyzerModal({
 
   return (
     <div className="modal modal-open z-[9999] backdrop-blur-sm fixed inset-0 flex items-center justify-center bg-black/50">
-      <div className="modal-box bg-base-200 max-w-md w-full p-6 border border-base-300 rounded-2xl shadow-xl space-y-4 relative">
+      <div className="modal-box bg-base-200 max-w-md h-full sm:h-auto w-full p-6 border border-base-300 rounded-2xl shadow-xl space-y-4 relative">
         <button
           type="button"
           onClick={onClose}
