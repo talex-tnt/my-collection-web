@@ -102,6 +102,84 @@ const DriveBrowser = ({
               <ArrowUp className="w-6 h-6" />
             </button>
           )}
+        </div>
+
+        {/* Folders */}
+        {isLoading && (
+          <div className="flex items-center gap-2 my-4">
+            <span className="loading loading-spinner loading-xs" />
+            <span className="text-xs opacity-70">Loading folders...</span>
+          </div>
+        )}
+
+        <div className="mb-4 rounded-lg border border-base-200 bg-base-100/60 p-2 max-h-[60vh] sm:max-h-[40vh] overflow-y-auto">
+          {folders.length > 0 ? (
+            <ul className="space-y-2">
+              {folders.map((folder: FolderType) => (
+                <li key={folder.id} className="flex items-center gap-2">
+                  <button
+                    className="btn btn-ghost btn-sm flex items-center gap-1"
+                    onClick={() => setCurrentFolder(folder)}
+                    title={`Open ${folder.name}`}
+                  >
+                    <FolderIcon className="w-4 h-4 min-w-[16px] min-h-[16px] mr-2" />
+                    <span className="text-left">{folder.name}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            !isLoading && (
+              <div className="text-xs opacity-60 mt-0">
+                No folders found in this directory.
+              </div>
+            )
+          )}
+        </div>
+
+        {/* Images */}
+        <div className="mt-0 flex-grow min-h-0 flex flex-col">
+          <h4 className="font-semibold text-sm mb-2">Images</h4>
+
+          <div className="rounded-lg border border-base-200 bg-base-100/60 p-2 max-h-[60vh] sm:max-h-[40vh] overflow-y-auto">
+            {images.length === 0 && !isLoading && (
+              <div className="text-xs opacity-60">
+                No images in this folder.
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pr-1">
+              {images.map((img: { id: string; name: string }) => (
+                <div key={img.id} className="flex flex-col items-center">
+                  <div className="w-full h-[100px] bg-base-200 rounded overflow-hidden flex items-center justify-center">
+                    <DriveImage fileId={img.id} name={img.name} />
+                  </div>
+
+                  <span
+                    className="text-xs mt-1 truncate max-w-[100px]"
+                    title={img.name}
+                  >
+                    {img.name}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex justify-between mb-2">
+          <button
+            className="btn btn-xs btn-outline"
+            onClick={() =>
+              onSelectFolder({
+                folder: { id: '', name: '' },
+                files: [],
+              })
+            }
+          >
+            Unset
+          </button>
 
           <button
             className="btn btn-outline btn-xs btn-primary"
@@ -115,75 +193,6 @@ const DriveBrowser = ({
             {/* Select {currentFolder.name} */}
             Select Current
           </button>
-
-          <button
-            className="btn btn-xs btn-outline"
-            onClick={() =>
-              onSelectFolder({
-                folder: { id: '', name: '' },
-                files: [],
-              })
-            }
-          >
-            Unset
-          </button>
-        </div>
-
-        {/* Folders */}
-        {isLoading && (
-          <div className="flex items-center gap-2 my-4">
-            <span className="loading loading-spinner loading-xs" />
-            <span className="text-xs opacity-70">Loading folders...</span>
-          </div>
-        )}
-
-        {folders.length > 0 && (
-          <ul className="overflow-y-auto space-y-2 mb-4">
-            {folders.map((folder: FolderType) => (
-              <li key={folder.id} className="flex items-center gap-2">
-                <button
-                  className="btn btn-ghost btn-sm flex items-center gap-1"
-                  onClick={() => setCurrentFolder(folder)}
-                  title={`Open ${folder.name}`}
-                >
-                  <FolderIcon className="w-4 h-4 min-w-[16px] min-h-[16px] mr-2" />
-                  <span className="text-left">{folder.name}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {folders.length === 0 && !isLoading && (
-          <div className="text-xs opacity-60 mt-0">
-            No folders found in this directory.
-          </div>
-        )}
-
-        {/* Images */}
-        <div className="mt-0 flex-grow min-h-0 flex flex-col">
-          <h4 className="font-semibold text-sm mb-2">Images</h4>
-
-          {images.length === 0 && !isLoading && (
-            <div className="text-xs opacity-60">No images in this folder.</div>
-          )}
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto flex-grow pr-1">
-            {images.map((img: { id: string; name: string }) => (
-              <div key={img.id} className="flex flex-col items-center">
-                <div className="w-full h-[100px] bg-base-200 rounded overflow-hidden flex items-center justify-center">
-                  <DriveImage fileId={img.id} name={img.name} />
-                </div>
-
-                <span
-                  className="text-xs mt-1 truncate max-w-[100px]"
-                  title={img.name}
-                >
-                  {img.name}
-                </span>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     </div>

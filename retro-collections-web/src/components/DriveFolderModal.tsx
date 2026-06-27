@@ -25,7 +25,7 @@ function DriveFolderModal({
 
   return createPortal(
     <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm">
-      <div className="bg-base-100 rounded-lg shadow-lg p-6 relative min-w-[320px] max-w-[90vw] max-h-[80vh] overflow-auto border border-base-200">
+      <div className="bg-base-100 rounded-lg shadow-lg p-6 relative min-w-[320px] max-w-full sm:max-w-[90vw] max-h-full sm:max-h-[80vh] overflow-auto border border-base-200">
         <button
           type="button"
           className="absolute top-2 right-2 btn btn-xs btn-circle"
