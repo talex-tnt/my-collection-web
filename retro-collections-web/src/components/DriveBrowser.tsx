@@ -5,10 +5,13 @@ import {
 } from '../api/google-drive/googleDriveApi';
 import DriveImage from './DriveImage';
 import type { FileType, FolderType } from '../api/firestore/types/shared';
+import { usePrefixGroupedList } from '../hooks/usePrefixGroupedList';
 import { useDisableScroll } from '../utils/hooks';
 import {
   FiArrowUp as ArrowUp,
   FiArrowUpCircle as ArrowUpCicle,
+  FiChevronDown,
+  FiChevronRight,
   FiFolder as FolderIcon,
 } from 'react-icons/fi';
 
@@ -28,7 +31,6 @@ const DriveBrowser = ({
   const [currentFolder, setCurrentFolder] = useState<FolderType>(
     selectedFolder || { id: 'root', name: 'Root' }
   );
-  const [folderFilter, setFolderFilter] = useState('');
 
   const { data: currentData } = useGetFileQuery(currentFolder?.id ?? '', {
     skip: currentFolder?.id === undefined || currentFolder?.id === 'root',
@@ -62,14 +64,21 @@ const DriveBrowser = ({
         sensitivity: 'base',
       })
     );
-
-  const normalizedFilter = folderFilter.trim().toLowerCase();
-  const filteredFolders =
-    normalizedFilter.length === 0
-      ? folders
-      : folders.filter((folder) =>
-          (folder.name || '').toLowerCase().includes(normalizedFilter)
-        );
+  const {
+    filterText: folderFilter,
+    setFilterText: setFolderFilter,
+    isGroupingEnabled: groupByPrefix,
+    setIsGroupingEnabled: setGroupByPrefix,
+    expandedGroups,
+    filteredItems: filteredFolders,
+    groupedEntries,
+    standaloneItems: standaloneFolders,
+    toggleGroup,
+  } = usePrefixGroupedList({
+    items: folders,
+    getLabel: (folder) => folder.name || '',
+    getKey: (folder) => folder.id || folder.name || '',
+  });
 
   const images = files.filter((f: { mimeType: string }) =>
     f.mimeType.startsWith('image/')
@@ -124,6 +133,18 @@ const DriveBrowser = ({
             value={folderFilter}
             onChange={(e) => setFolderFilter(e.target.value)}
           />
+
+          <label className="label cursor-pointer gap-1 p-0">
+            <span className="text-[10px] opacity-70 whitespace-nowrap">
+              Group
+            </span>
+            <input
+              type="checkbox"
+              className="toggle toggle-xs"
+              checked={groupByPrefix}
+              onChange={(e) => setGroupByPrefix(e.target.checked)}
+            />
+          </label>
         </div>
 
         {/* Folders */}
@@ -136,20 +157,93 @@ const DriveBrowser = ({
 
         <div className="mb-4 rounded-lg border border-base-200 bg-base-100/60 p-2 max-h-[60vh] sm:max-h-[40vh] overflow-y-auto">
           {filteredFolders.length > 0 ? (
-            <ul className="space-y-2">
-              {filteredFolders.map((folder: FolderType) => (
-                <li key={folder.id} className="flex items-center gap-2">
-                  <button
-                    className="btn btn-ghost btn-sm flex items-center gap-1"
-                    onClick={() => setCurrentFolder(folder)}
-                    title={`Open ${folder.name}`}
+            groupByPrefix ? (
+              <div className="space-y-2">
+                {groupedEntries.map((group) => {
+                  const isExpanded = expandedGroups[group.groupLabel] || false;
+
+                  return (
+                    <div key={group.groupLabel} className="space-y-1">
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-xs normal-case justify-start w-full px-1"
+                        onClick={() => toggleGroup(group.groupLabel)}
+                      >
+                        {isExpanded ? (
+                          <FiChevronDown className="w-3.5 h-3.5" />
+                        ) : (
+                          <FiChevronRight className="w-3.5 h-3.5" />
+                        )}
+                        <span className="font-medium">{group.groupLabel}</span>
+                      </button>
+
+                      {isExpanded && (
+                        <ul className="space-y-1 pl-5">
+                          {group.entries.map((entry) => (
+                            <li
+                              key={
+                                entry.item.id ||
+                                `${group.groupLabel}-${entry.childLabel}`
+                              }
+                              className="flex items-center gap-2"
+                            >
+                              <button
+                                className="btn btn-ghost btn-sm flex items-center gap-1"
+                                onClick={() => setCurrentFolder(entry.item)}
+                                title={`Open ${entry.item.name}`}
+                              >
+                                <FolderIcon className="w-4 h-4 min-w-[16px] min-h-[16px] mr-2" />
+                                <span className="text-left">
+                                  {entry.childLabel}
+                                </span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {standaloneFolders.length > 0 && (
+                  <ul className="space-y-2">
+                    {standaloneFolders.map((folder: FolderType) => (
+                      <li
+                        key={folder.id || folder.name}
+                        className="flex items-center gap-2"
+                      >
+                        <button
+                          className="btn btn-ghost btn-sm flex items-center gap-1"
+                          onClick={() => setCurrentFolder(folder)}
+                          title={`Open ${folder.name}`}
+                        >
+                          <FolderIcon className="w-4 h-4 min-w-[16px] min-h-[16px] mr-2" />
+                          <span className="text-left">{folder.name}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ) : (
+              <ul className="space-y-2">
+                {filteredFolders.map((folder: FolderType) => (
+                  <li
+                    key={folder.id || folder.name}
+                    className="flex items-center gap-2"
                   >
-                    <FolderIcon className="w-4 h-4 min-w-[16px] min-h-[16px] mr-2" />
-                    <span className="text-left">{folder.name}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+                    <button
+                      className="btn btn-ghost btn-sm flex items-center gap-1"
+                      onClick={() => setCurrentFolder(folder)}
+                      title={`Open ${folder.name}`}
+                    >
+                      <FolderIcon className="w-4 h-4 min-w-[16px] min-h-[16px] mr-2" />
+                      <span className="text-left">{folder.name}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )
           ) : (
             !isLoading && (
               <div className="text-xs opacity-60 mt-0">
