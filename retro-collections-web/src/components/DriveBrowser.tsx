@@ -144,7 +144,7 @@ const DriveBrowser = ({
             >
               <span className="relative inline-flex items-center justify-center w-6 h-6">
                 <FolderIcon className="w-6 h-6" strokeWidth={1} />
-                <HomeIcon className="absolute w-3 h-3" />
+                <HomeIcon className="absolute bottom-[4.5px] w-3 h-3" />
               </span>
             </button>
           )}
@@ -171,7 +171,7 @@ const DriveBrowser = ({
               }
             >
               <FolderIcon className="w-6 h-6" strokeWidth={1.5} />
-              <ArrowUp className="absolute w-3 h-3" />
+              <ArrowUp className="absolute bottom-[3.5px] w-3 h-3" />
             </button>
           )}
 
