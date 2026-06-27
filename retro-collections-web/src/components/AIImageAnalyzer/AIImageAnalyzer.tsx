@@ -51,6 +51,7 @@ export function AIImageAnalyzer({
   >([]);
   const [selectedFolder, setSelectedFolder] = useState<FolderType | null>(null);
   const [newFolderName, setNewFolderName] = useState('');
+  const [debouncedFolderName, setDebouncedFolderName] = useState('');
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [isImportingImages, setIsImportingImages] = useState(false);
   const [driveSyncEnabled, setDriveSyncEnabled] = useState(false);
@@ -72,6 +73,14 @@ export function AIImageAnalyzer({
   useEffect(() => {
     managedDriveFolderRef.current = managedDriveFolder;
   }, [managedDriveFolder]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedFolderName(newFolderName);
+    }, 600);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [newFolderName]);
 
   const getDriveImageKey = (image: File | null, index: number) => {
     if (!image) return '';
@@ -379,7 +388,7 @@ export function AIImageAnalyzer({
 
   useEffect(() => {
     const selectedFolderId = selectedFolder?.id;
-    const trimmedFolderName = newFolderName.trim();
+    const trimmedFolderName = debouncedFolderName.trim();
     const managedFolder = managedDriveFolderRef.current;
     const managedFolderName = managedFolder?.name ?? '';
 
@@ -539,7 +548,7 @@ export function AIImageAnalyzer({
             );
           }
 
-          const syncedFolderName = newFolderName.trim() || folderName;
+          const syncedFolderName = debouncedFolderName.trim() || folderName;
           const firstSyncedIndex = driveIdSnapshot.findIndex(
             (id, index) => Boolean(id) && Boolean(imageSnapshot[index])
           );
@@ -582,11 +591,11 @@ export function AIImageAnalyzer({
     deleteDriveNode,
     driveFileIds,
     driveSyncEnabled,
+    debouncedFolderName,
     imageSyncStates,
     images,
     managedDriveFolder?.id,
     managedDriveFolder?.name,
-    newFolderName,
     previews,
     renameDriveNode,
     selectedFolder?.id,
@@ -648,6 +657,7 @@ export function AIImageAnalyzer({
             driveFileIds={driveFileIds}
             imageSyncStates={imageSyncStates}
             newFolderName={newFolderName}
+            managedFolderName={managedDriveFolder?.name ?? null}
             engine={engine}
             suggestedResult={suggestedResult}
             errorMessage={errorMessage}

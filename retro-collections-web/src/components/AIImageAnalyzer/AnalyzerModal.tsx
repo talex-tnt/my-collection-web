@@ -12,6 +12,7 @@ interface AnalyzerModalProps {
     'local' | 'synced' | 'pending-upload' | 'pending-delete' | 'error'
   >;
   newFolderName: string;
+  managedFolderName: string | null;
   selectedAIIndexes: number[];
   engine: AnalyzerEngine;
   suggestedResult: SuggestedResult | null;
@@ -45,6 +46,7 @@ export function AnalyzerModal({
   driveFileIds,
   imageSyncStates,
   newFolderName,
+  managedFolderName,
   selectedAIIndexes,
   engine,
   suggestedResult,
@@ -73,6 +75,11 @@ export function AnalyzerModal({
   const fileInputId = useId();
   const hasAISelection = selectedAIIndexes.length > 0;
   const activeImagesCount = images.filter(Boolean).length;
+  const normalizedLocalFolderName = newFolderName.trim();
+  const normalizedManagedFolderName = managedFolderName?.trim() || '';
+  const folderNamesMatch =
+    Boolean(normalizedManagedFolderName) &&
+    normalizedManagedFolderName === normalizedLocalFolderName;
 
   const renderSyncIcon = (status: 'synced' | 'pending' | 'updating') => {
     if (status === 'synced') {
@@ -245,11 +252,11 @@ export function AnalyzerModal({
                   <button
                     type="button"
                     onClick={() => onToggleImageForAI(index)}
-                    disabled={globalLoading || isLocalMissing}
+                    disabled={isLocalMissing}
                     className={`btn btn-circle btn-xs absolute bottom-1 left-1/2 -translate-x-1/2 min-h-0 h-7 w-7 p-0 text-[10px] leading-none ${
                       selectedAIIndexes.includes(index)
-                        ? 'btn-primary'
-                        : 'btn-outline btn-base-content/40'
+                        ? 'btn-secondary text-white shadow-sm'
+                        : 'btn-outline btn-secondary bg-base-100/90'
                     }`}
                     aria-label={`${selectedAIIndexes.includes(index) ? 'Remove' : 'Add'} photo ${index + 1} ${selectedAIIndexes.includes(index) ? 'from' : 'to'} AI selection`}
                     title={
@@ -296,6 +303,33 @@ export function AnalyzerModal({
             <p className="text-[11px] opacity-60">
               Drive Sync requires this field.
             </p>
+
+            <div className="grid grid-cols-1 gap-1 text-[11px] bg-base-100/80 border border-base-300 rounded-md px-2 py-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="opacity-60">Local name</span>
+                <span className="font-medium truncate max-w-[12rem]">
+                  {normalizedLocalFolderName || 'Not set'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="opacity-60">Drive name</span>
+                <span className="font-medium truncate max-w-[12rem]">
+                  {normalizedManagedFolderName || 'Not created yet'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="opacity-60">Name status</span>
+                <span
+                  className={`font-medium ${folderNamesMatch ? 'text-success' : normalizedManagedFolderName ? 'text-warning' : 'opacity-60'}`}
+                >
+                  {folderNamesMatch
+                    ? 'In sync'
+                    : normalizedManagedFolderName
+                      ? 'Updating'
+                      : 'Waiting for sync'}
+                </span>
+              </div>
+            </div>
 
             <div className="flex items-center justify-between">
               <label className="label cursor-pointer gap-2 p-0">
