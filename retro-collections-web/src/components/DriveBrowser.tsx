@@ -13,6 +13,7 @@ import {
   FiChevronRight,
   FiFolder as FolderIcon,
   FiHome as HomeIcon,
+  FiX,
 } from 'react-icons/fi';
 
 type DriveBrowserProps = {
@@ -85,6 +86,13 @@ const DriveBrowser = ({
   const images = files.filter((f: { mimeType: string }) =>
     f.mimeType.startsWith('image/')
   );
+  const normalizedSearch = folderFilter.trim().toLowerCase();
+  const filteredImages =
+    normalizedSearch.length === 0
+      ? images
+      : images.filter((image) =>
+          (image.name || '').toLowerCase().includes(normalizedSearch)
+        );
 
   useEffect(() => {
     const measureOverflow = () => {
@@ -167,13 +175,26 @@ const DriveBrowser = ({
             </button>
           )}
 
-          <input
-            type="text"
-            className="input input-xs input-bordered flex-1"
-            placeholder="Search folders..."
-            value={folderFilter}
-            onChange={(e) => setFolderFilter(e.target.value)}
-          />
+          <div className="relative flex-1">
+            <input
+              type="text"
+              className="input input-xs input-bordered w-full pr-7"
+              placeholder="Search..."
+              value={folderFilter}
+              onChange={(e) => setFolderFilter(e.target.value)}
+            />
+
+            {folderFilter && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-xs absolute right-1 top-1/2 -translate-y-1/2 px-1 min-h-0 h-5"
+                title="Clear search"
+                onClick={() => setFolderFilter('')}
+              >
+                <FiX className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
 
           <label className="label cursor-pointer gap-1 p-0">
             <span className="text-[10px] opacity-70 whitespace-nowrap">
@@ -310,14 +331,16 @@ const DriveBrowser = ({
           <h4 className="font-semibold text-sm mb-2">Images</h4>
 
           <div className="rounded-lg border border-base-200 bg-base-100/60 p-2 max-h-[60vh] sm:max-h-[40vh] overflow-y-auto">
-            {images.length === 0 && !isLoading && (
+            {filteredImages.length === 0 && !isLoading && (
               <div className="text-xs opacity-60">
-                No images in this folder.
+                {images.length === 0
+                  ? 'No images in this folder.'
+                  : 'No images match your search.'}
               </div>
             )}
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pr-1">
-              {images.map((img: { id: string; name: string }) => (
+              {filteredImages.map((img: { id: string; name: string }) => (
                 <div key={img.id} className="flex flex-col items-center">
                   <div className="w-full h-[100px] bg-base-200 rounded overflow-hidden flex items-center justify-center">
                     <DriveImage fileId={img.id} name={img.name} />
