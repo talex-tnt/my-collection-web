@@ -16,6 +16,45 @@ export type CreateAndUploadResponse = {
   files: { id: string; name: string }[];
 };
 
+export type CreateDriveFolderArgs = {
+  parentFolderId: string;
+  folderName: string;
+};
+
+export type CreateDriveFolderResponse = {
+  id: string;
+  name: string;
+};
+
+export type UploadFileToFolderArgs = {
+  folderId: string;
+  file: File;
+  fileName?: string;
+};
+
+export type UploadFileToFolderResponse = {
+  id: string;
+  name: string;
+};
+
+export type RenameDriveNodeArgs = {
+  id: string;
+  name: string;
+};
+
+export type RenameDriveNodeResponse = {
+  id: string;
+  name: string;
+};
+
+export type DeleteDriveNodeArgs = {
+  id: string;
+};
+
+export type DeleteDriveNodeResponse = {
+  success: boolean;
+};
+
 export const driveWriteApi = createApi({
   reducerPath: 'driveWriteApi',
   keepUnusedDataFor: 60 * 60, // 1h cache
@@ -54,6 +93,98 @@ export const driveWriteApi = createApi({
   },
 
   endpoints: (builder) => ({
+    createDriveFolder: builder.mutation<
+      CreateDriveFolderResponse,
+      CreateDriveFolderArgs
+    >({
+      query: ({ parentFolderId, folderName }) => ({
+        url: '/drive/v3/files',
+        method: 'POST',
+        body: {
+          name: folderName,
+          mimeType: 'application/vnd.google-apps.folder',
+          parents: [parentFolderId],
+        },
+        params: {
+          fields: 'id,name',
+        },
+      }),
+      invalidatesTags: ['DriveFolders'],
+    }),
+
+    uploadFileToFolder: builder.mutation<
+      UploadFileToFolderResponse,
+      UploadFileToFolderArgs
+    >({
+      queryFn: async (
+        { folderId, file, fileName },
+        _api,
+        _extra,
+        baseQuery
+      ) => {
+        const finalFileName = fileName || file.name;
+        const metadata = {
+          name: finalFileName,
+          parents: [folderId],
+        };
+
+        const formData = new FormData();
+        formData.append(
+          'metadata',
+          new Blob([JSON.stringify(metadata)], { type: 'application/json' })
+        );
+        formData.append('file', file);
+
+        const uploadResult = await baseQuery({
+          url: '/upload/drive/v3/files?uploadType=multipart&fields=id,name',
+          method: 'POST',
+          body: formData,
+        });
+
+        if (uploadResult.error) {
+          return { error: uploadResult.error };
+        }
+
+        const data = uploadResult.data as UploadFileToFolderResponse;
+        return { data };
+      },
+      invalidatesTags: ['DriveFolders'],
+    }),
+
+    renameDriveNode: builder.mutation<
+      RenameDriveNodeResponse,
+      RenameDriveNodeArgs
+    >({
+      query: ({ id, name }) => ({
+        url: `/drive/v3/files/${id}`,
+        method: 'PATCH',
+        body: { name },
+        params: {
+          fields: 'id,name',
+        },
+      }),
+      invalidatesTags: ['DriveFolders'],
+    }),
+
+    deleteDriveNode: builder.mutation<
+      DeleteDriveNodeResponse,
+      DeleteDriveNodeArgs
+    >({
+      queryFn: async ({ id }, _api, _extra, baseQuery) => {
+        const result = await baseQuery({
+          url: `/drive/v3/files/${id}`,
+          method: 'DELETE',
+        });
+
+        if (result.error) {
+          return { error: result.error };
+        }
+
+        return { data: { success: true } };
+      },
+      invalidatesTags: ['DriveFolders'],
+    }),
+
     createAndUploadFolder: builder.mutation<
       CreateAndUploadResponse,
       CreateAndUploadArgs
@@ -162,4 +293,10 @@ export const driveWriteApi = createApi({
   }),
 });
 
-export const { useCreateAndUploadFolderMutation } = driveWriteApi;
+export const {
+  useCreateAndUploadFolderMutation,
+  useCreateDriveFolderMutation,
+  useUploadFileToFolderMutation,
+  useRenameDriveNodeMutation,
+  useDeleteDriveNodeMutation,
+} = driveWriteApi;

@@ -5,14 +5,23 @@ import type { AnalyzerEngine, SuggestedResult, TagStyle } from './types';
 
 interface AnalyzerModalProps {
   selectedFolder: FolderType | null;
-  images: File[];
+  images: Array<File | null>;
   previews: string[];
+  driveFileIds: Array<string | null>;
+  imageSyncStates: Array<
+    'local' | 'synced' | 'pending-upload' | 'pending-delete' | 'error'
+  >;
+  newFolderName: string;
+  selectedAIIndexes: number[];
   engine: AnalyzerEngine;
   suggestedResult: SuggestedResult | null;
   errorMessage: string | null;
   isAnalyzing: boolean;
   isUploading: boolean;
   globalLoading: boolean;
+  driveSyncEnabled: boolean;
+  isSyncingDrive: boolean;
+  folderSyncStatus: 'off' | 'pending' | 'synced';
   styleMap: Record<string, TagStyle>;
   fallbackTagStyle: TagStyle;
   onClose: () => void;
@@ -20,12 +29,12 @@ interface AnalyzerModalProps {
   onFileChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onEditPreview: (index: number) => void;
   onRemovePreview: (index: number) => void;
-  onMovePreviewToFirst: (index: number) => void;
+  onToggleImageForAI: (index: number) => void;
+  onFolderNameChange: (name: string) => void;
+  onDriveSyncToggle: (enabled: boolean) => void;
   onEngineChange: (engine: AnalyzerEngine) => void;
   onAnalyze: () => void;
-  onConfirmAndUpload: () => void;
   onDiscardSuggested: () => void;
-  onSuggestedTitleChange: (title: string) => void;
   onRemoveTag: (tag: string) => void;
 }
 
@@ -33,12 +42,19 @@ export function AnalyzerModal({
   selectedFolder,
   images,
   previews,
+  driveFileIds,
+  imageSyncStates,
+  newFolderName,
+  selectedAIIndexes,
   engine,
   suggestedResult,
   errorMessage,
   isAnalyzing,
   isUploading,
   globalLoading,
+  driveSyncEnabled,
+  isSyncingDrive,
+  folderSyncStatus,
   styleMap,
   fallbackTagStyle,
   onClose,
@@ -46,15 +62,57 @@ export function AnalyzerModal({
   onFileChange,
   onEditPreview,
   onRemovePreview,
-  onMovePreviewToFirst,
+  onToggleImageForAI,
+  onFolderNameChange,
+  onDriveSyncToggle,
   onEngineChange,
   onAnalyze,
-  onConfirmAndUpload,
   onDiscardSuggested,
-  onSuggestedTitleChange,
   onRemoveTag,
 }: AnalyzerModalProps) {
   const fileInputId = useId();
+  const hasAISelection = selectedAIIndexes.length > 0;
+  const activeImagesCount = images.filter(Boolean).length;
+
+  const renderSyncIcon = (status: 'synced' | 'pending' | 'updating') => {
+    if (status === 'synced') {
+      return (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          className="h-3 w-3 shrink-0"
+          aria-hidden="true"
+        >
+          <path
+            d="M20 6 9 17l-5-5"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      );
+    }
+
+    return (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        className={`h-3 w-3 shrink-0 ${status === 'updating' ? 'animate-spin' : 'animate-pulse'}`}
+        aria-hidden="true"
+      >
+        <path
+          d="M4 12a8 8 0 0 1 13.66-5.66L20 8V3m0 5h-5m16 4a8 8 0 0 1-13.66 5.66L4 16v5m0-5h5"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  };
 
   return (
     <div className="modal modal-open z-[9999] backdrop-blur-sm fixed inset-0 flex items-center justify-center bg-black/50">
@@ -63,7 +121,6 @@ export function AnalyzerModal({
           type="button"
           onClick={onClose}
           className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
-          disabled={globalLoading}
         >
           ✕
         </button>
@@ -123,70 +180,170 @@ export function AnalyzerModal({
             Open the camera on mobile or pick one or more images from your
             gallery.
           </p>
-          {images.length > 0 && (
+          {activeImagesCount > 0 && (
             <div className="text-[11px] text-success font-medium bg-base-100 px-3 py-1.5 rounded-lg border border-base-300 mt-1 truncate">
-              {images.length === 1
-                ? `Selected photo: ${images[0].name}`
-                : `${images.length} photos selected. First: ${images[0].name}`}
+              {activeImagesCount === 1
+                ? `Selected photo: ${images.find(Boolean)?.name || ''}`
+                : `${activeImagesCount} photos selected.`}
             </div>
           )}
         </div>
 
         {previews.length > 0 && (
           <div className="flex gap-2 overflow-x-auto py-1 bg-base-100 p-2 rounded-lg border border-base-300">
-            {previews.map((src, index) => (
-              <div key={index} className="relative w-30 h-30 flex-shrink-0">
-                <img
-                  src={src}
-                  alt={`Preview ${index}`}
-                  className="w-30 h-30 object-cover rounded-md border border-base-300"
-                />
-                <button
-                  type="button"
-                  onClick={() => onEditPreview(index)}
-                  disabled={globalLoading}
-                  className="btn btn-circle btn-xs btn-neutral absolute top-1 left-1 min-h-0 h-7 w-7"
-                  aria-label={`Edit photo ${index + 1}`}
-                  title="Edit photo"
-                >
-                  ✎
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onRemovePreview(index)}
-                  disabled={globalLoading}
-                  className="btn btn-circle btn-xs btn-error text-white absolute top-1 right-1 min-h-0 h-7 w-7"
-                  aria-label={`Remove photo ${index + 1}`}
-                  title="Remove photo"
-                >
-                  ✕
-                </button>
-                {index === 0 && (
-                  <span className="badge badge-primary badge-xs absolute bottom-1 left-1/2 -translate-x-1/2 px-1.5 w-10 min-h-0 h-7 w-7">
-                    AI ✨
-                  </span>
-                )}
-                {index > 0 && (
+            {previews.map((src, index) => {
+              const isLocalMissing = !images[index];
+              const syncState = imageSyncStates[index];
+              const isSynced = syncState === 'synced';
+              const isUnsynced = !isSynced;
+              const hasDriveFile = Boolean(driveFileIds[index]);
+              let syncLabel: string;
+              if (isLocalMissing && hasDriveFile) {
+                syncLabel = 'Pending delete';
+              } else if (isSynced) {
+                syncLabel = 'Synced';
+              } else if (hasDriveFile) {
+                syncLabel = 'Updating';
+              } else {
+                syncLabel = 'Pending upload';
+              }
+              const syncTone = isSynced ? 'badge-success' : 'badge-warning';
+              const syncIconState = isSynced
+                ? 'synced'
+                : hasDriveFile
+                  ? 'updating'
+                  : 'pending';
+
+              return (
+                <div key={index} className="relative w-30 h-30 flex-shrink-0">
+                  <img
+                    src={src}
+                    alt={`Preview ${index}`}
+                    className={`w-30 h-30 object-cover rounded-md border border-base-300 ${isUnsynced ? 'opacity-60' : ''}`}
+                  />
                   <button
                     type="button"
-                    onClick={() => onMovePreviewToFirst(index)}
-                    disabled={globalLoading}
-                    className="btn btn-circle btn-xs btn-primary absolute bottom-1 left-1/2 -translate-x-1/2 min-h-0 h-4 w-4 p-0 text-[10px] leading-none min-h-0 h-7 w-7"
-                    aria-label={`Move photo ${index + 1} to first position`}
-                    title="Move to first"
+                    onClick={() => onEditPreview(index)}
+                    disabled={globalLoading || isLocalMissing}
+                    className="btn btn-circle btn-xs btn-neutral absolute top-1 left-1 min-h-0 h-7 w-7"
+                    aria-label={`Edit photo ${index + 1}`}
+                    title="Edit photo"
                   >
-                    {'←'}
+                    ✎
                   </button>
-                )}
-              </div>
-            ))}
+                  <button
+                    type="button"
+                    onClick={() => onRemovePreview(index)}
+                    disabled={globalLoading}
+                    className="btn btn-circle btn-xs btn-error text-white absolute top-1 right-1 min-h-0 h-7 w-7"
+                    aria-label={`Remove photo ${index + 1}`}
+                    title="Remove photo"
+                  >
+                    ✕
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => onToggleImageForAI(index)}
+                    disabled={globalLoading || isLocalMissing}
+                    className={`btn btn-circle btn-xs absolute bottom-1 left-1/2 -translate-x-1/2 min-h-0 h-7 w-7 p-0 text-[10px] leading-none ${
+                      selectedAIIndexes.includes(index)
+                        ? 'btn-primary'
+                        : 'btn-outline btn-base-content/40'
+                    }`}
+                    aria-label={`${selectedAIIndexes.includes(index) ? 'Remove' : 'Add'} photo ${index + 1} ${selectedAIIndexes.includes(index) ? 'from' : 'to'} AI selection`}
+                    title={
+                      selectedAIIndexes.includes(index)
+                        ? 'Selected for AI'
+                        : 'Select for AI'
+                    }
+                  >
+                    AI
+                  </button>
+
+                  <span
+                    className={`badge badge-xs absolute bottom-1 right-1 gap-1 ${syncTone}`}
+                  >
+                    {renderSyncIcon(syncIconState)}
+                    <span>{syncLabel}</span>
+                  </span>
+                </div>
+              );
+            })}
           </div>
         )}
 
-        {images.length > 0 && selectedFolder && (
+        {activeImagesCount > 0 && (
+          <div className="text-[11px] opacity-70">
+            AI selection: {selectedAIIndexes.length} / {activeImagesCount}{' '}
+            photos
+          </div>
+        )}
+
+        {activeImagesCount > 0 && selectedFolder && (
           <div className="form-control w-full space-y-1 animate-fadeIn">
             <span className="label-text font-semibold text-xs opacity-80">
-              3. Choose AI Core Engine
+              3. New Folder Name
+            </span>
+            <input
+              type="text"
+              className="input input-sm input-bordered w-full"
+              placeholder="Type a folder name or run AI to suggest one"
+              value={newFolderName}
+              onChange={(e) => onFolderNameChange(e.target.value)}
+              disabled={globalLoading}
+            />
+            <p className="text-[11px] opacity-60">
+              Drive Sync requires this field.
+            </p>
+
+            <div className="flex items-center justify-between">
+              <label className="label cursor-pointer gap-2 p-0">
+                <span className="text-xs font-medium">Drive Sync</span>
+                <input
+                  type="checkbox"
+                  className="toggle toggle-sm"
+                  checked={driveSyncEnabled}
+                  onChange={(e) => onDriveSyncToggle(e.target.checked)}
+                  disabled={globalLoading}
+                />
+              </label>
+              <span
+                className={`text-[11px] ${
+                  folderSyncStatus === 'synced'
+                    ? 'text-success'
+                    : folderSyncStatus === 'pending'
+                      ? 'text-warning'
+                      : 'opacity-60'
+                }`}
+              >
+                {folderSyncStatus === 'synced'
+                  ? 'Folder synced'
+                  : folderSyncStatus === 'pending'
+                    ? 'Folder pending sync'
+                    : 'Sync off'}
+              </span>
+            </div>
+            {driveSyncEnabled && (
+              <p className="text-[11px] opacity-60">
+                Only files and folders created by this tool are modified.
+              </p>
+            )}
+            <div className="text-[11px] opacity-60 bg-base-100/70 border border-base-300 rounded-md px-2 py-1.5 leading-snug">
+              Sync legend: Synced = in Drive, Pending upload = local only,
+              Pending delete = removed locally and waiting Drive deletion,
+              Updating = queued Drive update.
+            </div>
+            {isSyncingDrive && (
+              <p className="text-[11px] text-info">Syncing with Drive...</p>
+            )}
+          </div>
+        )}
+
+        {activeImagesCount > 0 && selectedFolder && (
+          <div className="form-control w-full space-y-1 animate-fadeIn">
+            <span className="label-text font-semibold text-xs opacity-80">
+              4. Choose AI Core Engine
             </span>
             <div className="flex gap-2">
               <select
@@ -243,17 +400,17 @@ export function AnalyzerModal({
           </div>
         )}
 
-        {images.length > 0 && selectedFolder && !suggestedResult && (
+        {activeImagesCount > 0 && selectedFolder && (
           <button
             type="button"
             onClick={onAnalyze}
             className="btn btn-sm btn-primary w-full shadow-md"
-            disabled={globalLoading}
+            disabled={globalLoading || !hasAISelection}
           >
             {isAnalyzing ? (
               <span className="loading loading-spinner loading-xs" />
             ) : (
-              `Analyze Photos Using ${engine === 'github' ? 'GitHub AI' : 'Gemini AI'}`
+              `Analyze Selected Photos Using ${engine === 'github' ? 'GitHub AI' : 'Gemini AI'}`
             )}
           </button>
         )}
@@ -267,17 +424,13 @@ export function AnalyzerModal({
 
             <div>
               <span className="font-bold block opacity-70">
-                Suggested Title:
+                AI Suggested Folder Name:
               </span>
-              <input
-                type="text"
-                className="input input-sm input-bordered w-full font-medium mt-1 text-sm text-base-content"
-                value={suggestedResult.suggestedTitle}
-                disabled={isUploading || isAnalyzing}
-                onChange={(e) => onSuggestedTitleChange(e.target.value)}
-              />
+              <p className="mt-0.5 font-medium bg-base-200/50 p-2 rounded">
+                {suggestedResult.suggestedTitle}
+              </p>
               <label className="text-[10px] opacity-50 mt-0.5 block">
-                This will be the name of your new Google Drive folder.
+                The input above is the final folder name used for upload.
               </label>
             </div>
 
@@ -312,32 +465,14 @@ export function AnalyzerModal({
             )}
 
             <div className="flex flex-col gap-2 pt-2 border-t border-base-200">
-              <span className="text-[11px] font-bold text-center block text-warning animate-pulse">
-                ❓ Ready to create this folder and upload your photos?
-              </span>
-
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  className="btn btn-sm btn-success flex-1 text-white shadow"
-                  onClick={onConfirmAndUpload}
-                  disabled={isUploading || isAnalyzing}
-                >
-                  {isUploading ? (
-                    <span className="loading loading-spinner loading-xs" />
-                  ) : (
-                    'Confirm & Upload to Drive'
-                  )}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-ghost"
-                  onClick={onDiscardSuggested}
-                  disabled={isUploading || isAnalyzing}
-                >
-                  Discard
-                </button>
-              </div>
+              <button
+                type="button"
+                className="btn btn-sm btn-ghost"
+                onClick={onDiscardSuggested}
+                disabled={isUploading || isAnalyzing}
+              >
+                Discard AI Result
+              </button>
             </div>
           </div>
         )}
