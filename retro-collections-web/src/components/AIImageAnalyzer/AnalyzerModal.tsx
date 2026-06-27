@@ -79,7 +79,7 @@ export function AnalyzerModal({
 
         <div className="form-control w-full space-y-2">
           <span className="label-text font-semibold text-xs opacity-80">
-            1. Select Target Google Drive Folder
+            1. Select where the new image folder will be created
           </span>
 
           <button
