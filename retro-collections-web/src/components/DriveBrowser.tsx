@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   useGetFileQuery,
   useListFilesQuery,
@@ -31,6 +31,8 @@ const DriveBrowser = ({
   const [currentFolder, setCurrentFolder] = useState<FolderType>(
     selectedFolder || { id: 'root', name: 'Root' }
   );
+  const folderNameMeasureRef = useRef<HTMLSpanElement | null>(null);
+  const [isFolderNameOverflowing, setIsFolderNameOverflowing] = useState(false);
 
   const { data: currentData } = useGetFileQuery(currentFolder?.id ?? '', {
     skip: currentFolder?.id === undefined || currentFolder?.id === 'root',
@@ -84,8 +86,41 @@ const DriveBrowser = ({
     f.mimeType.startsWith('image/')
   );
 
+  useEffect(() => {
+    const measureOverflow = () => {
+      const element = folderNameMeasureRef.current;
+
+      if (!element) return;
+
+      setIsFolderNameOverflowing(element.scrollWidth > element.clientWidth + 1);
+    };
+
+    measureOverflow();
+
+    const element = folderNameMeasureRef.current;
+    if (!element || typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', measureOverflow);
+      return () => window.removeEventListener('resize', measureOverflow);
+    }
+
+    const observer = new ResizeObserver(measureOverflow);
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, [currentFolder.name]);
+
   return (
     <div className="card bg-transparent w-full max-w-md mx-auto flex flex-col h-full">
+      <style>{`
+        @keyframes drive-browser-text-marquee {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
+        }
+      `}</style>
       <div className="card-body p-2 sm:p-6 flex flex-col overflow-hidden">
         <div className="flex items-center justify-between mb-2">
           <h3 className="card-title text-base-content text-lg font-semibold">
@@ -301,7 +336,7 @@ const DriveBrowser = ({
         </div>
 
         {/* Actions */}
-        <div className="flex justify-between mb-2">
+        <div className="flex items-center justify-between gap-2 mb-2">
           <button
             className="btn btn-xs btn-outline"
             onClick={() =>
@@ -314,10 +349,10 @@ const DriveBrowser = ({
             Unset
           </button>
 
-          <div className="flex items-center gap-2">
-            Set current:
+          <div className="flex items-center gap-2 flex-nowrap ml-auto shrink-0 min-w-0">
+            <span className="whitespace-nowrap shrink-0">Set current:</span>
             <button
-              className="btn btn-outline btn-xs btn-primary w-full max-w-[100px] justify-start overflow-hidden"
+              className="btn btn-outline btn-xs btn-primary relative w-auto max-w-[100px] justify-start overflow-hidden shrink-0"
               onClick={() =>
                 onSelectFolder({
                   folder: currentFolder,
@@ -325,9 +360,36 @@ const DriveBrowser = ({
                 })
               }
             >
-              <span className="block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-left">
+              <span
+                ref={folderNameMeasureRef}
+                aria-hidden="true"
+                className="absolute inset-0 invisible overflow-hidden whitespace-nowrap text-left"
+              >
                 {currentFolder?.name ?? 'Current'}
               </span>
+
+              {isFolderNameOverflowing ? (
+                <span className="block min-w-0 overflow-hidden whitespace-nowrap text-left">
+                  <span
+                    className="inline-flex w-max will-change-transform"
+                    style={{
+                      animation:
+                        'drive-browser-text-marquee 5s linear infinite',
+                    }}
+                  >
+                    <span className="pr-6">
+                      {currentFolder?.name ?? 'Current'}
+                    </span>
+                    <span className="pr-6">
+                      {currentFolder?.name ?? 'Current'}
+                    </span>
+                  </span>
+                </span>
+              ) : (
+                <span className="block min-w-0 truncate text-left">
+                  {currentFolder?.name ?? 'Current'}
+                </span>
+              )}
             </button>
           </div>
         </div>
