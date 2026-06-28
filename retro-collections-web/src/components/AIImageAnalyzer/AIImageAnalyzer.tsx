@@ -22,6 +22,93 @@ import { PhotoEditorModal } from './PhotoEditorModal';
 import { stripImageMetadata } from './imageEditing';
 import type { AnalyzerEngine, SuggestedResult, TagStyle } from './types';
 
+const isPreviewFileName = (name: string | null | undefined) =>
+  Boolean(name && /^Preview(\.|$)/i.test(name));
+
+const getPreviewFileName = (file: File) => {
+  const parts = file.name.split('.');
+  const extension = parts.length > 1 ? parts[parts.length - 1] : '';
+  return extension ? `Preview.${extension}` : 'Preview';
+};
+
+const splitFileName = (name: string) => {
+  const dotIndex = name.lastIndexOf('.');
+  if (dotIndex <= 0 || dotIndex === name.length - 1) {
+    return { stem: name, extension: '' };
+  }
+  return {
+    stem: name.slice(0, dotIndex),
+    extension: name.slice(dotIndex + 1),
+  };
+};
+
+const buildUniqueName = (requestedName: string, usedNames: Set<string>) => {
+  const normalizedRequestedName = requestedName.trim() || 'IMG';
+  const requestedKey = normalizedRequestedName.toLowerCase();
+
+  if (!usedNames.has(requestedKey)) {
+    usedNames.add(requestedKey);
+    return normalizedRequestedName;
+  }
+
+  const { stem, extension } = splitFileName(normalizedRequestedName);
+  let counter = 1;
+
+  while (counter < 10000) {
+    const candidateStem = `${stem}_${String(counter).padStart(3, '0')}`;
+    const candidateName = extension
+      ? `${candidateStem}.${extension}`
+      : candidateStem;
+    const candidateKey = candidateName.toLowerCase();
+
+    if (!usedNames.has(candidateKey)) {
+      usedNames.add(candidateKey);
+      return candidateName;
+    }
+
+    counter += 1;
+  }
+
+  const fallback = `${stem}_${Date.now()}`;
+  const fallbackName = extension ? `${fallback}.${extension}` : fallback;
+  usedNames.add(fallbackName.toLowerCase());
+  return fallbackName;
+};
+
+const computeDesiredDriveFileNames = (
+  imageSnapshot: Array<File | null>,
+  driveIdSnapshot: Array<string | null>,
+  driveNameSnapshot: Array<string | null>,
+  previewIndex: number
+) => {
+  const desiredNames = new Map<number, string>();
+  const usedNames = new Set<string>();
+
+  for (let index = 0; index < imageSnapshot.length; index += 1) {
+    const image = imageSnapshot[index];
+    if (!image) continue;
+
+    const driveFileId = driveIdSnapshot[index];
+    const currentDriveName = driveNameSnapshot[index] || '';
+
+    let requestedName: string;
+    if (index === previewIndex) {
+      requestedName = getPreviewFileName(image);
+    } else if (currentDriveName && !isPreviewFileName(currentDriveName)) {
+      requestedName = currentDriveName;
+    } else {
+      requestedName =
+        image.name ||
+        (driveFileId ? `IMG_${String(index + 1).padStart(3, '0')}` : 'IMG');
+    }
+
+    const uniqueName = buildUniqueName(requestedName, usedNames);
+    desiredNames.set(index, uniqueName);
+  }
+
+  return desiredNames;
+};
+
 interface AIImageAnalyzerProps {
   currentTags?: string[];
   onAnalysisSuccess: (data: {
@@ -45,7 +132,13 @@ export function AIImageAnalyzer({
   const [images, setImages] = useState<Array<File | null>>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [selectedAIIndexes, setSelectedAIIndexes] = useState<number[]>([]);
+  const [selectedPreviewIndex, setSelectedPreviewIndex] = useState<
+    number | null
+  >(null);
   const [driveFileIds, setDriveFileIds] = useState<Array<string | null>>([]);
+  const [driveFileNames, setDriveFileNames] = useState<Array<string | null>>(
+    []
+  );
   const [imageSyncStates, setImageSyncStates] = useState<
     Array<'local' | 'synced' | 'pending-upload' | 'pending-delete' | 'error'>
   >([]);
@@ -96,6 +189,11 @@ export function AIImageAnalyzer({
     if (!image) return '';
     return `${index}:${image.name}:${image.size}:${image.lastModified}`;
   };
+
+  const effectivePreviewIndex =
+    selectedPreviewIndex !== null && images[selectedPreviewIndex]
+      ? selectedPreviewIndex
+      : images.findIndex((image) => Boolean(image));
 
   const [engine, setEngine] = useState<AnalyzerEngine>('github');
 
@@ -165,6 +263,7 @@ export function AIImageAnalyzer({
 
     try {
       const previousImageCount = images.length;
+      const hasExistingLocalImage = images.some((image) => Boolean(image));
       const sanitizedFiles = await Promise.all(
         filesArray.map((file) => stripImageMetadata(file))
       );
@@ -175,10 +274,17 @@ export function AIImageAnalyzer({
       setImages((prev) => [...prev, ...sanitizedFiles]);
       setPreviews((prev) => [...prev, ...filePreviews]);
       setDriveFileIds((prev) => [...prev, ...sanitizedFiles.map(() => null)]);
+      setDriveFileNames((prev) => [...prev, ...sanitizedFiles.map(() => null)]);
       setImageSyncStates((prev) => [
         ...prev,
         ...sanitizedFiles.map(() => 'pending-upload' as const),
       ]);
+      setSelectedPreviewIndex((prev) => {
+        if (!hasExistingLocalImage && sanitizedFiles.length > 0) {
+          return previousImageCount;
+        }
+        return prev;
+      });
       setSelectedAIIndexes((prev) => {
         // Default selection: only the very first image should be selected for AI.
         if (
@@ -242,6 +348,11 @@ export function AIImageAnalyzer({
       return prev.filter((_, index) => index !== indexToRemove);
     });
 
+    setDriveFileNames((prev) => {
+      if (targetDriveFileId) return prev;
+      return prev.filter((_, index) => index !== indexToRemove);
+    });
+
     setImageSyncStates((prev) => {
       if (targetDriveFileId) {
         const next = [...prev];
@@ -267,6 +378,10 @@ export function AIImageAnalyzer({
 
       return reindexed;
     });
+
+    if (selectedPreviewIndex === indexToRemove) {
+      setSelectedPreviewIndex(null);
+    }
   };
 
   const handleToggleImageForAI = (indexToToggle: number) => {
@@ -407,23 +522,40 @@ export function AIImageAnalyzer({
     const selectedFolderId = selectedFolder?.id;
     const trimmedFolderName = debouncedFolderName.trim();
     const managedFolder = managedDriveFolderRef.current;
-
-    const hasPendingUpload = images.some(
-      (image, index) => Boolean(image) && !driveFileIds[index]
+    const desiredDriveNames = computeDesiredDriveFileNames(
+      images,
+      driveFileIds,
+      driveFileNames,
+      effectivePreviewIndex
     );
+
     const hasPendingDelete = imageSyncStates.some(
       (state, index) =>
         state === 'pending-delete' &&
         !images[index] &&
         Boolean(driveFileIds[index])
     );
+    const hasPendingNameNormalization = images.some((image, index) => {
+      if (!image) return false;
+
+      const desiredName = desiredDriveNames.get(index);
+      if (!desiredName) return false;
+
+      if (!driveFileIds[index]) {
+        return true;
+      }
+
+      const currentName = driveFileNames[index] || '';
+      return currentName !== desiredName;
+    });
     const needsFolderCreate =
       driveSyncEnabled &&
       Boolean(selectedFolderId) &&
       Boolean(trimmedFolderName) &&
       !managedFolder;
     const hasNoPendingFileWork = !needsFolderCreate;
-    const hasNoPendingImageWork = !hasPendingUpload && !hasPendingDelete;
+    const hasNoPendingImageWork =
+      !hasPendingDelete && !hasPendingNameNormalization;
 
     if (
       !driveSyncEnabled ||
@@ -478,11 +610,19 @@ export function AIImageAnalyzer({
 
           const imageSnapshot = images;
           const driveIdSnapshot = driveFileIds;
+          const driveNameSnapshot = driveFileNames;
           const syncStateSnapshot = imageSyncStates;
+          const desiredNames = computeDesiredDriveFileNames(
+            imageSnapshot,
+            driveIdSnapshot,
+            driveNameSnapshot,
+            effectivePreviewIndex
+          );
 
           for (let index = 0; index < imageSnapshot.length; index += 1) {
             const image = imageSnapshot[index];
             const imageKey = getDriveImageKey(image, index);
+            const desiredName = desiredNames.get(index);
 
             if (!image || driveIdSnapshot[index]) continue;
             if (
@@ -491,6 +631,7 @@ export function AIImageAnalyzer({
             ) {
               continue;
             }
+            if (!desiredName) continue;
 
             uploadingDriveImageKeysRef.current.add(imageKey);
 
@@ -498,6 +639,7 @@ export function AIImageAnalyzer({
               const uploadResult = await uploadFileToFolder({
                 folderId,
                 file: image as File,
+                fileName: desiredName,
               }).unwrap();
 
               uploadedDriveImageKeysRef.current.add(imageKey);
@@ -505,6 +647,12 @@ export function AIImageAnalyzer({
               setDriveFileIds((prev) => {
                 const next = [...prev];
                 next[index] = uploadResult.id;
+                return next;
+              });
+
+              setDriveFileNames((prev) => {
+                const next = [...prev];
+                next[index] = uploadResult.name;
                 return next;
               });
 
@@ -538,12 +686,34 @@ export function AIImageAnalyzer({
             });
             setImages((prev) => prev.filter((_, i) => i !== index));
             setDriveFileIds((prev) => prev.filter((_, i) => i !== index));
+            setDriveFileNames((prev) => prev.filter((_, i) => i !== index));
             setImageSyncStates((prev) => prev.filter((_, i) => i !== index));
             setSelectedAIIndexes((prev) =>
               prev
                 .filter((i) => i !== index)
                 .map((i) => (i > index ? i - 1 : i))
             );
+          }
+
+          for (let index = 0; index < imageSnapshot.length; index += 1) {
+            const image = imageSnapshot[index];
+            const driveFileId = driveIdSnapshot[index];
+            const desiredName = desiredNames.get(index);
+            if (!image || !driveFileId || !desiredName) continue;
+
+            const currentName = driveNameSnapshot[index] || '';
+            if (currentName === desiredName) continue;
+
+            const renamedFile = await renameDriveNode({
+              id: driveFileId,
+              name: desiredName,
+            }).unwrap();
+
+            setDriveFileNames((prev) => {
+              const next = [...prev];
+              next[index] = renamedFile.name;
+              return next;
+            });
           }
 
           folderName = debouncedFolderName.trim() || folderName;
@@ -563,6 +733,7 @@ export function AIImageAnalyzer({
     createDriveFolder,
     deleteDriveNode,
     driveFileIds,
+    driveFileNames,
     driveSyncEnabled,
     debouncedFolderName,
     imageSyncStates,
@@ -570,6 +741,8 @@ export function AIImageAnalyzer({
     managedDriveFolder?.id,
     managedDriveFolder?.name,
     previews,
+    renameDriveNode,
+    effectivePreviewIndex,
     selectedFolder?.id,
     uploadFileToFolder,
   ]);
@@ -681,13 +854,19 @@ export function AIImageAnalyzer({
     const firstSyncedIndex = driveFileIds.findIndex(
       (id, index) => Boolean(id) && Boolean(images[index])
     );
+    const preferredPreviewIndex =
+      effectivePreviewIndex >= 0 &&
+      driveFileIds[effectivePreviewIndex] &&
+      images[effectivePreviewIndex]
+        ? effectivePreviewIndex
+        : firstSyncedIndex;
     const fallbackPreview =
-      firstSyncedIndex >= 0 && driveFileIds[firstSyncedIndex]
+      preferredPreviewIndex >= 0 && driveFileIds[preferredPreviewIndex]
         ? {
-            id: driveFileIds[firstSyncedIndex] as string,
+            id: driveFileIds[preferredPreviewIndex] as string,
             name:
-              images[firstSyncedIndex]?.name ||
-              `IMG_${String(firstSyncedIndex).padStart(3, '0')}`,
+              images[preferredPreviewIndex]?.name ||
+              `IMG_${String(preferredPreviewIndex).padStart(3, '0')}`,
           }
         : undefined;
 
@@ -717,7 +896,9 @@ export function AIImageAnalyzer({
     setImages([]);
     setPreviews([]);
     setSelectedAIIndexes([]);
+    setSelectedPreviewIndex(null);
     setDriveFileIds([]);
+    setDriveFileNames([]);
     setImageSyncStates([]);
     setSelectedFolder(null);
     setNewFolderName('');
@@ -759,6 +940,9 @@ export function AIImageAnalyzer({
             imageSyncStates={imageSyncStates}
             newFolderName={newFolderName}
             managedFolderName={managedDriveFolder?.name ?? null}
+            selectedPreviewIndex={
+              effectivePreviewIndex >= 0 ? effectivePreviewIndex : null
+            }
             applyTitleEnabled={applyTitleEnabled}
             applyDescriptionEnabled={applyDescriptionEnabled}
             applyTagsEnabled={applyTagsEnabled}
@@ -788,6 +972,7 @@ export function AIImageAnalyzer({
             onRemovePreview={handleRemovePreview}
             selectedAIIndexes={selectedAIIndexes}
             onToggleImageForAI={handleToggleImageForAI}
+            onSetPreviewImage={setSelectedPreviewIndex}
             onFolderNameChange={setNewFolderName}
             onDriveSyncToggle={handleDriveSyncToggle}
             onApplyTitleToggle={setApplyTitleEnabled}

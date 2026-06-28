@@ -13,6 +13,7 @@ interface AnalyzerModalProps {
   >;
   newFolderName: string;
   managedFolderName: string | null;
+  selectedPreviewIndex: number | null;
   applyTitleEnabled: boolean;
   applyDescriptionEnabled: boolean;
   applyTagsEnabled: boolean;
@@ -35,6 +36,7 @@ interface AnalyzerModalProps {
   onEditPreview: (index: number) => void;
   onRemovePreview: (index: number) => void;
   onToggleImageForAI: (index: number) => void;
+  onSetPreviewImage: (index: number) => void;
   onFolderNameChange: (name: string) => void;
   onDriveSyncToggle: (enabled: boolean) => void;
   onApplyTitleToggle: (enabled: boolean) => void;
@@ -56,6 +58,7 @@ export function AnalyzerModal({
   imageSyncStates,
   newFolderName,
   managedFolderName,
+  selectedPreviewIndex,
   applyTitleEnabled,
   applyDescriptionEnabled,
   applyTagsEnabled,
@@ -78,6 +81,7 @@ export function AnalyzerModal({
   onEditPreview,
   onRemovePreview,
   onToggleImageForAI,
+  onSetPreviewImage,
   onFolderNameChange,
   onDriveSyncToggle,
   onApplyTitleToggle,
@@ -249,7 +253,7 @@ export function AnalyzerModal({
                     type="button"
                     onClick={() => onToggleImageForAI(index)}
                     disabled={isLocalMissing}
-                    className={`btn btn-circle btn-xs absolute bottom-1 left-1 min-h-0 h-7 w-7 p-0 text-[10px] leading-none ${
+                    className={`btn btn-xs absolute bottom-10 left-1 min-h-0 h-7 w-7 p-0 text-[10px] leading-none ${
                       selectedAIIndexes.includes(index)
                         ? 'btn-secondary text-white shadow-sm'
                         : 'btn-outline btn-secondary bg-base-100/90'
@@ -264,8 +268,23 @@ export function AnalyzerModal({
                     AI
                   </button>
 
+                  <button
+                    type="button"
+                    onClick={() => onSetPreviewImage(index)}
+                    disabled={isLocalMissing}
+                    className={`btn btn-xs absolute bottom-5 right-1 min-h-0 h-4 px-2 text-[10px] leading-none ${
+                      selectedPreviewIndex === index
+                        ? 'btn-success text-white'
+                        : 'btn-outline btn-success bg-base-100/90'
+                    }`}
+                    aria-label={`Set photo ${index + 1} as preview image`}
+                    title="Set as preview image"
+                  >
+                    Preview
+                  </button>
+
                   <span
-                    className={`badge badge-xs absolute bottom-1 right-1 gap-1 ${syncTone}`}
+                    className={`badge badge-xs absolute bottom-0 right-1 gap-1 ${syncTone}`}
                   >
                     {renderSyncIcon(syncIconState)}
                     <span>{syncLabel}</span>
