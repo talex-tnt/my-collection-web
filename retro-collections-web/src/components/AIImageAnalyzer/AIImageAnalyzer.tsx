@@ -832,11 +832,15 @@ export function AIImageAnalyzer({
   };
 
   const handleApplySuggested = () => {
-    const hasSuggestedResult = Boolean(suggestedResult);
-    const shouldApplyTitle = applyTitleEnabled && hasSuggestedResult;
+    const suggestedTitle = suggestedResult?.suggestedTitle?.trim() || '';
+    const suggestedDescription = suggestedResult?.descriptionEn?.trim() || '';
+    const suggestedTags = (suggestedResult?.productTags || []).filter(Boolean);
+    const resolvedTitle = newFolderName.trim() || suggestedTitle;
+
+    const shouldApplyTitle = applyTitleEnabled && Boolean(resolvedTitle);
     const shouldApplyDescription =
-      applyDescriptionEnabled && hasSuggestedResult;
-    const shouldApplyTags = applyTagsEnabled && hasSuggestedResult;
+      applyDescriptionEnabled && Boolean(suggestedDescription);
+    const shouldApplyTags = applyTagsEnabled && suggestedTags.length > 0;
     const shouldApplyFolder = applyFolderEnabled && Boolean(managedDriveFolder);
 
     if (
@@ -849,8 +853,6 @@ export function AIImageAnalyzer({
       return;
     }
 
-    const resolvedTitle =
-      newFolderName.trim() || suggestedResult?.suggestedTitle?.trim() || '';
     const firstSyncedIndex = driveFileIds.findIndex(
       (id, index) => Boolean(id) && Boolean(images[index])
     );
@@ -872,12 +874,8 @@ export function AIImageAnalyzer({
 
     _onAnalysisSuccess({
       title: shouldApplyTitle ? resolvedTitle : undefined,
-      description: shouldApplyDescription
-        ? suggestedResult?.descriptionEn || ''
-        : undefined,
-      tags: shouldApplyTags
-        ? suggestedResult?.productTags || currentTags
-        : undefined,
+      description: shouldApplyDescription ? suggestedDescription : undefined,
+      tags: shouldApplyTags ? suggestedTags : undefined,
       uploadedFolderId: shouldApplyFolder
         ? {
             id: managedDriveFolder?.id || '',
@@ -951,18 +949,9 @@ export function AIImageAnalyzer({
             suggestedResult={suggestedResult}
             errorMessage={errorMessage}
             isAnalyzing={isAnalyzing}
-            isUploading={isSyncingDrive}
             globalLoading={globalLoading}
             driveSyncEnabled={driveSyncEnabled}
             isSyncingDrive={isSyncingDrive}
-            folderSyncStatus={
-              !driveSyncEnabled
-                ? 'off'
-                : managedDriveFolder &&
-                    managedDriveFolder.name === newFolderName.trim()
-                  ? 'synced'
-                  : 'pending'
-            }
             styleMap={styleMap}
             fallbackTagStyle={fallbackTagStyle}
             onClose={handleCloseModal}

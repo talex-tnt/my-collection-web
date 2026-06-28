@@ -23,11 +23,9 @@ interface AnalyzerModalProps {
   suggestedResult: SuggestedResult | null;
   errorMessage: string | null;
   isAnalyzing: boolean;
-  isUploading: boolean;
   globalLoading: boolean;
   driveSyncEnabled: boolean;
   isSyncingDrive: boolean;
-  folderSyncStatus: 'off' | 'pending' | 'synced';
   styleMap: Record<string, TagStyle>;
   fallbackTagStyle: TagStyle;
   onClose: () => void;
@@ -68,11 +66,9 @@ export function AnalyzerModal({
   suggestedResult,
   errorMessage,
   isAnalyzing,
-  isUploading,
   globalLoading,
   driveSyncEnabled,
   isSyncingDrive,
-  folderSyncStatus,
   styleMap,
   fallbackTagStyle,
   onClose,
@@ -102,6 +98,10 @@ export function AnalyzerModal({
   const folderNamesMatch =
     Boolean(normalizedManagedFolderName) &&
     normalizedManagedFolderName === normalizedLocalFolderName;
+  let folderSyncStatus: 'off' | 'pending' | 'synced' = 'off';
+  if (driveSyncEnabled) {
+    folderSyncStatus = folderNamesMatch ? 'synced' : 'pending';
+  }
 
   const renderSyncIcon = (status: 'synced' | 'pending' | 'updating') => {
     if (status === 'synced') {
@@ -582,7 +582,7 @@ export function AnalyzerModal({
                 type="button"
                 className="btn btn-sm btn-ghost"
                 onClick={onDiscardSuggested}
-                disabled={isUploading || isAnalyzing}
+                disabled={isSyncingDrive || isAnalyzing}
               >
                 Discard AI Result
               </button>
@@ -595,7 +595,7 @@ export function AnalyzerModal({
             type="button"
             className="btn btn-sm btn-success w-full"
             onClick={onApplySuggested}
-            disabled={isUploading || isAnalyzing}
+            disabled={isSyncingDrive || isAnalyzing}
           >
             Apply and Close
           </button>
