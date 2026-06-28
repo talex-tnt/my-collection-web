@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Cropper, { type Area } from 'react-easy-crop';
 import 'react-easy-crop/react-easy-crop.css';
+import { createPortal } from 'react-dom';
 import { createEditedImageFile } from './imageEditing';
 
 interface PhotoEditorModalProps {
@@ -37,8 +38,50 @@ export function PhotoEditorModal({
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [browserZoomScale, setBrowserZoomScale] = useState(1);
 
   const activeAspect = useMemo(() => aspect, [aspect]);
+  const isBrowserZoomAbove100 = browserZoomScale > 1.01;
+
+  useEffect(() => {
+    const detectBrowserZoomScale = () => {
+      const visualViewportScale = window.visualViewport?.scale;
+
+      if (visualViewportScale && Number.isFinite(visualViewportScale)) {
+        return visualViewportScale;
+      }
+
+      const outerInnerRatio = window.outerWidth / window.innerWidth;
+      if (Number.isFinite(outerInnerRatio) && outerInnerRatio > 0) {
+        return outerInnerRatio;
+      }
+
+      return 1;
+    };
+
+    const updateBrowserZoomScale = () => {
+      setBrowserZoomScale(detectBrowserZoomScale());
+    };
+
+    updateBrowserZoomScale();
+
+    window.addEventListener('resize', updateBrowserZoomScale);
+    window.visualViewport?.addEventListener('resize', updateBrowserZoomScale);
+
+    return () => {
+      window.removeEventListener('resize', updateBrowserZoomScale);
+      window.visualViewport?.removeEventListener(
+        'resize',
+        updateBrowserZoomScale
+      );
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isBrowserZoomAbove100 && zoom !== 1) {
+      setZoom(1);
+    }
+  }, [isBrowserZoomAbove100, zoom]);
 
   const handleReset = () => {
     setCrop({ x: 0, y: 0 });
@@ -82,10 +125,21 @@ export function PhotoEditorModal({
     }
   };
 
-  return (
-    <div className="modal modal-open fixed inset-0 z-[10050] bg-black/80">
-      <div className="h-full w-full flex flex-col bg-base-100">
-        <div className="flex items-center justify-between p-3 border-b border-base-300">
+  return createPortal(
+    <div className="modal modal-open fixed inset-0 z-[110000] bg-black/80">
+      <div className="relative h-full w-full flex flex-col bg-base-100 overflow-y-auto">
+        <button
+          type="button"
+          className="btn btn-circle btn-sm btn-ghost fixed right-2 top-2 z-[110010]"
+          onClick={onCancel}
+          disabled={isSaving}
+          aria-label="Close photo editor"
+          title="Close"
+        >
+          ✕
+        </button>
+
+        <div className="sticky top-0 z-20 flex items-center justify-between p-3 pr-12 border-b border-base-300 bg-base-100">
           <button
             type="button"
             className="btn btn-sm btn-ghost"
@@ -105,7 +159,12 @@ export function PhotoEditorModal({
           </button>
         </div>
 
-        <div className="relative flex-1 bg-black">
+        <div
+          className={`relative flex-1 min-h-[40vh] bg-black ${
+            isBrowserZoomAbove100 ? 'pointer-events-none' : ''
+          }`}
+          style={{ touchAction: isBrowserZoomAbove100 ? 'pinch-zoom' : 'none' }}
+        >
           <Cropper
             image={imageSrc}
             crop={crop}
@@ -113,16 +172,21 @@ export function PhotoEditorModal({
             rotation={rotation}
             aspect={activeAspect}
             minZoom={1}
-            maxZoom={4}
+            maxZoom={isBrowserZoomAbove100 ? 1 : 4}
+            zoomWithScroll={!isBrowserZoomAbove100}
             showGrid={true}
             onCropChange={setCrop}
-            onZoomChange={setZoom}
+            onZoomChange={(nextZoom) => {
+              if (!isBrowserZoomAbove100) {
+                setZoom(nextZoom);
+              }
+            }}
             onRotationChange={setRotation}
             onCropComplete={(_, areaPixels) => setCroppedAreaPixels(areaPixels)}
           />
         </div>
 
-        <div className="p-3 space-y-3 border-t border-base-300 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
+        <div className="sticky bottom-0 z-20 p-3 space-y-3 border-t border-base-300 bg-base-100 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
           <div className="grid grid-cols-3 gap-2">
             <button
               type="button"
@@ -174,9 +238,20 @@ export function PhotoEditorModal({
               value={zoom}
               onChange={(e) => setZoom(Number(e.target.value))}
               className="range range-primary range-sm mt-1"
-              disabled={isSaving}
+              disabled={isSaving || isBrowserZoomAbove100}
             />
           </label>
+
+          {isBrowserZoomAbove100 && (
+            <p className="text-[11px] opacity-65">
+              Image zoom is disabled while browser zoom is above 100%. Pinch or
+              zoom out the page to re-enable it.
+            </p>
+          )}
+
+          <p className="text-[11px] opacity-55">
+            Browser zoom shortcut: Cmd+0 to reset page zoom.
+          </p>
 
           <label className="text-xs font-medium block">
             Rotation
@@ -197,6 +272,7 @@ export function PhotoEditorModal({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
