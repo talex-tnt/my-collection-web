@@ -25,9 +25,9 @@ import type { AnalyzerEngine, SuggestedResult, TagStyle } from './types';
 interface AIImageAnalyzerProps {
   currentTags?: string[];
   onAnalysisSuccess: (data: {
-    title: string;
-    description: string;
-    tags: string[];
+    title?: string;
+    description?: string;
+    tags?: string[];
     uploadedFolderId?: { id: string; name: string };
     fallbackPreview?: { id: string; name: string };
   }) => void;
@@ -120,6 +120,10 @@ export function AIImageAnalyzer({
 
   const [suggestedResult, setSuggestedResult] =
     useState<SuggestedResult | null>(null);
+  const [applyTitleEnabled, setApplyTitleEnabled] = useState(true);
+  const [applyDescriptionEnabled, setApplyDescriptionEnabled] = useState(true);
+  const [applyTagsEnabled, setApplyTagsEnabled] = useState(true);
+  const [applyFolderEnabled, setApplyFolderEnabled] = useState(true);
 
   const styleMap = userTags.reduce<Record<string, TagStyle>>((acc, t) => {
     acc[t.id] = {
@@ -542,30 +546,7 @@ export function AIImageAnalyzer({
             );
           }
 
-          const syncedFolderName = debouncedFolderName.trim() || folderName;
-          const firstSyncedIndex = driveIdSnapshot.findIndex(
-            (id, index) => Boolean(id) && Boolean(imageSnapshot[index])
-          );
-          const fallbackPreview =
-            firstSyncedIndex >= 0 && driveIdSnapshot[firstSyncedIndex]
-              ? {
-                  id: driveIdSnapshot[firstSyncedIndex] as string,
-                  name:
-                    imageSnapshot[firstSyncedIndex]?.name ||
-                    `IMG_${String(firstSyncedIndex).padStart(3, '0')}`,
-                }
-              : undefined;
-
-          _onAnalysisSuccess({
-            title: syncedFolderName,
-            description: suggestedResult?.descriptionEn || '',
-            tags: suggestedResult?.productTags || currentTags,
-            uploadedFolderId: {
-              id: folderId,
-              name: syncedFolderName,
-            },
-            fallbackPreview,
-          });
+          folderName = debouncedFolderName.trim() || folderName;
         } while (driveSyncQueuedRef.current);
       } catch (error) {
         parseAndSetError(error);
@@ -579,9 +560,7 @@ export function AIImageAnalyzer({
 
     return undefined;
   }, [
-    _onAnalysisSuccess,
     createDriveFolder,
-    currentTags,
     deleteDriveNode,
     driveFileIds,
     driveSyncEnabled,
@@ -592,8 +571,6 @@ export function AIImageAnalyzer({
     managedDriveFolder?.name,
     previews,
     selectedFolder?.id,
-    suggestedResult?.descriptionEn,
-    suggestedResult?.productTags,
     uploadFileToFolder,
   ]);
 
@@ -682,10 +659,25 @@ export function AIImageAnalyzer({
   };
 
   const handleApplySuggested = () => {
-    if (!suggestedResult) return;
+    const hasSuggestedResult = Boolean(suggestedResult);
+    const shouldApplyTitle = applyTitleEnabled && hasSuggestedResult;
+    const shouldApplyDescription =
+      applyDescriptionEnabled && hasSuggestedResult;
+    const shouldApplyTags = applyTagsEnabled && hasSuggestedResult;
+    const shouldApplyFolder = applyFolderEnabled && Boolean(managedDriveFolder);
+
+    if (
+      !shouldApplyTitle &&
+      !shouldApplyDescription &&
+      !shouldApplyTags &&
+      !shouldApplyFolder
+    ) {
+      setErrorMessage('Enable at least one Apply toggle before applying.');
+      return;
+    }
 
     const resolvedTitle =
-      newFolderName.trim() || suggestedResult.suggestedTitle?.trim() || '';
+      newFolderName.trim() || suggestedResult?.suggestedTitle?.trim() || '';
     const firstSyncedIndex = driveFileIds.findIndex(
       (id, index) => Boolean(id) && Boolean(images[index])
     );
@@ -700,16 +692,20 @@ export function AIImageAnalyzer({
         : undefined;
 
     _onAnalysisSuccess({
-      title: resolvedTitle,
-      description: suggestedResult.descriptionEn || '',
-      tags: suggestedResult.productTags || currentTags,
-      uploadedFolderId: managedDriveFolder
+      title: shouldApplyTitle ? resolvedTitle : undefined,
+      description: shouldApplyDescription
+        ? suggestedResult?.descriptionEn || ''
+        : undefined,
+      tags: shouldApplyTags
+        ? suggestedResult?.productTags || currentTags
+        : undefined,
+      uploadedFolderId: shouldApplyFolder
         ? {
-            id: managedDriveFolder.id,
-            name: managedDriveFolder.name,
+            id: managedDriveFolder?.id || '',
+            name: managedDriveFolder?.name || '',
           }
         : undefined,
-      fallbackPreview,
+      fallbackPreview: shouldApplyFolder ? fallbackPreview : undefined,
     });
 
     handleCloseModal();
@@ -729,6 +725,10 @@ export function AIImageAnalyzer({
     setManagedDriveFolder(null);
     setIsSyncingDrive(false);
     setHasConfirmedDriveSync(false);
+    setApplyTitleEnabled(true);
+    setApplyDescriptionEnabled(true);
+    setApplyTagsEnabled(true);
+    setApplyFolderEnabled(true);
     uploadedDriveImageKeysRef.current.clear();
     uploadingDriveImageKeysRef.current.clear();
     setEditingIndex(null);
@@ -759,6 +759,10 @@ export function AIImageAnalyzer({
             imageSyncStates={imageSyncStates}
             newFolderName={newFolderName}
             managedFolderName={managedDriveFolder?.name ?? null}
+            applyTitleEnabled={applyTitleEnabled}
+            applyDescriptionEnabled={applyDescriptionEnabled}
+            applyTagsEnabled={applyTagsEnabled}
+            applyFolderEnabled={applyFolderEnabled}
             engine={engine}
             suggestedResult={suggestedResult}
             errorMessage={errorMessage}
@@ -786,6 +790,10 @@ export function AIImageAnalyzer({
             onToggleImageForAI={handleToggleImageForAI}
             onFolderNameChange={setNewFolderName}
             onDriveSyncToggle={handleDriveSyncToggle}
+            onApplyTitleToggle={setApplyTitleEnabled}
+            onApplyDescriptionToggle={setApplyDescriptionEnabled}
+            onApplyTagsToggle={setApplyTagsEnabled}
+            onApplyFolderToggle={setApplyFolderEnabled}
             onEngineChange={setEngine}
             onAnalyze={handleAnalyze}
             onApplySuggested={handleApplySuggested}

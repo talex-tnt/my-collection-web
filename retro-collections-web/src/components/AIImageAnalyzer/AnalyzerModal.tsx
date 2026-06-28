@@ -13,6 +13,10 @@ interface AnalyzerModalProps {
   >;
   newFolderName: string;
   managedFolderName: string | null;
+  applyTitleEnabled: boolean;
+  applyDescriptionEnabled: boolean;
+  applyTagsEnabled: boolean;
+  applyFolderEnabled: boolean;
   selectedAIIndexes: number[];
   engine: AnalyzerEngine;
   suggestedResult: SuggestedResult | null;
@@ -33,6 +37,10 @@ interface AnalyzerModalProps {
   onToggleImageForAI: (index: number) => void;
   onFolderNameChange: (name: string) => void;
   onDriveSyncToggle: (enabled: boolean) => void;
+  onApplyTitleToggle: (enabled: boolean) => void;
+  onApplyDescriptionToggle: (enabled: boolean) => void;
+  onApplyTagsToggle: (enabled: boolean) => void;
+  onApplyFolderToggle: (enabled: boolean) => void;
   onEngineChange: (engine: AnalyzerEngine) => void;
   onAnalyze: () => void;
   onApplySuggested: () => void;
@@ -48,6 +56,10 @@ export function AnalyzerModal({
   imageSyncStates,
   newFolderName,
   managedFolderName,
+  applyTitleEnabled,
+  applyDescriptionEnabled,
+  applyTagsEnabled,
+  applyFolderEnabled,
   selectedAIIndexes,
   engine,
   suggestedResult,
@@ -68,6 +80,10 @@ export function AnalyzerModal({
   onToggleImageForAI,
   onFolderNameChange,
   onDriveSyncToggle,
+  onApplyTitleToggle,
+  onApplyDescriptionToggle,
+  onApplyTagsToggle,
+  onApplyFolderToggle,
   onEngineChange,
   onAnalyze,
   onApplySuggested,
@@ -337,7 +353,7 @@ export function AnalyzerModal({
                   <span className="text-xs font-medium">Drive Sync</span>
                   <input
                     type="checkbox"
-                    className="toggle toggle-sm"
+                    className={`toggle toggle-sm ${driveSyncEnabled ? 'toggle-success' : ''}`}
                     checked={driveSyncEnabled}
                     onChange={(e) => onDriveSyncToggle(e.target.checked)}
                     disabled={
@@ -345,6 +361,16 @@ export function AnalyzerModal({
                       !selectedFolder ||
                       !normalizedLocalFolderName
                     }
+                  />
+                </label>
+                <label className="label cursor-pointer gap-2 p-0">
+                  <span className="text-xs opacity-80">Apply Image Folder</span>
+                  <input
+                    type="checkbox"
+                    className={`toggle toggle-xs ${applyFolderEnabled ? 'toggle-success' : ''}`}
+                    checked={applyFolderEnabled}
+                    onChange={(e) => onApplyFolderToggle(e.target.checked)}
+                    disabled={!normalizedManagedFolderName}
                   />
                 </label>
                 <span
@@ -382,6 +408,38 @@ export function AnalyzerModal({
               <span className="label-text font-semibold text-xs opacity-80">
                 3. AI Suggestions Section (optional)
               </span>
+              <div className="grid grid-cols-3 gap-2 text-[11px] bg-base-100/70 border border-base-300 rounded-md px-2 py-2">
+                <label className="label cursor-pointer justify-between p-0 gap-2">
+                  <span>Title</span>
+                  <input
+                    type="checkbox"
+                    className={`checkbox checkbox-xs ${applyTitleEnabled ? 'checkbox-success' : ''}`}
+                    checked={applyTitleEnabled}
+                    onChange={(e) => onApplyTitleToggle(e.target.checked)}
+                    disabled={!suggestedResult}
+                  />
+                </label>
+                <label className="label cursor-pointer justify-between p-0 gap-2">
+                  <span>Description</span>
+                  <input
+                    type="checkbox"
+                    className={`checkbox checkbox-xs ${applyDescriptionEnabled ? 'checkbox-success' : ''}`}
+                    checked={applyDescriptionEnabled}
+                    onChange={(e) => onApplyDescriptionToggle(e.target.checked)}
+                    disabled={!suggestedResult}
+                  />
+                </label>
+                <label className="label cursor-pointer justify-between p-0 gap-2">
+                  <span>Tags</span>
+                  <input
+                    type="checkbox"
+                    className={`checkbox checkbox-xs ${applyTagsEnabled ? 'checkbox-success' : ''}`}
+                    checked={applyTagsEnabled}
+                    onChange={(e) => onApplyTagsToggle(e.target.checked)}
+                    disabled={!suggestedResult}
+                  />
+                </label>
+              </div>
               <div className="flex gap-2">
                 <select
                   className="select select-bordered select-sm flex-1 font-medium"
@@ -503,14 +561,6 @@ export function AnalyzerModal({
             <div className="flex flex-col gap-2 pt-2 border-t border-base-200">
               <button
                 type="button"
-                className="btn btn-sm btn-success"
-                onClick={onApplySuggested}
-                disabled={isUploading || isAnalyzing}
-              >
-                Apply Suggestions and Close
-              </button>
-              <button
-                type="button"
                 className="btn btn-sm btn-ghost"
                 onClick={onDiscardSuggested}
                 disabled={isUploading || isAnalyzing}
@@ -519,6 +569,17 @@ export function AnalyzerModal({
               </button>
             </div>
           </div>
+        )}
+
+        {activeImagesCount > 0 && (
+          <button
+            type="button"
+            className="btn btn-sm btn-success w-full"
+            onClick={onApplySuggested}
+            disabled={isUploading || isAnalyzing}
+          >
+            Apply and Close
+          </button>
         )}
       </div>
     </div>

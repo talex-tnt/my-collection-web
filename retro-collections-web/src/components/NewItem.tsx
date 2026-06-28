@@ -83,19 +83,26 @@ function NewItem({
   const [createPublicUserTag] = useCreatePublicUserTagMutation();
 
   const handleApplyAISuggestions = (suggestions: {
-    title: string;
-    description: string;
-    tags: string[];
+    title?: string;
+    description?: string;
+    tags?: string[];
     uploadedFolderId?: { id: string; name: string };
     fallbackPreview?: { id: string; name: string };
   }) => {
-    setName(suggestions.title);
-    setDescription(suggestions.description);
+    if (typeof suggestions.title === 'string') {
+      setName(suggestions.title);
+    }
 
-    const mergedTags = Array.from(
-      new Set([...selectedTags, ...suggestions.tags])
-    );
-    setSelectedTags(mergedTags);
+    if (typeof suggestions.description === 'string') {
+      setDescription(suggestions.description);
+    }
+
+    if (Array.isArray(suggestions.tags)) {
+      const mergedTags = Array.from(
+        new Set([...selectedTags, ...suggestions.tags])
+      );
+      setSelectedTags(mergedTags);
+    }
 
     if (suggestions.uploadedFolderId) {
       setImageFolder(suggestions.uploadedFolderId);
