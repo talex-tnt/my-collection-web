@@ -14,6 +14,7 @@ type ListFilesResponse = {
     id: string;
     name: string;
     mimeType: string;
+    modifiedTime?: string;
     thumbnailLink?: string;
     parents?: string[];
   }>;
@@ -72,7 +73,7 @@ export const driveApi = createApi({
             query ??
             (folderId ? `'${folderId}' in parents` : "'root' in parents"),
           fields:
-            'files(id,name,mimeType,thumbnailLink,webContentLink,parents)',
+            'files(id,name,mimeType,modifiedTime,thumbnailLink,webContentLink,parents)',
         },
       }),
     }),

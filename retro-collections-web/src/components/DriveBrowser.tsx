@@ -34,8 +34,11 @@ type DriveNode = {
   name: string;
   mimeType: string;
   thumbnailLink?: string;
+  modifiedTime?: string;
   parents?: string[];
 };
+
+type FolderSortMode = 'name-asc' | 'name-desc' | 'updated-asc' | 'updated-desc';
 
 const isPreviewFileName = (name: string | null | undefined) =>
   Boolean(name && /^Preview(\.|$)/i.test(name));
@@ -90,6 +93,21 @@ const getPreviewFileName = (name: string) => {
   return extension ? `Preview.${extension}` : 'Preview';
 };
 
+const formatFolderModifiedAt = (modifiedTime?: string) => {
+  if (!modifiedTime) return 'No update data';
+
+  const parsedDate = new Date(modifiedTime);
+  if (Number.isNaN(parsedDate.getTime())) return 'No update data';
+
+  return new Intl.DateTimeFormat(undefined, {
+    year: '2-digit',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(parsedDate);
+};
+
 type DriveBrowserProps = {
   onSelectFolder: (data: { folder: FolderType; files: FileType[] }) => void;
   selectedFolder?: FolderType;
@@ -109,6 +127,8 @@ const DriveBrowser = ({
   const folderNameMeasureRef = useRef<HTMLSpanElement | null>(null);
   const uploadInputId = useId();
   const [isFolderNameOverflowing, setIsFolderNameOverflowing] = useState(false);
+  const [folderSortMode, setFolderSortMode] =
+    useState<FolderSortMode>('name-asc');
   const [operationError, setOperationError] = useState<string | null>(null);
   const [operationNotice, setOperationNotice] = useState<string | null>(null);
   const [editingImage, setEditingImage] = useState<{
@@ -152,11 +172,28 @@ const DriveBrowser = ({
     .filter(
       (f: DriveNode) => f.mimeType === 'application/vnd.google-apps.folder'
     )
-    .sort((a: DriveNode, b: DriveNode) =>
-      (a.name || '').localeCompare(b.name || '', undefined, {
-        sensitivity: 'base',
-      })
-    );
+    .sort((a: DriveNode, b: DriveNode) => {
+      if (folderSortMode === 'name-asc') {
+        return (a.name || '').localeCompare(b.name || '', undefined, {
+          sensitivity: 'base',
+        });
+      }
+
+      if (folderSortMode === 'name-desc') {
+        return (b.name || '').localeCompare(a.name || '', undefined, {
+          sensitivity: 'base',
+        });
+      }
+
+      const aUpdatedAt = a.modifiedTime ? Date.parse(a.modifiedTime) : 0;
+      const bUpdatedAt = b.modifiedTime ? Date.parse(b.modifiedTime) : 0;
+
+      if (folderSortMode === 'updated-asc') {
+        return aUpdatedAt - bUpdatedAt;
+      }
+
+      return bUpdatedAt - aUpdatedAt;
+    });
   const {
     filterText: folderFilter,
     setFilterText: setFolderFilter,
@@ -172,6 +209,8 @@ const DriveBrowser = ({
     getLabel: (folder) => folder.name || '',
     getKey: (folder) => folder.id || folder.name || '',
   });
+
+  const useGroupedView = groupByPrefix && folderSortMode === 'name-asc';
 
   const images = files.filter((f: DriveNode) =>
     f.mimeType.startsWith('image/')
@@ -574,29 +613,22 @@ const DriveBrowser = ({
               className="toggle toggle-xs"
               checked={groupByPrefix}
               onChange={(e) => setGroupByPrefix(e.target.checked)}
+              disabled={folderSortMode !== 'name-asc'}
             />
           </label>
 
-          <label
-            htmlFor={uploadInputId}
-            className={`btn btn-xs btn-outline gap-1 ${
-              !currentFolder?.id || isMutating
-                ? 'pointer-events-none opacity-50'
-                : ''
-            }`}
+          <select
+            className="select select-bordered select-xs h-6 min-h-0 w-24 px-1 text-[10px] shrink-0"
+            value={folderSortMode}
+            onChange={(e) =>
+              setFolderSortMode(e.target.value as FolderSortMode)
+            }
           >
-            <FiUpload className="w-3.5 h-3.5" />
-            Upload
-          </label>
-          <input
-            id={uploadInputId}
-            type="file"
-            accept="image/*"
-            multiple
-            className="sr-only"
-            onChange={handleUploadImages}
-            disabled={!currentFolder?.id || isMutating}
-          />
+            <option value="name-asc">Name A-Z</option>
+            <option value="name-desc">Name Z-A</option>
+            <option value="updated-asc">Updated oldest</option>
+            <option value="updated-desc">Updated newest</option>
+          </select>
         </div>
 
         {operationError && (
@@ -620,7 +652,7 @@ const DriveBrowser = ({
 
         <div className="mb-4 rounded-lg border border-base-200 bg-base-100/60 p-2 max-h-[60vh] sm:max-h-[40vh] overflow-y-auto">
           {filteredFolders.length > 0 ? (
-            groupByPrefix ? (
+            useGroupedView ? (
               <div className="space-y-2">
                 {groupedEntries.map((group) => {
                   const isExpanded = expandedGroups[group.groupLabel] || false;
@@ -659,8 +691,15 @@ const DriveBrowser = ({
                                   className="w-4 h-4 min-w-[16px] min-h-[16px] mr-2"
                                   strokeWidth={1.5}
                                 />
-                                <span className="text-left">
-                                  {entry.childLabel}
+                                <span className="text-left leading-tight">
+                                  <span className="block">
+                                    {entry.childLabel}
+                                  </span>
+                                  <span className="block text-[9px] opacity-50">
+                                    {formatFolderModifiedAt(
+                                      (entry.item as DriveNode).modifiedTime
+                                    )}
+                                  </span>
                                 </span>
                               </button>
                               <div className="flex items-center gap-1">
@@ -711,7 +750,14 @@ const DriveBrowser = ({
                             className="w-4 h-4 min-w-[16px] min-h-[16px] mr-2"
                             strokeWidth={1.5}
                           />
-                          <span className="text-left">{folder.name}</span>
+                          <span className="text-left leading-tight">
+                            <span className="block">{folder.name}</span>
+                            <span className="block text-[9px] opacity-50">
+                              {formatFolderModifiedAt(
+                                (folder as DriveNode).modifiedTime
+                              )}
+                            </span>
+                          </span>
                         </button>
                         <div className="flex items-center gap-1">
                           <button
@@ -758,7 +804,14 @@ const DriveBrowser = ({
                         className="w-4 h-4 min-w-[16px] min-h-[16px] mr-2"
                         strokeWidth={1.5}
                       />
-                      <span className="text-left">{folder.name}</span>
+                      <span className="text-left leading-tight">
+                        <span className="block">{folder.name}</span>
+                        <span className="block text-[9px] opacity-50">
+                          {formatFolderModifiedAt(
+                            (folder as DriveNode).modifiedTime
+                          )}
+                        </span>
+                      </span>
                     </button>
                     <div className="flex items-center gap-1">
                       <button
@@ -869,17 +922,40 @@ const DriveBrowser = ({
 
         {/* Actions */}
         <div className="flex items-center justify-between gap-2 mb-2">
-          <button
-            className="btn btn-xs btn-outline"
-            onClick={() =>
-              onSelectFolder({
-                folder: { id: '', name: '' },
-                files: [],
-              })
-            }
-          >
-            Unset
-          </button>
+          <div className="flex items-center gap-2">
+            <label
+              htmlFor={uploadInputId}
+              className={`btn btn-xs btn-outline gap-1 ${
+                !currentFolder?.id || isMutating
+                  ? 'pointer-events-none opacity-50'
+                  : ''
+              }`}
+            >
+              <FiUpload className="w-3.5 h-3.5" />
+              Upload
+            </label>
+            <input
+              id={uploadInputId}
+              type="file"
+              accept="image/*"
+              multiple
+              className="sr-only"
+              onChange={handleUploadImages}
+              disabled={!currentFolder?.id || isMutating}
+            />
+
+            <button
+              className="btn btn-xs btn-outline"
+              onClick={() =>
+                onSelectFolder({
+                  folder: { id: '', name: '' },
+                  files: [],
+                })
+              }
+            >
+              Unset
+            </button>
+          </div>
 
           <div className="flex items-center gap-2 flex-nowrap ml-auto shrink-0 min-w-0">
             <span className="whitespace-nowrap shrink-0">Set current:</span>

@@ -28,7 +28,7 @@ function DriveFolderModal({
       <div className="bg-base-100 rounded-lg shadow-lg h-full sm:h-auto w-full sm:w-auto p-4 sm:p-6 relative min-w-[320px] max-w-full sm:max-w-[90vw] max-h-full sm:max-h-[80vh] overflow-auto border border-base-200">
         <button
           type="button"
-          className="absolute top-2 right-2 btn btn-xs btn-circle z-[99999]"
+          className="absolute top-2 right-2 btn btn-xs btn-circle z-[10049]"
           onClick={onClose}
         >
           ✕
