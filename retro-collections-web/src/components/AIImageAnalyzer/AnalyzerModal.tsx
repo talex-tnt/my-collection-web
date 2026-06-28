@@ -253,10 +253,10 @@ export function AnalyzerModal({
                     type="button"
                     onClick={() => onToggleImageForAI(index)}
                     disabled={isLocalMissing}
-                    className={`btn btn-xs absolute bottom-10 left-1 min-h-0 h-7 w-7 p-0 text-[10px] leading-none ${
+                    className={`btn btn-xs btn-primary absolute bottom-10 left-1 min-h-0 h-7 w-7 p-0 text-[10px] leading-none ${
                       selectedAIIndexes.includes(index)
-                        ? 'btn-secondary text-white shadow-sm'
-                        : 'btn-outline btn-secondary bg-base-100/90'
+                        ? 'text-white shadow-sm'
+                        : 'btn-outline bg-base-100/90'
                     }`}
                     aria-label={`${selectedAIIndexes.includes(index) ? 'Remove' : 'Add'} photo ${index + 1} ${selectedAIIndexes.includes(index) ? 'from' : 'to'} AI selection`}
                     title={
