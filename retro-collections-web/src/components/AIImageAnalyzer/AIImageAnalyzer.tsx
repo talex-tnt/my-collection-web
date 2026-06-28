@@ -22,6 +22,9 @@ import { PhotoEditorModal } from './PhotoEditorModal';
 import { stripImageMetadata } from './imageEditing';
 import type { AnalyzerEngine, SuggestedResult, TagStyle } from './types';
 
+const DRIVE_FOLDER_NAME_CONFLICT_ERROR =
+  'A folder with this name already exists in the selected Drive folder. Choose a unique folder name before syncing.';
+
 const isPreviewFileName = (name: string | null | undefined) =>
   Boolean(name && /^Preview(\.|$)/i.test(name));
 
@@ -143,6 +146,8 @@ export function AIImageAnalyzer({
     Array<'local' | 'synced' | 'pending-upload' | 'pending-delete' | 'error'>
   >([]);
   const [selectedFolder, setSelectedFolder] = useState<FolderType | null>(null);
+  const [selectedFolderChildFolderNames, setSelectedFolderChildFolderNames] =
+    useState<string[]>([]);
   const [newFolderName, setNewFolderName] = useState('');
   const [debouncedFolderName, setDebouncedFolderName] = useState('');
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -222,6 +227,18 @@ export function AIImageAnalyzer({
   const [applyDescriptionEnabled, setApplyDescriptionEnabled] = useState(true);
   const [applyTagsEnabled, setApplyTagsEnabled] = useState(true);
   const [applyFolderEnabled, setApplyFolderEnabled] = useState(true);
+
+  const normalizedRequestedFolderName = newFolderName.trim().toLowerCase();
+  const normalizedManagedFolderName =
+    managedDriveFolder?.name?.trim().toLowerCase() || '';
+  const hasFolderNameConflict =
+    Boolean(selectedFolder?.id) &&
+    Boolean(normalizedRequestedFolderName) &&
+    selectedFolderChildFolderNames.some(
+      (name) =>
+        name === normalizedRequestedFolderName &&
+        name !== normalizedManagedFolderName
+    );
 
   const styleMap = userTags.reduce<Record<string, TagStyle>>((acc, t) => {
     acc[t.id] = {
@@ -447,9 +464,43 @@ export function AIImageAnalyzer({
     files: FileType[];
   }) => {
     if (data.folder?.id) {
+      const siblingFolderNames = Array.from(
+        new Set(
+          data.files
+            .filter(
+              (file) =>
+                (file as { mimeType?: string }).mimeType ===
+                'application/vnd.google-apps.folder'
+            )
+            .map((file) => (file.name || '').trim().toLowerCase())
+            .filter(Boolean)
+        )
+      );
+
       setErrorMessage(null);
       setSelectedFolder(data.folder);
+      setSelectedFolderChildFolderNames(siblingFolderNames);
       setIsDriveOpen(false);
+    }
+  };
+
+  const handleFolderNameChange = (name: string) => {
+    setNewFolderName(name);
+
+    const normalizedNextFolderName = name.trim().toLowerCase();
+    const hasConflict =
+      Boolean(selectedFolder?.id) &&
+      Boolean(normalizedNextFolderName) &&
+      selectedFolderChildFolderNames.some(
+        (folderName) =>
+          folderName === normalizedNextFolderName &&
+          folderName !== normalizedManagedFolderName
+      );
+
+    if (!hasConflict) {
+      setErrorMessage((prev) =>
+        prev === DRIVE_FOLDER_NAME_CONFLICT_ERROR ? null : prev
+      );
     }
   };
 
@@ -556,6 +607,15 @@ export function AIImageAnalyzer({
     const hasNoPendingFileWork = !needsFolderCreate;
     const hasNoPendingImageWork =
       !hasPendingDelete && !hasPendingNameNormalization;
+    const normalizedCurrentManagedFolderName =
+      managedFolder?.name?.trim().toLowerCase() || '';
+    const hasFolderNameConflictForSync =
+      Boolean(trimmedFolderName) &&
+      selectedFolderChildFolderNames.some(
+        (name) =>
+          name === trimmedFolderName.toLowerCase() &&
+          name !== normalizedCurrentManagedFolderName
+      );
 
     if (
       !driveSyncEnabled ||
@@ -563,6 +623,11 @@ export function AIImageAnalyzer({
       !trimmedFolderName ||
       (hasNoPendingFileWork && hasNoPendingImageWork)
     ) {
+      return;
+    }
+
+    if (hasFolderNameConflictForSync) {
+      setErrorMessage(DRIVE_FOLDER_NAME_CONFLICT_ERROR);
       return;
     }
 
@@ -602,6 +667,11 @@ export function AIImageAnalyzer({
               id: createdFolder.id,
               name: createdFolder.name,
             });
+            setSelectedFolderChildFolderNames((prev) =>
+              prev.includes(createdFolder.name.trim().toLowerCase())
+                ? prev
+                : [...prev, createdFolder.name.trim().toLowerCase()]
+            );
             folderNameDirtyRef.current =
               latestFolderNameRef.current.trim() !== createdFolder.name;
           }
@@ -744,6 +814,7 @@ export function AIImageAnalyzer({
     renameDriveNode,
     effectivePreviewIndex,
     selectedFolder?.id,
+    selectedFolderChildFolderNames,
     uploadFileToFolder,
   ]);
 
@@ -774,6 +845,22 @@ export function AIImageAnalyzer({
             break;
           }
 
+          const normalizedNextFolderName = nextFolderName.toLowerCase();
+          const normalizedCurrentFolderName = currentFolder.name
+            .trim()
+            .toLowerCase();
+          const hasRenameConflict = selectedFolderChildFolderNames.some(
+            (name) =>
+              name === normalizedNextFolderName &&
+              name !== normalizedCurrentFolderName
+          );
+
+          if (hasRenameConflict) {
+            folderNameDirtyRef.current = false;
+            setErrorMessage(DRIVE_FOLDER_NAME_CONFLICT_ERROR);
+            break;
+          }
+
           if (currentFolder.name === nextFolderName) {
             folderNameDirtyRef.current = false;
             break;
@@ -793,6 +880,17 @@ export function AIImageAnalyzer({
           setManagedDriveFolder({
             id: currentFolder.id,
             name: renamedFolder.name,
+          });
+          setSelectedFolderChildFolderNames((prev) => {
+            const withoutOldName = prev.filter(
+              (name) => name !== currentFolder.name.trim().toLowerCase()
+            );
+            const normalizedRenamedName = renamedFolder.name
+              .trim()
+              .toLowerCase();
+            return withoutOldName.includes(normalizedRenamedName)
+              ? withoutOldName
+              : [...withoutOldName, normalizedRenamedName];
           });
 
           if (latestFolderNameRef.current.trim() !== renamedFolder.name) {
@@ -819,6 +917,7 @@ export function AIImageAnalyzer({
     newFolderName,
     renameDriveNode,
     selectedFolder?.id,
+    selectedFolderChildFolderNames,
   ]);
 
   const handleRemoveTag = (removedTag: string) => {
@@ -899,6 +998,7 @@ export function AIImageAnalyzer({
     setDriveFileNames([]);
     setImageSyncStates([]);
     setSelectedFolder(null);
+    setSelectedFolderChildFolderNames([]);
     setNewFolderName('');
     setDriveSyncEnabled(false);
     setManagedDriveFolder(null);
@@ -938,6 +1038,7 @@ export function AIImageAnalyzer({
             imageSyncStates={imageSyncStates}
             newFolderName={newFolderName}
             managedFolderName={managedDriveFolder?.name ?? null}
+            hasFolderNameConflict={hasFolderNameConflict}
             selectedPreviewIndex={
               effectivePreviewIndex >= 0 ? effectivePreviewIndex : null
             }
@@ -962,7 +1063,7 @@ export function AIImageAnalyzer({
             selectedAIIndexes={selectedAIIndexes}
             onToggleImageForAI={handleToggleImageForAI}
             onSetPreviewImage={setSelectedPreviewIndex}
-            onFolderNameChange={setNewFolderName}
+            onFolderNameChange={handleFolderNameChange}
             onDriveSyncToggle={handleDriveSyncToggle}
             onApplyTitleToggle={setApplyTitleEnabled}
             onApplyDescriptionToggle={setApplyDescriptionEnabled}

@@ -13,6 +13,7 @@ interface AnalyzerModalProps {
   >;
   newFolderName: string;
   managedFolderName: string | null;
+  hasFolderNameConflict: boolean;
   selectedPreviewIndex: number | null;
   applyTitleEnabled: boolean;
   applyDescriptionEnabled: boolean;
@@ -56,6 +57,7 @@ export function AnalyzerModal({
   imageSyncStates,
   newFolderName,
   managedFolderName,
+  hasFolderNameConflict,
   selectedPreviewIndex,
   applyTitleEnabled,
   applyDescriptionEnabled,
@@ -333,12 +335,18 @@ export function AnalyzerModal({
               )}
               <input
                 type="text"
-                className="input input-sm input-bordered w-full"
+                className={`input input-sm input-bordered w-full ${hasFolderNameConflict ? 'input-error' : ''}`}
                 placeholder="Set synced folder name"
                 value={newFolderName}
                 onChange={(e) => onFolderNameChange(e.target.value)}
                 disabled={isAnalyzing || !selectedFolder}
               />
+              {hasFolderNameConflict && (
+                <p className="text-[11px] text-error font-medium">
+                  Folder name already exists in this Drive folder. Choose a
+                  unique name to continue syncing.
+                </p>
+              )}
 
               <div className="grid grid-cols-1 gap-1 text-[11px] bg-base-100/80 border border-base-300 rounded-md px-2 py-2">
                 <div className="flex items-center justify-between gap-2">
