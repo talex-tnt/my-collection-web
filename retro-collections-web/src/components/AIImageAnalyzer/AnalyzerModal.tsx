@@ -35,6 +35,7 @@ interface AnalyzerModalProps {
   onDriveSyncToggle: (enabled: boolean) => void;
   onEngineChange: (engine: AnalyzerEngine) => void;
   onAnalyze: () => void;
+  onApplySuggested: () => void;
   onDiscardSuggested: () => void;
   onRemoveTag: (tag: string) => void;
 }
@@ -69,6 +70,7 @@ export function AnalyzerModal({
   onDriveSyncToggle,
   onEngineChange,
   onAnalyze,
+  onApplySuggested,
   onDiscardSuggested,
   onRemoveTag,
 }: AnalyzerModalProps) {
@@ -141,31 +143,9 @@ export function AnalyzerModal({
           </p>
         </div>
 
-        <div className="form-control w-full space-y-2">
-          <span className="label-text font-semibold text-xs opacity-80">
-            1. Select where the new image folder will be created
-          </span>
-
-          <button
-            type="button"
-            className={`btn btn-sm btn-block ${selectedFolder ? 'btn-neutral' : 'btn-primary btn-outline'}`}
-            onClick={onOpenDrive}
-            disabled={globalLoading}
-          >
-            {selectedFolder ? 'Change Folder Target' : 'Browse Google Drive...'}
-          </button>
-
-          {selectedFolder && (
-            <div className="text-[11px] text-success font-medium bg-base-100 px-3 py-1.5 rounded-lg border border-base-300 mt-1 truncate">
-              📁 Location:{' '}
-              <span className="underline font-bold">{selectedFolder.name}</span>
-            </div>
-          )}
-        </div>
-
         <div className="form-control w-full space-y-1">
           <span className="label-text font-semibold text-xs opacity-80">
-            2. Capture or Upload Photos
+            1. Capture or Upload Photos
           </span>
           <input
             id={fileInputId}
@@ -287,125 +267,162 @@ export function AnalyzerModal({
           </div>
         )}
 
-        {activeImagesCount > 0 && selectedFolder && (
-          <div className="form-control w-full space-y-1 animate-fadeIn">
-            <span className="label-text font-semibold text-xs opacity-80">
-              3. New Folder Name
-            </span>
-            <input
-              type="text"
-              className="input input-sm input-bordered w-full"
-              placeholder="Type a folder name or run AI to suggest one"
-              value={newFolderName}
-              onChange={(e) => onFolderNameChange(e.target.value)}
-              disabled={isAnalyzing}
-            />
-            <p className="text-[11px] opacity-60">
-              Drive Sync requires this field.
-            </p>
-
-            <div className="grid grid-cols-1 gap-1 text-[11px] bg-base-100/80 border border-base-300 rounded-md px-2 py-2">
-              <div className="flex items-center justify-between gap-2">
-                <span className="opacity-60">Local name</span>
-                <span className="font-medium truncate max-w-[12rem]">
-                  {normalizedLocalFolderName || 'Not set'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="opacity-60">Drive name</span>
-                <span className="font-medium truncate max-w-[12rem]">
-                  {normalizedManagedFolderName || 'Not created yet'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="opacity-60">Name status</span>
-                <span
-                  className={`font-medium ${folderNamesMatch ? 'text-success' : normalizedManagedFolderName ? 'text-warning' : 'opacity-60'}`}
-                >
-                  {folderNamesMatch
-                    ? 'In sync'
-                    : normalizedManagedFolderName
-                      ? 'Updating'
-                      : 'Waiting for sync'}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <label className="label cursor-pointer gap-2 p-0">
-                <span className="text-xs font-medium">Drive Sync</span>
-                <input
-                  type="checkbox"
-                  className="toggle toggle-sm"
-                  checked={driveSyncEnabled}
-                  onChange={(e) => onDriveSyncToggle(e.target.checked)}
-                  disabled={globalLoading}
-                />
-              </label>
-              <span
-                className={`text-[11px] ${
-                  folderSyncStatus === 'synced'
-                    ? 'text-success'
-                    : folderSyncStatus === 'pending'
-                      ? 'text-warning'
-                      : 'opacity-60'
-                }`}
-              >
-                {folderSyncStatus === 'synced'
-                  ? 'Folder synced'
-                  : folderSyncStatus === 'pending'
-                    ? 'Folder pending sync'
-                    : 'Sync off'}
+        {activeImagesCount > 0 && (
+          <div className="space-y-3">
+            <div className="form-control w-full space-y-1 animate-fadeIn bg-base-100/40 border border-base-300 rounded-lg p-3">
+              <span className="label-text font-semibold text-xs opacity-80">
+                2. Drive Sync Section (optional)
               </span>
-            </div>
-            {driveSyncEnabled && (
-              <p className="text-[11px] opacity-60">
-                Only files and folders created by this tool are modified.
-              </p>
-            )}
-            <div className="text-[11px] opacity-60 bg-base-100/70 border border-base-300 rounded-md px-2 py-1.5 leading-snug">
-              Sync legend: Synced = in Drive, Pending upload = local only,
-              Pending delete = removed locally and waiting Drive deletion,
-              Updating = queued Drive update.
-            </div>
-            {isSyncingDrive && (
-              <p className="text-[11px] text-info">Syncing with Drive...</p>
-            )}
-          </div>
-        )}
-
-        {activeImagesCount > 0 && selectedFolder && (
-          <div className="form-control w-full space-y-1 animate-fadeIn">
-            <span className="label-text font-semibold text-xs opacity-80">
-              4. Choose AI Core Engine
-            </span>
-            <div className="flex gap-2">
-              <select
-                className="select select-bordered select-sm flex-1 font-medium"
-                value={engine}
-                onChange={(e) =>
-                  onEngineChange(e.target.value as AnalyzerEngine)
-                }
+              <button
+                type="button"
+                className={`btn btn-sm btn-block ${selectedFolder ? 'btn-neutral' : 'btn-primary btn-outline'}`}
+                onClick={onOpenDrive}
                 disabled={globalLoading}
               >
-                <option value="github">GitHub AI Pipeline (Default)</option>
-                <option value="gemini">Gemini Pro Vision Engine</option>
-              </select>
+                {selectedFolder
+                  ? 'Change Sync Target Folder'
+                  : 'Select Sync Target Folder'}
+              </button>
+              {selectedFolder && (
+                <div className="text-[11px] text-success font-medium bg-base-100 px-3 py-1.5 rounded-lg border border-base-300 mt-1 truncate">
+                  📁 Sync target:{' '}
+                  <span className="underline font-bold">
+                    {selectedFolder.name}
+                  </span>
+                </div>
+              )}
+              {!selectedFolder && (
+                <p className="text-[11px] opacity-70">
+                  Select a target folder to enable sync.
+                </p>
+              )}
+              <input
+                type="text"
+                className="input input-sm input-bordered w-full"
+                placeholder="Set synced folder name"
+                value={newFolderName}
+                onChange={(e) => onFolderNameChange(e.target.value)}
+                disabled={isAnalyzing || !selectedFolder}
+              />
 
-              {suggestedResult && (
-                <button
-                  type="button"
-                  onClick={onAnalyze}
-                  className="btn btn-sm btn-outline btn-primary px-3 shadow-sm"
+              <div className="grid grid-cols-1 gap-1 text-[11px] bg-base-100/80 border border-base-300 rounded-md px-2 py-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="opacity-60">Local name</span>
+                  <span className="font-medium truncate max-w-[12rem]">
+                    {normalizedLocalFolderName || 'Not set'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="opacity-60">Drive name</span>
+                  <span className="font-medium truncate max-w-[12rem]">
+                    {normalizedManagedFolderName || 'Not created yet'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="opacity-60">Name status</span>
+                  <span
+                    className={`font-medium ${folderNamesMatch ? 'text-success' : normalizedManagedFolderName ? 'text-warning' : 'opacity-60'}`}
+                  >
+                    {folderNamesMatch
+                      ? 'In sync'
+                      : normalizedManagedFolderName
+                        ? 'Updating'
+                        : 'Waiting for sync'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <label className="label cursor-pointer gap-2 p-0">
+                  <span className="text-xs font-medium">Drive Sync</span>
+                  <input
+                    type="checkbox"
+                    className="toggle toggle-sm"
+                    checked={driveSyncEnabled}
+                    onChange={(e) => onDriveSyncToggle(e.target.checked)}
+                    disabled={
+                      globalLoading ||
+                      !selectedFolder ||
+                      !normalizedLocalFolderName
+                    }
+                  />
+                </label>
+                <span
+                  className={`text-[11px] ${
+                    folderSyncStatus === 'synced'
+                      ? 'text-success'
+                      : folderSyncStatus === 'pending'
+                        ? 'text-warning'
+                        : 'opacity-60'
+                  }`}
+                >
+                  {folderSyncStatus === 'synced'
+                    ? 'Folder synced'
+                    : folderSyncStatus === 'pending'
+                      ? 'Folder pending sync'
+                      : 'Sync off'}
+                </span>
+              </div>
+              {driveSyncEnabled && (
+                <p className="text-[11px] opacity-60">
+                  Only files and folders created by this tool are modified.
+                </p>
+              )}
+              <div className="text-[11px] opacity-60 bg-base-100/70 border border-base-300 rounded-md px-2 py-1.5 leading-snug">
+                Sync legend: Synced = in Drive, Pending upload = local only,
+                Pending delete = removed locally and waiting Drive deletion,
+                Updating = queued Drive update.
+              </div>
+              {isSyncingDrive && (
+                <p className="text-[11px] text-info">Syncing with Drive...</p>
+              )}
+            </div>
+
+            <div className="form-control w-full space-y-1 animate-fadeIn bg-base-100/40 border border-base-300 rounded-lg p-3">
+              <span className="label-text font-semibold text-xs opacity-80">
+                3. AI Suggestions Section (optional)
+              </span>
+              <div className="flex gap-2">
+                <select
+                  className="select select-bordered select-sm flex-1 font-medium"
+                  value={engine}
+                  onChange={(e) =>
+                    onEngineChange(e.target.value as AnalyzerEngine)
+                  }
                   disabled={globalLoading}
                 >
-                  {isAnalyzing ? (
-                    <span className="loading loading-spinner loading-xs" />
-                  ) : (
-                    'Rerun 🔄'
-                  )}
-                </button>
-              )}
+                  <option value="github">GitHub AI Pipeline (Default)</option>
+                  <option value="gemini">Gemini Pro Vision Engine</option>
+                </select>
+
+                {suggestedResult && (
+                  <button
+                    type="button"
+                    onClick={onAnalyze}
+                    className="btn btn-sm btn-outline btn-primary px-3 shadow-sm"
+                    disabled={globalLoading}
+                  >
+                    {isAnalyzing ? (
+                      <span className="loading loading-spinner loading-xs" />
+                    ) : (
+                      'Rerun 🔄'
+                    )}
+                  </button>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={onAnalyze}
+                className="btn btn-sm btn-primary w-full shadow-md"
+                disabled={globalLoading || !hasAISelection}
+              >
+                {isAnalyzing ? (
+                  <span className="loading loading-spinner loading-xs" />
+                ) : (
+                  `Analyze Selected Photos Using ${engine === 'github' ? 'GitHub AI' : 'Gemini AI'}`
+                )}
+              </button>
             </div>
           </div>
         )}
@@ -422,7 +439,7 @@ export function AnalyzerModal({
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth="2"
-                d="10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
             <div className="flex-1">
@@ -432,21 +449,6 @@ export function AnalyzerModal({
               </p>
             </div>
           </div>
-        )}
-
-        {activeImagesCount > 0 && selectedFolder && (
-          <button
-            type="button"
-            onClick={onAnalyze}
-            className="btn btn-sm btn-primary w-full shadow-md"
-            disabled={globalLoading || !hasAISelection}
-          >
-            {isAnalyzing ? (
-              <span className="loading loading-spinner loading-xs" />
-            ) : (
-              `Analyze Selected Photos Using ${engine === 'github' ? 'GitHub AI' : 'Gemini AI'}`
-            )}
-          </button>
         )}
 
         {suggestedResult && (
@@ -499,6 +501,14 @@ export function AnalyzerModal({
             )}
 
             <div className="flex flex-col gap-2 pt-2 border-t border-base-200">
+              <button
+                type="button"
+                className="btn btn-sm btn-success"
+                onClick={onApplySuggested}
+                disabled={isUploading || isAnalyzing}
+              >
+                Apply Suggestions and Close
+              </button>
               <button
                 type="button"
                 className="btn btn-sm btn-ghost"

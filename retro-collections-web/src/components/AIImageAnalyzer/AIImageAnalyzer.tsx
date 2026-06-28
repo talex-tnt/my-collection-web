@@ -335,7 +335,7 @@ export function AIImageAnalyzer({
   };
 
   const handleAnalyze = async () => {
-    if (images.length === 0 || !selectedFolder?.id) return;
+    if (images.length === 0) return;
 
     const aiSelectedImages = selectedAIIndexes
       .map((index) => images[index])
@@ -350,8 +350,11 @@ export function AIImageAnalyzer({
       if (!token) {
         token = await requestDriveToken();
       }
+
+      const aiParentFolderId = selectedFolder?.id || 'root';
+
       const result = await analyzeImages({
-        parentFolderId: selectedFolder.id,
+        parentFolderId: aiParentFolderId,
         images: aiSelectedImages,
         optionalTags: currentTags,
         driveToken: token,
@@ -678,6 +681,40 @@ export function AIImageAnalyzer({
     });
   };
 
+  const handleApplySuggested = () => {
+    if (!suggestedResult) return;
+
+    const resolvedTitle =
+      newFolderName.trim() || suggestedResult.suggestedTitle?.trim() || '';
+    const firstSyncedIndex = driveFileIds.findIndex(
+      (id, index) => Boolean(id) && Boolean(images[index])
+    );
+    const fallbackPreview =
+      firstSyncedIndex >= 0 && driveFileIds[firstSyncedIndex]
+        ? {
+            id: driveFileIds[firstSyncedIndex] as string,
+            name:
+              images[firstSyncedIndex]?.name ||
+              `IMG_${String(firstSyncedIndex).padStart(3, '0')}`,
+          }
+        : undefined;
+
+    _onAnalysisSuccess({
+      title: resolvedTitle,
+      description: suggestedResult.descriptionEn || '',
+      tags: suggestedResult.productTags || currentTags,
+      uploadedFolderId: managedDriveFolder
+        ? {
+            id: managedDriveFolder.id,
+            name: managedDriveFolder.name,
+          }
+        : undefined,
+      fallbackPreview,
+    });
+
+    handleCloseModal();
+  };
+
   const handleCloseModal = () => {
     previews.forEach((url) => URL.revokeObjectURL(url));
     setSuggestedResult(null);
@@ -751,6 +788,7 @@ export function AIImageAnalyzer({
             onDriveSyncToggle={handleDriveSyncToggle}
             onEngineChange={setEngine}
             onAnalyze={handleAnalyze}
+            onApplySuggested={handleApplySuggested}
             onDiscardSuggested={() => setSuggestedResult(null)}
             onRemoveTag={handleRemoveTag}
           />,
