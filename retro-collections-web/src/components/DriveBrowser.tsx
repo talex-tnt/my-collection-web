@@ -5,6 +5,7 @@ import {
   useListFilesQuery,
 } from '../api/google-drive/googleDriveApi';
 import {
+  useCreateDriveFolderMutation,
   useDeleteDriveNodeMutation,
   useRenameDriveNodeMutation,
   useUploadFileToFolderMutation,
@@ -27,6 +28,7 @@ import {
   FiTrash2,
   FiUpload,
   FiX,
+  FiFolderPlus,
 } from 'react-icons/fi';
 
 type DriveNode = {
@@ -144,6 +146,8 @@ const DriveBrowser = ({
 
   const [uploadFileToFolder, { isLoading: isUploading }] =
     useUploadFileToFolderMutation();
+  const [createDriveFolder, { isLoading: isCreatingFolder }] =
+    useCreateDriveFolderMutation();
   const [renameDriveNode, { isLoading: isRenaming }] =
     useRenameDriveNodeMutation();
   const [deleteDriveNode, { isLoading: isDeleting }] =
@@ -220,7 +224,8 @@ const DriveBrowser = ({
     f.mimeType.startsWith('image/')
   );
 
-  const isMutating = isUploading || isRenaming || isDeleting || isFetching;
+  const isMutating =
+    isUploading || isCreatingFolder || isRenaming || isDeleting || isFetching;
 
   const clearStatus = () => {
     setOperationError(null);
@@ -274,6 +279,39 @@ const DriveBrowser = ({
     } catch (error) {
       console.error('Unable to rename folder:', error);
       setOperationError('Unable to rename folder. Please try again.');
+    }
+  };
+
+  const handleCreateFolder = async () => {
+    if (!currentFolder?.id) return;
+
+    const nextNameRaw = window.prompt('Create new folder', 'New Folder');
+    if (nextNameRaw === null) return;
+
+    const nextName = nextNameRaw.trim();
+    if (!nextName) {
+      setOperationError('Folder name cannot be empty.');
+      return;
+    }
+
+    if (folderNameExists(nextName)) {
+      setOperationError(
+        'A folder with this name already exists in the current folder.'
+      );
+      return;
+    }
+
+    try {
+      clearStatus();
+      await createDriveFolder({
+        parentFolderId: currentFolder.id,
+        folderName: nextName,
+      }).unwrap();
+      setOperationNotice('Folder created.');
+      await refetch();
+    } catch (error) {
+      console.error('Unable to create folder:', error);
+      setOperationError('Unable to create folder. Please try again.');
     }
   };
 
@@ -947,6 +985,15 @@ const DriveBrowser = ({
         {/* Actions */}
         <div className="flex items-center justify-between gap-2 mb-2">
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="btn btn-xs btn-outline"
+              onClick={handleCreateFolder}
+              disabled={!currentFolder?.id || isMutating}
+            >
+              <FiFolderPlus className="w-3.5 h-3.5" />
+            </button>
+
             <label
               htmlFor={uploadInputId}
               className={`btn btn-xs btn-outline gap-1 ${
@@ -956,7 +1003,7 @@ const DriveBrowser = ({
               }`}
             >
               <FiUpload className="w-3.5 h-3.5" />
-              Upload
+              <FiImage className="w-3.5 h-3.5" />
             </label>
             <input
               id={uploadInputId}
