@@ -1,20 +1,94 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState, type ChangeEvent } from 'react';
 import {
   useGetFileQuery,
+  useLazyGetFileDownloadQuery,
   useListFilesQuery,
 } from '../api/google-drive/googleDriveApi';
+import {
+  useDeleteDriveNodeMutation,
+  useRenameDriveNodeMutation,
+  useUploadFileToFolderMutation,
+} from '../api/google-drive/googleDriveWriteApi';
 import DriveImage from './DriveImage';
 import type { FileType, FolderType } from '../api/firestore/types/shared';
 import { usePrefixGroupedList } from '../hooks/usePrefixGroupedList';
 import { useDisableScroll } from '../utils/hooks';
+import { stripImageMetadata } from './AIImageAnalyzer/imageEditing';
+import { PhotoEditorModal } from './AIImageAnalyzer/PhotoEditorModal';
 import {
   FiArrowUp as ArrowUp,
   FiChevronDown,
   FiChevronRight,
+  FiEdit2,
   FiFolder as FolderIcon,
   FiHome as HomeIcon,
+  FiImage,
+  FiStar,
+  FiTrash2,
+  FiUpload,
   FiX,
 } from 'react-icons/fi';
+
+type DriveNode = {
+  id: string;
+  name: string;
+  mimeType: string;
+  thumbnailLink?: string;
+  parents?: string[];
+};
+
+const isPreviewFileName = (name: string | null | undefined) =>
+  Boolean(name && /^Preview(\.|$)/i.test(name));
+
+const splitFileName = (name: string) => {
+  const dotIndex = name.lastIndexOf('.');
+  if (dotIndex <= 0 || dotIndex === name.length - 1) {
+    return { stem: name, extension: '' };
+  }
+
+  return {
+    stem: name.slice(0, dotIndex),
+    extension: name.slice(dotIndex + 1),
+  };
+};
+
+const buildUniqueName = (requestedName: string, usedNames: Set<string>) => {
+  const normalizedRequestedName = requestedName.trim() || 'IMG';
+  const requestedKey = normalizedRequestedName.toLowerCase();
+
+  if (!usedNames.has(requestedKey)) {
+    usedNames.add(requestedKey);
+    return normalizedRequestedName;
+  }
+
+  const { stem, extension } = splitFileName(normalizedRequestedName);
+  let counter = 1;
+
+  while (counter < 10000) {
+    const candidateStem = `${stem}_${String(counter).padStart(3, '0')}`;
+    const candidateName = extension
+      ? `${candidateStem}.${extension}`
+      : candidateStem;
+    const candidateKey = candidateName.toLowerCase();
+
+    if (!usedNames.has(candidateKey)) {
+      usedNames.add(candidateKey);
+      return candidateName;
+    }
+
+    counter += 1;
+  }
+
+  const fallback = `${stem}_${Date.now()}`;
+  const fallbackName = extension ? `${fallback}.${extension}` : fallback;
+  usedNames.add(fallbackName.toLowerCase());
+  return fallbackName;
+};
+
+const getPreviewFileName = (name: string) => {
+  const { extension } = splitFileName(name);
+  return extension ? `Preview.${extension}` : 'Preview';
+};
 
 type DriveBrowserProps = {
   onSelectFolder: (data: { folder: FolderType; files: FileType[] }) => void;
@@ -33,7 +107,24 @@ const DriveBrowser = ({
     selectedFolder || { id: 'root', name: 'Root' }
   );
   const folderNameMeasureRef = useRef<HTMLSpanElement | null>(null);
+  const uploadInputId = useId();
   const [isFolderNameOverflowing, setIsFolderNameOverflowing] = useState(false);
+  const [operationError, setOperationError] = useState<string | null>(null);
+  const [operationNotice, setOperationNotice] = useState<string | null>(null);
+  const [editingImage, setEditingImage] = useState<{
+    id: string;
+    name: string;
+    mimeType: string;
+    src: string;
+  } | null>(null);
+
+  const [uploadFileToFolder, { isLoading: isUploading }] =
+    useUploadFileToFolderMutation();
+  const [renameDriveNode, { isLoading: isRenaming }] =
+    useRenameDriveNodeMutation();
+  const [deleteDriveNode, { isLoading: isDeleting }] =
+    useDeleteDriveNodeMutation();
+  const [downloadFile] = useLazyGetFileDownloadQuery();
 
   const { data: currentData } = useGetFileQuery(currentFolder?.id ?? '', {
     skip: currentFolder?.id === undefined || currentFolder?.id === 'root',
@@ -48,21 +139,20 @@ const DriveBrowser = ({
     }
   }, [selectedFolder]);
 
-  const { data, isLoading } = useListFilesQuery(
+  const { data, isLoading, isFetching, refetch } = useListFilesQuery(
     {
       folderId: currentFolder?.id,
     },
     { skip: !currentFolder?.id }
   );
 
-  const files = data?.files || [];
+  const files = (data?.files || []) as DriveNode[];
 
   const folders = files
     .filter(
-      (f: { mimeType: string }) =>
-        f.mimeType === 'application/vnd.google-apps.folder'
+      (f: DriveNode) => f.mimeType === 'application/vnd.google-apps.folder'
     )
-    .sort((a: FolderType, b: FolderType) =>
+    .sort((a: DriveNode, b: DriveNode) =>
       (a.name || '').localeCompare(b.name || '', undefined, {
         sensitivity: 'base',
       })
@@ -83,9 +173,280 @@ const DriveBrowser = ({
     getKey: (folder) => folder.id || folder.name || '',
   });
 
-  const images = files.filter((f: { mimeType: string }) =>
+  const images = files.filter((f: DriveNode) =>
     f.mimeType.startsWith('image/')
   );
+
+  const isMutating = isUploading || isRenaming || isDeleting || isFetching;
+
+  const clearStatus = () => {
+    setOperationError(null);
+    setOperationNotice(null);
+  };
+
+  const folderNameExists = (name: string, excludingId?: string) => {
+    const normalized = name.trim().toLowerCase();
+    if (!normalized) return false;
+
+    return folders.some(
+      (folder) =>
+        folder.id !== excludingId &&
+        (folder.name || '').trim().toLowerCase() === normalized
+    );
+  };
+
+  const imageNameExists = (name: string, excludingId?: string) => {
+    const normalized = name.trim().toLowerCase();
+    if (!normalized) return false;
+
+    return images.some(
+      (image) =>
+        image.id !== excludingId &&
+        (image.name || '').trim().toLowerCase() === normalized
+    );
+  };
+
+  const handleRenameFolder = async (folder: DriveNode) => {
+    const nextNameRaw = window.prompt('Rename folder', folder.name || '');
+    if (nextNameRaw === null) return;
+
+    const nextName = nextNameRaw.trim();
+    if (!nextName) {
+      setOperationError('Folder name cannot be empty.');
+      return;
+    }
+
+    if (folderNameExists(nextName, folder.id)) {
+      setOperationError(
+        'A folder with this name already exists in the current folder.'
+      );
+      return;
+    }
+
+    try {
+      clearStatus();
+      await renameDriveNode({ id: folder.id, name: nextName }).unwrap();
+      setOperationNotice('Folder renamed.');
+      await refetch();
+    } catch (error) {
+      console.error('Unable to rename folder:', error);
+      setOperationError('Unable to rename folder. Please try again.');
+    }
+  };
+
+  const handleDeleteFolder = async (folder: DriveNode) => {
+    const confirmed = window.confirm(
+      `Delete folder "${folder.name}"? This action cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    try {
+      clearStatus();
+      await deleteDriveNode({ id: folder.id }).unwrap();
+      setOperationNotice('Folder deleted.');
+      await refetch();
+    } catch (error) {
+      console.error('Unable to delete folder:', error);
+      setOperationError('Unable to delete folder. It may not be empty.');
+    }
+  };
+
+  const handleRenameImage = async (image: DriveNode) => {
+    const nextNameRaw = window.prompt('Rename image', image.name || '');
+    if (nextNameRaw === null) return;
+
+    const nextName = nextNameRaw.trim();
+    if (!nextName) {
+      setOperationError('Image name cannot be empty.');
+      return;
+    }
+
+    if (imageNameExists(nextName, image.id)) {
+      setOperationError('An image with this name already exists.');
+      return;
+    }
+
+    if (isPreviewFileName(nextName)) {
+      await handleSetAsPreview(image, nextName);
+      return;
+    }
+
+    try {
+      clearStatus();
+      await renameDriveNode({ id: image.id, name: nextName }).unwrap();
+      setOperationNotice('Image renamed.');
+      await refetch();
+    } catch (error) {
+      console.error('Unable to rename image:', error);
+      setOperationError('Unable to rename image. Please try again.');
+    }
+  };
+
+  const handleDeleteImage = async (image: DriveNode) => {
+    const confirmed = window.confirm(
+      `Delete image "${image.name}"? This action cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    try {
+      clearStatus();
+      await deleteDriveNode({ id: image.id }).unwrap();
+      setOperationNotice('Image deleted.');
+      await refetch();
+    } catch (error) {
+      console.error('Unable to delete image:', error);
+      setOperationError('Unable to delete image. Please try again.');
+    }
+  };
+
+  const handleSetAsPreview = async (
+    image: DriveNode,
+    requestedName?: string
+  ) => {
+    const previewName =
+      requestedName || getPreviewFileName(image.name || 'Preview');
+    const existingPreview = images.find(
+      (entry) => entry.id !== image.id && isPreviewFileName(entry.name)
+    );
+
+    try {
+      clearStatus();
+
+      if (existingPreview) {
+        const { extension } = splitFileName(existingPreview.name || '');
+        const usedNames = new Set(
+          images
+            .filter((entry) => entry.id !== existingPreview.id)
+            .map((entry) => (entry.name || '').trim().toLowerCase())
+            .filter(Boolean)
+        );
+
+        const fallbackRequested = extension ? `IMG.${extension}` : 'IMG';
+        const fallbackName = buildUniqueName(fallbackRequested, usedNames);
+
+        await renameDriveNode({
+          id: existingPreview.id,
+          name: fallbackName,
+        }).unwrap();
+      }
+
+      await renameDriveNode({
+        id: image.id,
+        name: previewName,
+      }).unwrap();
+
+      setOperationNotice('Preview image updated.');
+      await refetch();
+    } catch (error) {
+      console.error('Unable to set preview image:', error);
+      setOperationError('Unable to set preview image. Please try again.');
+    }
+  };
+
+  const handleUploadImages = async (event: ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = event.target.files
+      ? Array.from(event.target.files)
+      : [];
+
+    if (selectedFiles.length === 0 || !currentFolder?.id) {
+      return;
+    }
+
+    try {
+      clearStatus();
+      const sanitizedFiles = await Promise.all(
+        selectedFiles.map((file) => stripImageMetadata(file))
+      );
+
+      const usedNames = new Set(
+        images
+          .map((image) => (image.name || '').trim().toLowerCase())
+          .filter(Boolean)
+      );
+      const hasPreview = images.some((image) => isPreviewFileName(image.name));
+
+      for (let index = 0; index < sanitizedFiles.length; index += 1) {
+        const file = sanitizedFiles[index];
+        const requestedName =
+          !hasPreview && index === 0
+            ? getPreviewFileName(file.name)
+            : file.name || 'IMG';
+        const uniqueName = buildUniqueName(requestedName, usedNames);
+
+        await uploadFileToFolder({
+          folderId: currentFolder.id,
+          file,
+          fileName: uniqueName,
+        }).unwrap();
+      }
+
+      setOperationNotice('Images uploaded.');
+      await refetch();
+    } catch (error) {
+      console.error('Unable to upload images:', error);
+      setOperationError('Unable to upload images. Please try again.');
+    } finally {
+      event.target.value = '';
+    }
+  };
+
+  const handleEditImage = async (image: DriveNode) => {
+    try {
+      clearStatus();
+      const blob = await downloadFile(image.id).unwrap();
+      const src = URL.createObjectURL(blob);
+
+      setEditingImage({
+        id: image.id,
+        name: image.name,
+        mimeType: blob.type || image.mimeType || 'image/jpeg',
+        src,
+      });
+    } catch (error) {
+      console.error('Unable to open image editor:', error);
+      setOperationError('Unable to open image editor. Please try again.');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    if (editingImage?.src) {
+      URL.revokeObjectURL(editingImage.src);
+    }
+    setEditingImage(null);
+  };
+
+  const handleSaveEditedImage = async (file: File) => {
+    if (!editingImage || !currentFolder?.id) return;
+
+    try {
+      clearStatus();
+
+      const usedNames = new Set(
+        images
+          .filter((image) => image.id !== editingImage.id)
+          .map((image) => (image.name || '').trim().toLowerCase())
+          .filter(Boolean)
+      );
+      const uniqueName = buildUniqueName(
+        editingImage.name || file.name,
+        usedNames
+      );
+
+      await uploadFileToFolder({
+        folderId: currentFolder.id,
+        file,
+        fileName: uniqueName,
+      }).unwrap();
+
+      await deleteDriveNode({ id: editingImage.id }).unwrap();
+      setOperationNotice('Image edited and saved.');
+      handleCancelEdit();
+      await refetch();
+    } catch (error) {
+      console.error('Unable to save edited image:', error);
+      setOperationError('Unable to save edited image. Please try again.');
+    }
+  };
   const normalizedSearch = folderFilter.trim().toLowerCase();
   const filteredImages =
     normalizedSearch.length === 0
@@ -116,6 +477,14 @@ const DriveBrowser = ({
 
     return () => observer.disconnect();
   }, [currentFolder.name]);
+
+  useEffect(() => {
+    return () => {
+      if (editingImage?.src) {
+        URL.revokeObjectURL(editingImage.src);
+      }
+    };
+  }, [editingImage]);
 
   return (
     <div className="card bg-transparent w-full max-w-md mx-auto flex flex-col h-full">
@@ -157,7 +526,7 @@ const DriveBrowser = ({
           </span>
         </div>
 
-        {/* Actions */}
+        {/* Search and Controls */}
         <div className="flex items-center gap-2 mb-2">
           {currentFolderParentId && currentFolderName && (
             <button
@@ -207,7 +576,39 @@ const DriveBrowser = ({
               onChange={(e) => setGroupByPrefix(e.target.checked)}
             />
           </label>
+
+          <label
+            htmlFor={uploadInputId}
+            className={`btn btn-xs btn-outline gap-1 ${
+              !currentFolder?.id || isMutating
+                ? 'pointer-events-none opacity-50'
+                : ''
+            }`}
+          >
+            <FiUpload className="w-3.5 h-3.5" />
+            Upload
+          </label>
+          <input
+            id={uploadInputId}
+            type="file"
+            accept="image/*"
+            multiple
+            className="sr-only"
+            onChange={handleUploadImages}
+            disabled={!currentFolder?.id || isMutating}
+          />
         </div>
+
+        {operationError && (
+          <div className="alert alert-error text-xs py-2 px-3 mb-2">
+            {operationError}
+          </div>
+        )}
+        {operationNotice && (
+          <div className="alert alert-success text-xs py-2 px-3 mb-2">
+            {operationNotice}
+          </div>
+        )}
 
         {/* Folders */}
         {isLoading && (
@@ -247,7 +648,7 @@ const DriveBrowser = ({
                                 entry.item.id ||
                                 `${group.groupLabel}-${entry.childLabel}`
                               }
-                              className="flex items-center gap-2"
+                              className="flex items-center gap-2 justify-between"
                             >
                               <button
                                 className="btn btn-ghost btn-sm flex items-center gap-1"
@@ -262,6 +663,30 @@ const DriveBrowser = ({
                                   {entry.childLabel}
                                 </span>
                               </button>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  className="btn btn-ghost btn-xs"
+                                  title="Rename folder"
+                                  disabled={isMutating}
+                                  onClick={() =>
+                                    handleRenameFolder(entry.item as DriveNode)
+                                  }
+                                >
+                                  <FiEdit2 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-ghost btn-xs text-error"
+                                  title="Delete folder"
+                                  disabled={isMutating}
+                                  onClick={() =>
+                                    handleDeleteFolder(entry.item as DriveNode)
+                                  }
+                                >
+                                  <FiTrash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
                             </li>
                           ))}
                         </ul>
@@ -275,7 +700,7 @@ const DriveBrowser = ({
                     {standaloneFolders.map((folder: FolderType) => (
                       <li
                         key={folder.id || folder.name}
-                        className="flex items-center gap-2"
+                        className="flex items-center gap-2 justify-between"
                       >
                         <button
                           className="btn btn-ghost btn-sm flex items-center gap-1"
@@ -288,6 +713,30 @@ const DriveBrowser = ({
                           />
                           <span className="text-left">{folder.name}</span>
                         </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-xs"
+                            title="Rename folder"
+                            disabled={isMutating}
+                            onClick={() =>
+                              handleRenameFolder(folder as DriveNode)
+                            }
+                          >
+                            <FiEdit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-xs text-error"
+                            title="Delete folder"
+                            disabled={isMutating}
+                            onClick={() =>
+                              handleDeleteFolder(folder as DriveNode)
+                            }
+                          >
+                            <FiTrash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </li>
                     ))}
                   </ul>
@@ -298,7 +747,7 @@ const DriveBrowser = ({
                 {filteredFolders.map((folder: FolderType) => (
                   <li
                     key={folder.id || folder.name}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 justify-between"
                   >
                     <button
                       className="btn btn-ghost btn-sm flex items-center gap-1"
@@ -311,6 +760,26 @@ const DriveBrowser = ({
                       />
                       <span className="text-left">{folder.name}</span>
                     </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-xs"
+                        title="Rename folder"
+                        disabled={isMutating}
+                        onClick={() => handleRenameFolder(folder as DriveNode)}
+                      >
+                        <FiEdit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-xs text-error"
+                        title="Delete folder"
+                        disabled={isMutating}
+                        onClick={() => handleDeleteFolder(folder as DriveNode)}
+                      >
+                        <FiTrash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -340,7 +809,7 @@ const DriveBrowser = ({
             )}
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pr-1">
-              {filteredImages.map((img: { id: string; name: string }) => (
+              {filteredImages.map((img: DriveNode) => (
                 <div key={img.id} className="flex flex-col items-center">
                   <div className="w-full h-[100px] bg-base-200 rounded overflow-hidden flex items-center justify-center">
                     <DriveImage fileId={img.id} name={img.name} />
@@ -352,6 +821,46 @@ const DriveBrowser = ({
                   >
                     {img.name}
                   </span>
+                  <div className="mt-1 flex items-center gap-1">
+                    <button
+                      type="button"
+                      className={`btn btn-ghost btn-xs ${
+                        isPreviewFileName(img.name) ? 'text-success' : ''
+                      }`}
+                      title="Set as Preview"
+                      onClick={() => handleSetAsPreview(img)}
+                      disabled={isMutating || isPreviewFileName(img.name)}
+                    >
+                      <FiStar className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-xs"
+                      title="Rename image"
+                      onClick={() => handleRenameImage(img)}
+                      disabled={isMutating}
+                    >
+                      <FiEdit2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-xs"
+                      title="Edit image"
+                      onClick={() => handleEditImage(img)}
+                      disabled={isMutating}
+                    >
+                      <FiImage className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-xs text-error"
+                      title="Delete image"
+                      onClick={() => handleDeleteImage(img)}
+                      disabled={isMutating}
+                    >
+                      <FiTrash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -416,6 +925,16 @@ const DriveBrowser = ({
             </button>
           </div>
         </div>
+
+        {editingImage && (
+          <PhotoEditorModal
+            imageSrc={editingImage.src}
+            fileName={editingImage.name}
+            mimeType={editingImage.mimeType}
+            onCancel={handleCancelEdit}
+            onSave={handleSaveEditedImage}
+          />
+        )}
       </div>
     </div>
   );

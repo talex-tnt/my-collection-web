@@ -20,8 +20,17 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-        ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
-        ignoredPaths: ['firestoreApi.queries', 'retroCollectionsApi.queries'],
+        ignoredActions: [
+          'persist/PERSIST',
+          'persist/REHYDRATE',
+          'driveApi/executeQuery/fulfilled',
+        ],
+        ignoredPaths: [
+          'firestoreApi.queries',
+          'retroCollectionsApi.queries',
+          'driveApi.queries',
+          /driveApi\.queries\.getFileDownload\(.+\)\.data/,
+        ],
       },
     })
       .concat(firestoreApi.middleware)
