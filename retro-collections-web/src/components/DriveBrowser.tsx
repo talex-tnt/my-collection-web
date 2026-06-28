@@ -137,6 +137,10 @@ const DriveBrowser = ({
     mimeType: string;
     src: string;
   } | null>(null);
+  const [fullscreenImage, setFullscreenImage] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const [uploadFileToFolder, { isLoading: isUploading }] =
     useUploadFileToFolderMutation();
@@ -525,6 +529,19 @@ const DriveBrowser = ({
     };
   }, [editingImage]);
 
+  useEffect(() => {
+    if (!fullscreenImage) return;
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setFullscreenImage(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [fullscreenImage]);
+
   return (
     <div className="card bg-transparent w-full max-w-md mx-auto flex flex-col h-full">
       <style>{`
@@ -864,9 +881,16 @@ const DriveBrowser = ({
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pr-1">
               {filteredImages.map((img: DriveNode) => (
                 <div key={img.id} className="flex flex-col items-center">
-                  <div className="w-full h-[100px] bg-base-200 rounded overflow-hidden flex items-center justify-center">
+                  <button
+                    type="button"
+                    className="w-full h-[100px] bg-base-200 rounded overflow-hidden flex items-center justify-center"
+                    onClick={() =>
+                      setFullscreenImage({ id: img.id, name: img.name })
+                    }
+                    title={`Open ${img.name} fullscreen`}
+                  >
                     <DriveImage fileId={img.id} name={img.name} />
-                  </div>
+                  </button>
 
                   <span
                     className="text-xs mt-1 truncate max-w-[100px]"
@@ -1010,6 +1034,40 @@ const DriveBrowser = ({
             onCancel={handleCancelEdit}
             onSave={handleSaveEditedImage}
           />
+        )}
+
+        {fullscreenImage && (
+          <div
+            className="fixed inset-0 z-[110050] bg-black/90 flex items-center justify-center p-4"
+            onClick={() => setFullscreenImage(null)}
+          >
+            <button
+              type="button"
+              className="btn btn-circle btn-sm btn-ghost fixed right-3 top-3 z-[110060]"
+              onClick={() => setFullscreenImage(null)}
+              aria-label="Close fullscreen image"
+              title="Close"
+            >
+              ✕
+            </button>
+            <div
+              className="max-h-[95vh] max-w-[95vw]"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <DriveImage
+                fileId={fullscreenImage.id}
+                name={fullscreenImage.name}
+                style={{
+                  width: 'auto',
+                  height: 'auto',
+                  maxWidth: '95vw',
+                  maxHeight: '95vh',
+                  objectFit: 'contain',
+                  borderRadius: 12,
+                }}
+              />
+            </div>
+          </div>
         )}
       </div>
     </div>
