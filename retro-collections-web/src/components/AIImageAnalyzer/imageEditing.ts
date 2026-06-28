@@ -19,9 +19,11 @@ const rotatedBounds = (
   const radians = toRadians(rotation);
   return {
     width:
-      Math.abs(Math.cos(radians) * width) + Math.abs(Math.sin(radians) * height),
+      Math.abs(Math.cos(radians) * width) +
+      Math.abs(Math.sin(radians) * height),
     height:
-      Math.abs(Math.sin(radians) * width) + Math.abs(Math.cos(radians) * height),
+      Math.abs(Math.sin(radians) * width) +
+      Math.abs(Math.cos(radians) * height),
   };
 };
 

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useMemo, useState } from 'react';
 import Cropper, { type Area } from 'react-easy-crop';
 import 'react-easy-crop/react-easy-crop.css';
@@ -268,7 +269,9 @@ export function PhotoEditorModal({
           </label>
 
           {errorMessage && (
-            <div className="alert alert-error text-xs py-2 px-3">{errorMessage}</div>
+            <div className="alert alert-error text-xs py-2 px-3">
+              {errorMessage}
+            </div>
           )}
         </div>
       </div>

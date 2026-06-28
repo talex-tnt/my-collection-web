@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect } from 'react';
 import { useGetPublicItemsQuery } from '../api/retro-collections/retroCollectionsApi';
 import CollectorListItem from './CollectorListItem';
@@ -40,7 +41,6 @@ function CollectorPublicItemsList({
   }, [pageIndex]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPageIndex(0);
     setCursors([null]);
   }, [

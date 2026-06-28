@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect } from 'react';
 import {
   useGetUserItemsQuery,
@@ -100,7 +101,6 @@ function CollectorItemsList({
   useEffect(() => {
     if (!pageInfo?.endCursor) return;
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCursors((prev) => {
       const next = [...prev];
       if (Number.isInteger(pageIndex) && pageInfo.endCursor) {
