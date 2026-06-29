@@ -217,7 +217,7 @@ function NewItem({
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex flex-col gap-3">
           {/* TAG SELECTION */}
-          <label className="form-control w-full">
+          <div className="form-control w-full">
             <span className="label-text">Tags</span>
             <div className="flex flex-wrap gap-2 mt-1 items-center">
               {allTags.length === 0 && (
@@ -232,7 +232,7 @@ function NewItem({
             {tagError && (
               <div className="text-xs text-error mt-1">{tagError}</div>
             )}
-          </label>
+          </div>
 
           {/* NAME INPUT WITH AUTOCOMPLETE */}
           <label className="form-control w-full">
