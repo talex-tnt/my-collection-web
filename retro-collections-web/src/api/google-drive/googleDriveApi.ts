@@ -71,7 +71,9 @@ export const driveApi = createApi({
         params: {
           q:
             query ??
-            (folderId ? `'${folderId}' in parents` : "'root' in parents"),
+            (folderId
+              ? `'${folderId}' in parents and trashed = false`
+              : "'root' in parents and trashed = false"),
           fields:
             'files(id,name,mimeType,modifiedTime,thumbnailLink,webContentLink,parents)',
         },
