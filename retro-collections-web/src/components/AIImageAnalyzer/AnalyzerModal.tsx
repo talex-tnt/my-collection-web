@@ -147,7 +147,7 @@ export function AnalyzerModal({
 
   return (
     <div className="modal modal-open z-[9999] backdrop-blur-sm fixed inset-0 flex items-center justify-center bg-black/50">
-      <div className="modal-box bg-base-200 max-w-md h-full sm:h-auto w-full p-6 border border-base-300 rounded-2xl shadow-xl space-y-4 relative">
+      <div className="modal-box bg-base-200 w-full max-w-full h-full sm:h-auto sm:max-w-3xl lg:max-w-5xl p-6 border border-base-300 rounded-2xl shadow-xl space-y-4 relative">
         <button
           type="button"
           onClick={onClose}
@@ -479,35 +479,33 @@ export function AnalyzerModal({
                   <option value="github">GitHub AI Pipeline (Default)</option>
                   <option value="gemini">Gemini Pro Vision Engine</option>
                 </select>
+              </div>
 
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button
+                  type="button"
+                  onClick={onAnalyze}
+                  className="btn btn-sm btn-primary flex-1 shadow-md"
+                  disabled={globalLoading || !hasAISelection}
+                >
+                  {isAnalyzing ? (
+                    <span className="loading loading-spinner loading-xs" />
+                  ) : (
+                    // `Analyze Selected Photos Using ${engine === 'github' ? 'GitHub AI' : 'Gemini AI'}`
+                    `Analyze Selected Photos`
+                  )}
+                </button>
                 {suggestedResult && (
                   <button
                     type="button"
-                    onClick={onAnalyze}
-                    className="btn btn-sm btn-outline btn-primary px-3 shadow-sm"
+                    onClick={onDiscardSuggested}
+                    className="btn btn-sm btn-outline btn-warning"
                     disabled={globalLoading}
                   >
-                    {isAnalyzing ? (
-                      <span className="loading loading-spinner loading-xs" />
-                    ) : (
-                      'Rerun 🔄'
-                    )}
+                    Clear
                   </button>
                 )}
               </div>
-
-              <button
-                type="button"
-                onClick={onAnalyze}
-                className="btn btn-sm btn-primary w-full shadow-md"
-                disabled={globalLoading || !hasAISelection}
-              >
-                {isAnalyzing ? (
-                  <span className="loading loading-spinner loading-xs" />
-                ) : (
-                  `Analyze Selected Photos Using ${engine === 'github' ? 'GitHub AI' : 'Gemini AI'}`
-                )}
-              </button>
             </div>
           </div>
         )}
@@ -584,17 +582,6 @@ export function AnalyzerModal({
                 </div>
               </div>
             )}
-
-            <div className="flex flex-col gap-2 pt-2 border-t border-base-200">
-              <button
-                type="button"
-                className="btn btn-sm btn-ghost"
-                onClick={onDiscardSuggested}
-                disabled={isSyncingDrive || isAnalyzing}
-              >
-                Discard AI Result
-              </button>
-            </div>
           </div>
         )}
 

@@ -273,7 +273,6 @@ export function AIImageAnalyzer({
   const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     setErrorMessage(null);
-    setSuggestedResult(null);
 
     const filesArray = Array.from(e.target.files) as File[];
     setIsImportingImages(true);
@@ -326,7 +325,6 @@ export function AIImageAnalyzer({
 
   const handleRemovePreview = (indexToRemove: number) => {
     setErrorMessage(null);
-    setSuggestedResult(null);
 
     const targetDriveFileId = driveFileIds[indexToRemove];
 
@@ -403,7 +401,6 @@ export function AIImageAnalyzer({
 
   const handleToggleImageForAI = (indexToToggle: number) => {
     setErrorMessage(null);
-    setSuggestedResult(null);
 
     setSelectedAIIndexes((prev) => {
       if (prev.includes(indexToToggle)) {
@@ -427,7 +424,6 @@ export function AIImageAnalyzer({
     if (editingIndex === null || editingIndex < 0) return;
 
     setErrorMessage(null);
-    setSuggestedResult(null);
 
     const nextPreviewUrl = URL.createObjectURL(editedFile);
     const indexToReplace = editingIndex;
