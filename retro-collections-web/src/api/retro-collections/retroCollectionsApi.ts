@@ -288,6 +288,22 @@ export const retroCollectionsApi = createApi({
           body: formData,
         };
       },
+      transformErrorResponse: (response) => {
+        if (response.status === 'FETCH_ERROR') {
+          return {
+            message:
+              'The upload was rejected before reaching the server. This usually means the images exceed the hosting provider upload limit.',
+          };
+        }
+
+        if (response.status === 413) {
+          return {
+            message: 'Images are too large.',
+          };
+        }
+
+        return response.data;
+      },
     }),
 
     createAndUploadFolder: builder.mutation<
