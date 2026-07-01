@@ -54,13 +54,13 @@ function CollectorListItem({
 
       <div className="flex flex-row gap-4 justify-between items-start w-full">
         {showPreview && (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2" title="Open expanded item">
             {imagePreview?.id && (
               <PreviewImage
                 driveId={imagePreview?.id}
                 // size="w200"
                 alt={imagePreview.name || 'Item preview'}
-                className="w-full rounded-md" // custom styling still flows through
+                className="w-full rounded-md cursor-ne-resize transition-opacity hover:opacity-90" // custom styling still flows through
               />
             )}
           </div>

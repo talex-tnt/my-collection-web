@@ -194,13 +194,29 @@ function MyListItem({
       <div className="flex gap-4 justify-between items-start w-full">
         {/* Description (left) */}
         {showPreview && (
-          <div className="flex flex-col gap-2">
+          <div
+            className="flex flex-col gap-2"
+            role={imagePreview?.id ? 'button' : undefined}
+            tabIndex={imagePreview?.id ? 0 : undefined}
+            onClick={imagePreview?.id ? () => onExpand?.() : undefined}
+            onKeyDown={
+              imagePreview?.id
+                ? (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onExpand?.();
+                    }
+                  }
+                : undefined
+            }
+            title={imagePreview?.id ? 'Open expanded item' : undefined}
+          >
             {imagePreview?.id && (
               <PreviewImage
                 driveId={imagePreview?.id}
                 // size="w200"
                 alt={imagePreview?.name || 'Item preview'}
-                className="w-full h-auto rounded-md" // custom styling still flows through
+                className="w-full h-auto rounded-md cursor-ne-resize transition-opacity hover:opacity-90" // custom styling still flows through
               />
             )}
           </div>
