@@ -35,6 +35,7 @@ interface Cursor {
 interface MyItemsListMarkupProps {
   user: { uid: string } | null;
   collectionId?: string;
+  listTitle?: string;
   setShowTags: React.Dispatch<React.SetStateAction<boolean>>;
   setShowPreview: React.Dispatch<React.SetStateAction<boolean>>;
   showTags: boolean;
@@ -85,6 +86,7 @@ interface MyItemsListMarkupProps {
 function MyItemsListMarkup({
   user,
   collectionId,
+  listTitle = 'My Collectibles',
   totalCount,
   setShowTags,
   setShowPreview,
@@ -198,7 +200,7 @@ function MyItemsListMarkup({
     <div className="card bg-base-100 shadow-xl">
       <div className="card-body space-y-4 px-0 sm:px-4 pb-0 sm:pb-6">
         {/* HEADER */}
-        <div className="flex flex-row justify-between gap-2 px-4 sm:px-0">
+        <div className="sticky top-0 sm:top-0 z-20 flex flex-row justify-between gap-2 border-b border-base-200 bg-base-100 px-4 py-2 sm:px-0">
           <div className="flex items-center gap-3">
             {editing && !isLoading && !error && items.length > 0 && (
               <input
@@ -211,7 +213,9 @@ function MyItemsListMarkup({
                 onChange={handleToggleSelectAll}
               />
             )}
-            <h2 className="card-title">My Collectibles ({totalCount})</h2>
+            <h2 className="card-title">
+              {listTitle} ({totalCount})
+            </h2>
           </div>
           <div className="flex items-center gap-2">
             <button

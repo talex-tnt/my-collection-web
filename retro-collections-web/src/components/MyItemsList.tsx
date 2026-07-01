@@ -374,6 +374,7 @@ function MyItemsList({
       <MyItemsListMarkup
         user={user}
         collectionId={collectionId}
+        listTitle={collectionName || undefined}
         totalCount={totalCount}
         setShowTags={setShowTags}
         setShowPreview={setShowPreview}
