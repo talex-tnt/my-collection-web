@@ -3,6 +3,7 @@ import MyListItem from './MyListItem';
 import { ExpandableMotion } from './ExpandableMotion';
 import MyExpandedItem from './MyExpandedItem';
 import SelectTags from './SelectTags';
+import ExportListButton, { type ExportRow } from './ExportListButton';
 import {
   FiEdit as FiLock,
   FiEdit2 as FiUnlock,
@@ -70,6 +71,11 @@ interface MyItemsListMarkupProps {
   currentIsPublicItem?: boolean;
   bulkActionsDisabled?: boolean;
   isBulkDeleting?: boolean;
+  exportVisibleRows?: ExportRow[];
+  exportAllRows?: ExportRow[];
+  exportBaseFileName?: string;
+  exportFieldLabels?: Record<string, string>;
+  exportFieldOrder?: string[];
 }
 
 function MyItemsListMarkup({
@@ -106,6 +112,11 @@ function MyItemsListMarkup({
   currentIsPublicItem,
   bulkActionsDisabled = false,
   isBulkDeleting = false,
+  exportVisibleRows = [],
+  exportAllRows,
+  exportBaseFileName = 'items',
+  exportFieldLabels,
+  exportFieldOrder,
 }: MyItemsListMarkupProps) {
   const tagActionsDropdownRef = useRef<HTMLDetailsElement | null>(null);
   const [copyTargetCollectionId, setCopyTargetCollectionId] = useState('');
@@ -244,6 +255,14 @@ function MyItemsListMarkup({
                 </>
               )}
             </button>
+            <ExportListButton
+              entityLabel="items"
+              visibleRows={exportVisibleRows}
+              allRows={exportAllRows}
+              defaultBaseName={exportBaseFileName}
+              fieldLabels={exportFieldLabels}
+              fieldOrder={exportFieldOrder}
+            />
           </div>
         </div>
 

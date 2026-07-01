@@ -18,6 +18,7 @@ import {
 import { useSettingsUIPageSize } from '../utils/hooks';
 import MyItemsListMarkup from './MyItemsListMarkup';
 import BulkDeleteFeedbackToast from './BulkDeleteFeedbackToast';
+import type { ExportRow } from './ExportListButton';
 
 interface Cursor {
   createdAt: string;
@@ -122,11 +123,57 @@ function MyItemsListAll({
     },
     { skip: !user?.uid }
   );
+
+  const { data: allItemsData } = useGetAllUserItemsQuery(
+    {
+      userId: user?.uid || '',
+      tags: selectedTags.length ? selectedTags : undefined,
+      limit: undefined,
+      startAfter: undefined,
+      startWithNameFilter: startWithNameFilter || undefined,
+      nameContainsTokens: nameContainsTokens || undefined,
+    },
+    { skip: !user?.uid }
+  );
   // console.log('Fetched itemsData for MyItemsListAll:', itemsData, totalCount);
   const items = (itemsData?.items || []).filter((item) =>
     item.name.toLowerCase().includes(itemNameClientFilter.toLowerCase())
   );
+  const allFilteredItems = (allItemsData?.items || []).filter((item) =>
+    item.name.toLowerCase().includes(itemNameClientFilter.toLowerCase())
+  );
   const pageInfo = itemsData?.pageInfo;
+
+  const toExportRow = (item: {
+    id: string;
+    name: string;
+    description?: string;
+    tags?: string[];
+    collectionId?: string;
+    isPublic: boolean;
+    createdAt: string;
+    updatedAt?: string;
+    metadata?: {
+      imageFolder?: { id?: string; name?: string };
+      previewImage?: { id?: string; name?: string };
+    };
+  }): ExportRow => ({
+    id: item.id,
+    title: item.name,
+    description: item.description || '',
+    tags: item.tags || [],
+    collectionId: item.collectionId || '',
+    visibility: item.isPublic ? 'public' : 'private',
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt || '',
+    imageFolderId: item.metadata?.imageFolder?.id || '',
+    imageFolderName: item.metadata?.imageFolder?.name || '',
+    previewImageId: item.metadata?.previewImage?.id || '',
+    previewImageName: item.metadata?.previewImage?.name || '',
+  });
+
+  const exportVisibleRows = items.map(toExportRow);
+  const exportAllRows = allFilteredItems.map(toExportRow);
 
   useEffect(() => {
     if (!pageInfo?.endCursor) return;
@@ -239,6 +286,37 @@ function MyItemsListAll({
         onBulkDelete={runBulkDelete}
         bulkActionsDisabled={deleteProgress.active}
         isBulkDeleting={isDeleting}
+        exportVisibleRows={exportVisibleRows}
+        exportAllRows={exportAllRows}
+        exportBaseFileName="all-items"
+        exportFieldOrder={[
+          'title',
+          'description',
+          'tags',
+          'collectionId',
+          'visibility',
+          'createdAt',
+          'updatedAt',
+          'imageFolderId',
+          'imageFolderName',
+          'previewImageId',
+          'previewImageName',
+          'id',
+        ]}
+        exportFieldLabels={{
+          title: 'Title',
+          description: 'Description',
+          tags: 'Tags',
+          collectionId: 'Collection ID',
+          visibility: 'Visibility',
+          createdAt: 'Created At',
+          updatedAt: 'Updated At',
+          imageFolderId: 'Image Folder ID',
+          imageFolderName: 'Image Folder Name',
+          previewImageId: 'Preview Image ID',
+          previewImageName: 'Preview Image Name',
+          id: 'Item ID',
+        }}
       />
     </div>
   );

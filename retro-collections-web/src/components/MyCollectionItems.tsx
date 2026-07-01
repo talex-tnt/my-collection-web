@@ -66,6 +66,7 @@ function MyCollectionItems({
             startWithNameFilter={startWithNameFilter}
             nameContainsTokens={nameContainsTokens}
             collectionId={collectionId}
+            collectionName={collection?.name}
           />
         </div>
       </div>

@@ -62,6 +62,7 @@ function MyWishlistWishes({
             startWithNameFilter={startWithNameFilter}
             nameContainsTokens={nameContainsTokens}
             wishlistId={wishlistId}
+            wishlistName={wishlist?.name}
           />
         </div>
       </div>

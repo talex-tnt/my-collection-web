@@ -22,6 +22,7 @@ import type { Item } from '../api/firestore/services/misc/userItems';
 import { useSettingsUIPageSize } from '../utils/hooks';
 import MyItemsListMarkup from './MyItemsListMarkup';
 import BulkDeleteFeedbackToast from './BulkDeleteFeedbackToast';
+import type { ExportRow } from './ExportListButton';
 
 interface Cursor {
   createdAt: string;
@@ -36,6 +37,7 @@ interface MyItemsListProps {
   startWithNameFilter: string;
   nameContainsTokens: string;
   collectionId?: string;
+  collectionName?: string;
 }
 
 function MyItemsList({
@@ -46,6 +48,7 @@ function MyItemsList({
   isPublicItem,
   startWithNameFilter,
   nameContainsTokens,
+  collectionName,
 }: MyItemsListProps) {
   const [pageSize, setPageSize, pageOptions] = useSettingsUIPageSize();
 
@@ -186,10 +189,51 @@ function MyItemsList({
     { skip: !user?.uid }
   );
 
+  const { data: allItemsData } = useGetUserItemsQuery(
+    {
+      userId: user?.uid || '',
+      tags: selectedTags.length ? selectedTags : undefined,
+      isPublicItem,
+      limit: undefined,
+      startAfter: undefined,
+      startWithNameFilter: startWithNameFilter || undefined,
+      nameContainsTokens: nameContainsTokens || undefined,
+      collectionId,
+    },
+    { skip: !user?.uid }
+  );
+
   const items = (itemsData?.items || []).filter((item) =>
     item.name.toLowerCase().includes(itemNameClientFilter.toLowerCase())
   );
+  const allFilteredItems = (allItemsData?.items || []).filter((item) =>
+    item.name.toLowerCase().includes(itemNameClientFilter.toLowerCase())
+  );
   const pageInfo = itemsData?.pageInfo;
+
+  const toExportRow = (item: Item): ExportRow => ({
+    id: item.id,
+    title: item.name,
+    description: item.description || '',
+    tags: item.tags || [],
+    collectionId: item.collectionId || '',
+    visibility: item.isPublic ? 'public' : 'private',
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt || '',
+    imageFolderId: item.metadata?.imageFolder?.id || '',
+    imageFolderName: item.metadata?.imageFolder?.name || '',
+    previewImageId: item.metadata?.previewImage?.id || '',
+    previewImageName: item.metadata?.previewImage?.name || '',
+  });
+
+  const exportVisibleRows = useMemo(
+    () => items.map(toExportRow),
+    [items]
+  );
+  const exportAllRows = useMemo(
+    () => allFilteredItems.map(toExportRow),
+    [allFilteredItems]
+  );
 
   useEffect(() => {
     if (!pageInfo?.endCursor) return;
@@ -331,6 +375,39 @@ function MyItemsList({
         currentIsPublicItem={isPublicItem}
         bulkActionsDisabled={deleteProgress.active}
         isBulkDeleting={isDeleting}
+        exportVisibleRows={exportVisibleRows}
+        exportAllRows={exportAllRows}
+        exportBaseFileName={
+          collectionName || (normalizedCollectionId ? 'collection-items' : 'spare-items')
+        }
+        exportFieldOrder={[
+          'title',
+          'description',
+          'tags',
+          'collectionId',
+          'visibility',
+          'createdAt',
+          'updatedAt',
+          'imageFolderId',
+          'imageFolderName',
+          'previewImageId',
+          'previewImageName',
+          'id',
+        ]}
+        exportFieldLabels={{
+          title: 'Title',
+          description: 'Description',
+          tags: 'Tags',
+          collectionId: 'Collection ID',
+          visibility: 'Visibility',
+          createdAt: 'Created At',
+          updatedAt: 'Updated At',
+          imageFolderId: 'Image Folder ID',
+          imageFolderName: 'Image Folder Name',
+          previewImageId: 'Preview Image ID',
+          previewImageName: 'Preview Image Name',
+          id: 'Item ID',
+        }}
       />
     </div>
   );

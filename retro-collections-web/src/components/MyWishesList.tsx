@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   useGetUserWishesQuery,
   useGetUserWishesCountQuery,
 } from '../api/firestore/firestoreApi';
 import { FiEdit as FiLock, FiEdit2 as FiUnlock } from 'react-icons/fi';
 import MyWishListItem from './MyWishListItem';
+import ExportListButton, { type ExportRow } from './ExportListButton';
 
 interface MyWishesListProps {
   user: { uid: string } | null;
@@ -14,6 +15,7 @@ interface MyWishesListProps {
   startWithNameFilter: string;
   nameContainsTokens: string;
   wishlistId?: string;
+  wishlistName?: string;
 }
 
 function MyWishesList({
@@ -24,6 +26,7 @@ function MyWishesList({
   startWithNameFilter,
   nameContainsTokens,
   wishlistId,
+  wishlistName,
 }: MyWishesListProps) {
   const [editing, setEditing] = useState(false);
 
@@ -61,22 +64,91 @@ function MyWishesList({
     wish.name.toLowerCase().includes(wishNameClientFilter.toLowerCase())
   );
 
+  const allWishes = wishesData?.wishes || [];
+
+  const toExportRow = (wish: {
+    id: string;
+    name: string;
+    description?: string;
+    tags?: string[];
+    wishlistId?: string;
+    isPublic: boolean;
+    createdAt: string;
+    updatedAt?: string;
+    metadata?: {
+      imageFolder?: { id?: string; name?: string };
+      previewImage?: { id?: string; name?: string };
+    };
+  }): ExportRow => ({
+    id: wish.id,
+    title: wish.name,
+    description: wish.description || '',
+    tags: wish.tags || [],
+    wishlistId: wish.wishlistId || '',
+    visibility: wish.isPublic ? 'public' : 'private',
+    createdAt: wish.createdAt,
+    updatedAt: wish.updatedAt || '',
+    imageFolderId: wish.metadata?.imageFolder?.id || '',
+    imageFolderName: wish.metadata?.imageFolder?.name || '',
+    previewImageId: wish.metadata?.previewImage?.id || '',
+    previewImageName: wish.metadata?.previewImage?.name || '',
+  });
+
+  const exportVisibleRows = useMemo(() => wishes.map(toExportRow), [wishes]);
+  const exportAllRows = useMemo(() => allWishes.map(toExportRow), [allWishes]);
+
   return (
     <div className="card bg-base-100 shadow-xl">
       <div className="card-body">
         <div className="flex items-center justify-between gap-2">
           <h2 className="card-title">Wishes ({totalCount})</h2>
-          <button
-            className={`btn btn-xs ${editing ? 'btn-primary' : ''}`}
-            onClick={() => setEditing((previous) => !previous)}
-            title={editing ? 'Disable editing' : 'Enable editing'}
-          >
-            {editing ? (
-              <FiUnlock className="inline-block m-1" title="Editing" />
-            ) : (
-              <FiLock className="inline-block m-1" title="Reading" />
-            )}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              className={`btn btn-xs ${editing ? 'btn-primary' : ''}`}
+              onClick={() => setEditing((previous) => !previous)}
+              title={editing ? 'Disable editing' : 'Enable editing'}
+            >
+              {editing ? (
+                <FiUnlock className="inline-block m-1" title="Editing" />
+              ) : (
+                <FiLock className="inline-block m-1" title="Reading" />
+              )}
+            </button>
+            <ExportListButton
+              entityLabel="wishes"
+              visibleRows={exportVisibleRows}
+              allRows={exportAllRows}
+              defaultBaseName={wishlistName || 'wishes'}
+              fieldOrder={[
+                'title',
+                'description',
+                'tags',
+                'wishlistId',
+                'visibility',
+                'createdAt',
+                'updatedAt',
+                'imageFolderId',
+                'imageFolderName',
+                'previewImageId',
+                'previewImageName',
+                'id',
+              ]}
+              fieldLabels={{
+                title: 'Title',
+                description: 'Description',
+                tags: 'Tags',
+                wishlistId: 'Wishlist ID',
+                visibility: 'Visibility',
+                createdAt: 'Created At',
+                updatedAt: 'Updated At',
+                imageFolderId: 'Image Folder ID',
+                imageFolderName: 'Image Folder Name',
+                previewImageId: 'Preview Image ID',
+                previewImageName: 'Preview Image Name',
+                id: 'Wish ID',
+              }}
+            />
+          </div>
         </div>
         {error ? (
           <div className="alert alert-error">Error loading wishes</div>
