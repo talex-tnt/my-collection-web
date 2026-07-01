@@ -42,6 +42,18 @@ type DriveNode = {
 
 type FolderSortMode = 'name-asc' | 'name-desc' | 'updated-asc' | 'updated-desc';
 
+type PendingUploadStatus = 'queued' | 'uploading' | 'error';
+
+type PendingUploadItem = {
+  localId: string;
+  targetFolderId: string;
+  file: File;
+  previewUrl: string;
+  requestedName: string;
+  status: PendingUploadStatus;
+  errorMessage?: string;
+};
+
 const isPreviewFileName = (name: string | null | undefined) =>
   Boolean(name && /^Preview(\.|$)/i.test(name));
 
@@ -95,6 +107,14 @@ const getPreviewFileName = (name: string) => {
   return extension ? `Preview.${extension}` : 'Preview';
 };
 
+const createLocalUploadId = () => {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID();
+  }
+
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+};
+
 const formatFolderModifiedAt = (modifiedTime?: string) => {
   if (!modifiedTime) return 'No update data';
 
@@ -143,9 +163,11 @@ const DriveBrowser = ({
     id: string;
     name: string;
   } | null>(null);
+  const [pendingUploads, setPendingUploads] = useState<PendingUploadItem[]>([]);
+  const pendingUploadsRef = useRef<PendingUploadItem[]>([]);
+  const uploadQueueRunningRef = useRef(false);
 
-  const [uploadFileToFolder, { isLoading: isUploading }] =
-    useUploadFileToFolderMutation();
+  const [uploadFileToFolder] = useUploadFileToFolderMutation();
   const [createDriveFolder, { isLoading: isCreatingFolder }] =
     useCreateDriveFolderMutation();
   const [renameDriveNode, { isLoading: isRenaming }] =
@@ -224,8 +246,7 @@ const DriveBrowser = ({
     f.mimeType.startsWith('image/')
   );
 
-  const isMutating =
-    isUploading || isCreatingFolder || isRenaming || isDeleting || isFetching;
+  const isMutating = isCreatingFolder || isRenaming || isDeleting || isFetching;
 
   const clearStatus = () => {
     setOperationError(null);
@@ -428,8 +449,9 @@ const DriveBrowser = ({
     const selectedFiles = event.target.files
       ? Array.from(event.target.files)
       : [];
+    const targetFolderId = currentFolder?.id;
 
-    if (selectedFiles.length === 0 || !currentFolder?.id) {
+    if (selectedFiles.length === 0 || !targetFolderId) {
       return;
     }
 
@@ -444,25 +466,41 @@ const DriveBrowser = ({
           .map((image) => (image.name || '').trim().toLowerCase())
           .filter(Boolean)
       );
-      const hasPreview = images.some((image) => isPreviewFileName(image.name));
+      pendingUploads
+        .filter((item) => item.targetFolderId === targetFolderId)
+        .forEach((item) => {
+          usedNames.add(item.requestedName.trim().toLowerCase());
+        });
 
-      for (let index = 0; index < sanitizedFiles.length; index += 1) {
-        const file = sanitizedFiles[index];
-        const requestedName =
-          !hasPreview && index === 0
-            ? getPreviewFileName(file.name)
-            : file.name || 'IMG';
+      let hasPreview =
+        images.some((image) => isPreviewFileName(image.name)) ||
+        pendingUploads.some(
+          (item) =>
+            item.targetFolderId === targetFolderId &&
+            isPreviewFileName(item.requestedName)
+        );
+
+      const queuedItems: PendingUploadItem[] = sanitizedFiles.map((file) => {
+        const requestedName = !hasPreview
+          ? getPreviewFileName(file.name)
+          : file.name || 'IMG';
         const uniqueName = buildUniqueName(requestedName, usedNames);
+        hasPreview = hasPreview || isPreviewFileName(uniqueName);
 
-        await uploadFileToFolder({
-          folderId: currentFolder.id,
+        return {
+          localId: createLocalUploadId(),
+          targetFolderId,
           file,
-          fileName: uniqueName,
-        }).unwrap();
-      }
+          previewUrl: URL.createObjectURL(file),
+          requestedName: uniqueName,
+          status: 'queued',
+        };
+      });
 
-      setOperationNotice('Images uploaded.');
-      await refetch();
+      setPendingUploads((prev) => [...prev, ...queuedItems]);
+      setOperationNotice(
+        `${queuedItems.length} image(s) queued for background upload.`
+      );
     } catch (error) {
       console.error('Unable to upload images:', error);
       setOperationError('Unable to upload images. Please try again.');
@@ -470,6 +508,84 @@ const DriveBrowser = ({
       event.target.value = '';
     }
   };
+
+  const handleRetryUpload = (localId: string) => {
+    setPendingUploads((prev) =>
+      prev.map((item) =>
+        item.localId === localId
+          ? { ...item, status: 'queued', errorMessage: undefined }
+          : item
+      )
+    );
+  };
+
+  const handleDiscardUpload = (localId: string) => {
+    setPendingUploads((prev) => {
+      const target = prev.find((item) => item.localId === localId);
+      if (target?.previewUrl) {
+        URL.revokeObjectURL(target.previewUrl);
+      }
+      return prev.filter((item) => item.localId !== localId);
+    });
+  };
+
+  useEffect(() => {
+    if (uploadQueueRunningRef.current) return;
+
+    const nextItem = pendingUploads.find((item) => item.status === 'queued');
+    if (!nextItem) return;
+
+    uploadQueueRunningRef.current = true;
+
+    const runUpload = async () => {
+      setPendingUploads((prev) =>
+        prev.map((item) =>
+          item.localId === nextItem.localId
+            ? { ...item, status: 'uploading', errorMessage: undefined }
+            : item
+        )
+      );
+
+      try {
+        await uploadFileToFolder({
+          folderId: nextItem.targetFolderId,
+          file: nextItem.file,
+          fileName: nextItem.requestedName,
+        }).unwrap();
+
+        setPendingUploads((prev) => {
+          const uploaded = prev.find(
+            (item) => item.localId === nextItem.localId
+          );
+          if (uploaded?.previewUrl) {
+            URL.revokeObjectURL(uploaded.previewUrl);
+          }
+          return prev.filter((item) => item.localId !== nextItem.localId);
+        });
+
+        if (nextItem.targetFolderId === currentFolder?.id) {
+          await refetch();
+        }
+      } catch (error) {
+        console.error('Unable to upload queued image:', error);
+        setPendingUploads((prev) =>
+          prev.map((item) =>
+            item.localId === nextItem.localId
+              ? {
+                  ...item,
+                  status: 'error',
+                  errorMessage: 'Upload failed. Retry when ready.',
+                }
+              : item
+          )
+        );
+      } finally {
+        uploadQueueRunningRef.current = false;
+      }
+    };
+
+    void runUpload();
+  }, [currentFolder?.id, pendingUploads, refetch, uploadFileToFolder]);
 
   const handleEditImage = async (image: DriveNode) => {
     try {
@@ -568,6 +684,18 @@ const DriveBrowser = ({
   }, [editingImage]);
 
   useEffect(() => {
+    pendingUploadsRef.current = pendingUploads;
+  }, [pendingUploads]);
+
+  useEffect(() => {
+    return () => {
+      pendingUploadsRef.current.forEach((item) => {
+        URL.revokeObjectURL(item.previewUrl);
+      });
+    };
+  }, []);
+
+  useEffect(() => {
     if (!fullscreenImage) return;
 
     const handleEscape = (event: KeyboardEvent) => {
@@ -579,6 +707,16 @@ const DriveBrowser = ({
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
   }, [fullscreenImage]);
+
+  const queuedCount = pendingUploads.filter(
+    (item) => item.status === 'queued'
+  ).length;
+  const uploadingCount = pendingUploads.filter(
+    (item) => item.status === 'uploading'
+  ).length;
+  const errorCount = pendingUploads.filter(
+    (item) => item.status === 'error'
+  ).length;
 
   return (
     <div className="card bg-transparent w-full max-w-md mx-auto flex flex-col h-full">
@@ -694,6 +832,72 @@ const DriveBrowser = ({
         {operationNotice && (
           <div className="alert alert-success text-xs py-2 px-3 mb-2">
             {operationNotice}
+          </div>
+        )}
+
+        {pendingUploads.length > 0 && (
+          <div className="mb-2 rounded-lg border border-base-300 bg-base-100/80 p-2">
+            <div className="flex items-center justify-between gap-2 text-xs">
+              <span className="font-medium">Background upload queue</span>
+              <span className="opacity-70">
+                {queuedCount} queued, {uploadingCount} uploading, {errorCount}{' '}
+                failed
+              </span>
+            </div>
+            <ul className="mt-2 space-y-1">
+              {pendingUploads.slice(0, 6).map((item) => (
+                <li
+                  key={item.localId}
+                  className="flex items-center gap-2 rounded border border-base-200 bg-base-100 p-1.5"
+                >
+                  <img
+                    src={item.previewUrl}
+                    alt={item.file.name}
+                    className="h-8 w-8 rounded object-cover"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p
+                      className="truncate text-xs font-medium"
+                      title={item.requestedName}
+                    >
+                      {item.requestedName}
+                    </p>
+                    <p className="text-[10px] opacity-70">
+                      {item.status === 'uploading'
+                        ? 'Uploading...'
+                        : item.status === 'queued'
+                          ? 'Queued'
+                          : item.errorMessage || 'Upload failed'}
+                    </p>
+                  </div>
+                  {item.status === 'error' && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-xs"
+                      title="Retry upload"
+                      onClick={() => handleRetryUpload(item.localId)}
+                    >
+                      <FiUpload className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  {item.status !== 'uploading' && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-xs"
+                      title="Remove from queue"
+                      onClick={() => handleDiscardUpload(item.localId)}
+                    >
+                      <FiX className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+            {pendingUploads.length > 6 && (
+              <p className="mt-1 text-[10px] opacity-60">
+                +{pendingUploads.length - 6} more item(s) in queue
+              </p>
+            )}
           </div>
         )}
 
@@ -996,11 +1200,7 @@ const DriveBrowser = ({
 
             <label
               htmlFor={uploadInputId}
-              className={`btn btn-xs btn-outline gap-1 ${
-                !currentFolder?.id || isMutating
-                  ? 'pointer-events-none opacity-50'
-                  : ''
-              }`}
+              className={`btn btn-xs btn-outline gap-1 ${!currentFolder?.id ? 'pointer-events-none opacity-50' : ''}`}
             >
               <FiUpload className="w-3.5 h-3.5" />
               <FiImage className="w-3.5 h-3.5" />
@@ -1012,7 +1212,7 @@ const DriveBrowser = ({
               multiple
               className="sr-only"
               onChange={handleUploadImages}
-              disabled={!currentFolder?.id || isMutating}
+              disabled={!currentFolder?.id}
             />
 
             <button
