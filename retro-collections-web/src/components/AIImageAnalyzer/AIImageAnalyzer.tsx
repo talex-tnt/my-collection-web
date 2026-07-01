@@ -18,8 +18,8 @@ import type { SerializedError } from '@reduxjs/toolkit';
 import { useCurrentUser } from '../../utils/hooks';
 import { AnalyzerModal } from './AnalyzerModal';
 import DriveFolderModal from '../DriveFolderModal';
-import { PhotoEditorModal } from './PhotoEditorModal';
-import { stripImageMetadata } from './imageEditing';
+import { PhotoEditorModal } from '../PhotoEditorModal';
+import { stripImageMetadata } from '../../utils/imageEditing';
 import type { AnalyzerEngine, SuggestedResult, TagStyle } from './types';
 
 const DRIVE_FOLDER_NAME_CONFLICT_ERROR =

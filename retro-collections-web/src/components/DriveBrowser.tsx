@@ -14,8 +14,8 @@ import DriveImage from './DriveImage';
 import type { FileType, FolderType } from '../api/firestore/types/shared';
 import { usePrefixGroupedList } from '../hooks/usePrefixGroupedList';
 import { useDisableScroll } from '../utils/hooks';
-import { stripImageMetadata } from './AIImageAnalyzer/imageEditing';
-import { PhotoEditorModal } from './AIImageAnalyzer/PhotoEditorModal';
+import { stripImageMetadata } from '../utils/imageEditing';
+import { PhotoEditorModal } from './PhotoEditorModal';
 import {
   FiArrowUp as ArrowUp,
   FiChevronDown,
@@ -52,6 +52,17 @@ type PendingUploadItem = {
   requestedName: string;
   status: PendingUploadStatus;
   errorMessage?: string;
+};
+
+type PendingPreUploadEditItem = {
+  targetFolderId: string;
+  file: File;
+};
+
+type ActivePreUploadEdit = {
+  targetFolderId: string;
+  file: File;
+  previewUrl: string;
 };
 
 const isPreviewFileName = (name: string | null | undefined) =>
@@ -163,6 +174,13 @@ const DriveBrowser = ({
     id: string;
     name: string;
   } | null>(null);
+  const [preUploadEditQueue, setPreUploadEditQueue] = useState<
+    PendingPreUploadEditItem[]
+  >([]);
+  const [activePreUploadEdit, setActivePreUploadEdit] =
+    useState<ActivePreUploadEdit | null>(null);
+  const preUploadEditQueueRef = useRef<PendingPreUploadEditItem[]>([]);
+  const activePreUploadEditRef = useRef<ActivePreUploadEdit | null>(null);
   const [pendingUploads, setPendingUploads] = useState<PendingUploadItem[]>([]);
   const pendingUploadsRef = useRef<PendingUploadItem[]>([]);
   const uploadQueueRunningRef = useRef(false);
@@ -445,6 +463,82 @@ const DriveBrowser = ({
     }
   };
 
+  const enqueueFilesForBackgroundUpload = (
+    filesToQueue: File[],
+    targetFolderId: string
+  ) => {
+    if (filesToQueue.length === 0) return;
+
+    const usedNames = new Set(
+      images
+        .map((image) => (image.name || '').trim().toLowerCase())
+        .filter(Boolean)
+    );
+    pendingUploads
+      .filter((item) => item.targetFolderId === targetFolderId)
+      .forEach((item) => {
+        usedNames.add(item.requestedName.trim().toLowerCase());
+      });
+
+    let hasPreview =
+      images.some((image) => isPreviewFileName(image.name)) ||
+      pendingUploads.some(
+        (item) =>
+          item.targetFolderId === targetFolderId &&
+          isPreviewFileName(item.requestedName)
+      );
+
+    const queuedItems: PendingUploadItem[] = filesToQueue.map((file) => {
+      const requestedName = !hasPreview
+        ? getPreviewFileName(file.name)
+        : file.name || 'IMG';
+      const uniqueName = buildUniqueName(requestedName, usedNames);
+      hasPreview = hasPreview || isPreviewFileName(uniqueName);
+
+      return {
+        localId: createLocalUploadId(),
+        targetFolderId,
+        file,
+        previewUrl: URL.createObjectURL(file),
+        requestedName: uniqueName,
+        status: 'queued',
+      };
+    });
+
+    setPendingUploads((prev) => [...prev, ...queuedItems]);
+    setOperationNotice(
+      `${queuedItems.length} image(s) queued for background upload.`
+    );
+  };
+
+  const openNextPreUploadEditor = () => {
+    if (activePreUploadEditRef.current) return;
+
+    const [nextItem, ...remainingItems] = preUploadEditQueueRef.current;
+    if (!nextItem) return;
+
+    const previewUrl = URL.createObjectURL(nextItem.file);
+    const activeItem: ActivePreUploadEdit = {
+      file: nextItem.file,
+      targetFolderId: nextItem.targetFolderId,
+      previewUrl,
+    };
+
+    preUploadEditQueueRef.current = remainingItems;
+    activePreUploadEditRef.current = activeItem;
+    setPreUploadEditQueue(remainingItems);
+    setActivePreUploadEdit(activeItem);
+  };
+
+  const closeActivePreUploadEdit = () => {
+    const currentActive = activePreUploadEditRef.current;
+    if (currentActive?.previewUrl) {
+      URL.revokeObjectURL(currentActive.previewUrl);
+    }
+    activePreUploadEditRef.current = null;
+    setActivePreUploadEdit(null);
+  };
+
   const handleUploadImages = async (event: ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = event.target.files
       ? Array.from(event.target.files)
@@ -460,46 +554,38 @@ const DriveBrowser = ({
       const sanitizedFiles = await Promise.all(
         selectedFiles.map((file) => stripImageMetadata(file))
       );
+      const pendingEdits = sanitizedFiles.map((file) => ({
+        file,
+        targetFolderId,
+      }));
 
-      const usedNames = new Set(
-        images
-          .map((image) => (image.name || '').trim().toLowerCase())
-          .filter(Boolean)
-      );
-      pendingUploads
-        .filter((item) => item.targetFolderId === targetFolderId)
-        .forEach((item) => {
-          usedNames.add(item.requestedName.trim().toLowerCase());
-        });
-
-      let hasPreview =
-        images.some((image) => isPreviewFileName(image.name)) ||
-        pendingUploads.some(
-          (item) =>
-            item.targetFolderId === targetFolderId &&
-            isPreviewFileName(item.requestedName)
-        );
-
-      const queuedItems: PendingUploadItem[] = sanitizedFiles.map((file) => {
-        const requestedName = !hasPreview
-          ? getPreviewFileName(file.name)
-          : file.name || 'IMG';
-        const uniqueName = buildUniqueName(requestedName, usedNames);
-        hasPreview = hasPreview || isPreviewFileName(uniqueName);
-
-        return {
-          localId: createLocalUploadId(),
-          targetFolderId,
-          file,
-          previewUrl: URL.createObjectURL(file),
-          requestedName: uniqueName,
-          status: 'queued',
+      if (
+        !activePreUploadEditRef.current &&
+        preUploadEditQueueRef.current.length === 0 &&
+        pendingEdits.length > 0
+      ) {
+        const [firstEdit, ...remainingEdits] = pendingEdits;
+        const previewUrl = URL.createObjectURL(firstEdit.file);
+        const activeItem: ActivePreUploadEdit = {
+          file: firstEdit.file,
+          targetFolderId: firstEdit.targetFolderId,
+          previewUrl,
         };
-      });
 
-      setPendingUploads((prev) => [...prev, ...queuedItems]);
+        preUploadEditQueueRef.current = remainingEdits;
+        activePreUploadEditRef.current = activeItem;
+        setPreUploadEditQueue(remainingEdits);
+        setActivePreUploadEdit(activeItem);
+      } else {
+        setPreUploadEditQueue((prev) => {
+          const next = [...prev, ...pendingEdits];
+          preUploadEditQueueRef.current = next;
+          return next;
+        });
+      }
+
       setOperationNotice(
-        `${queuedItems.length} image(s) queued for background upload.`
+        `${sanitizedFiles.length} image(s) ready to edit before upload.`
       );
     } catch (error) {
       console.error('Unable to upload images:', error);
@@ -507,6 +593,21 @@ const DriveBrowser = ({
     } finally {
       event.target.value = '';
     }
+  };
+
+  const handleSavePreUploadEdit = (file: File) => {
+    const targetFolderId = activePreUploadEdit?.targetFolderId;
+    if (!targetFolderId) return;
+
+    closeActivePreUploadEdit();
+    enqueueFilesForBackgroundUpload([file], targetFolderId);
+    openNextPreUploadEditor();
+  };
+
+  const handleCancelPreUploadEdit = () => {
+    closeActivePreUploadEdit();
+    setOperationNotice('Image skipped before upload.');
+    openNextPreUploadEditor();
   };
 
   const handleRetryUpload = (localId: string) => {
@@ -586,6 +687,14 @@ const DriveBrowser = ({
 
     void runUpload();
   }, [currentFolder?.id, pendingUploads, refetch, uploadFileToFolder]);
+
+  useEffect(() => {
+    preUploadEditQueueRef.current = preUploadEditQueue;
+  }, [preUploadEditQueue]);
+
+  useEffect(() => {
+    activePreUploadEditRef.current = activePreUploadEdit;
+  }, [activePreUploadEdit]);
 
   const handleEditImage = async (image: DriveNode) => {
     try {
@@ -689,6 +798,9 @@ const DriveBrowser = ({
 
   useEffect(() => {
     return () => {
+      if (activePreUploadEditRef.current?.previewUrl) {
+        URL.revokeObjectURL(activePreUploadEditRef.current.previewUrl);
+      }
       pendingUploadsRef.current.forEach((item) => {
         URL.revokeObjectURL(item.previewUrl);
       });
@@ -1280,6 +1392,16 @@ const DriveBrowser = ({
             mimeType={editingImage.mimeType}
             onCancel={handleCancelEdit}
             onSave={handleSaveEditedImage}
+          />
+        )}
+
+        {activePreUploadEdit && (
+          <PhotoEditorModal
+            imageSrc={activePreUploadEdit.previewUrl}
+            fileName={activePreUploadEdit.file.name}
+            mimeType={activePreUploadEdit.file.type || 'image/jpeg'}
+            onCancel={handleCancelPreUploadEdit}
+            onSave={handleSavePreUploadEdit}
           />
         )}
 

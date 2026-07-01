@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Cropper, { type Area } from 'react-easy-crop';
 import 'react-easy-crop/react-easy-crop.css';
 import { createPortal } from 'react-dom';
-import { createEditedImageFile } from './imageEditing';
+import { createEditedImageFile } from '../utils/imageEditing';
 
 interface PhotoEditorModalProps {
   imageSrc: string;
@@ -32,10 +32,11 @@ export function PhotoEditorModal({
   onCancel,
   onSave,
 }: PhotoEditorModalProps) {
+  const [originalAspect, setOriginalAspect] = useState<number>(4 / 3);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
-  const [aspect, setAspect] = useState<number>(4 / 3);
+  const [aspect, setAspect] = useState<number>(originalAspect);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -84,11 +85,28 @@ export function PhotoEditorModal({
     }
   }, [isBrowserZoomAbove100, zoom]);
 
+  useEffect(() => {
+    const image = new Image();
+
+    image.onload = () => {
+      if (image.naturalWidth > 0 && image.naturalHeight > 0) {
+        const detectedAspect = image.naturalWidth / image.naturalHeight;
+        setOriginalAspect(detectedAspect);
+        setAspect(detectedAspect);
+      }
+      setCrop({ x: 0, y: 0 });
+      setZoom(1);
+      setRotation(0);
+    };
+
+    image.src = imageSrc;
+  }, [imageSrc]);
+
   const handleReset = () => {
     setCrop({ x: 0, y: 0 });
     setZoom(1);
     setRotation(0);
-    setAspect(4 / 3);
+    setAspect(originalAspect);
     setErrorMessage(null);
   };
 
