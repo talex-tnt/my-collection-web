@@ -5,7 +5,10 @@ import {
 } from '../api/firestore/firestoreApi';
 import { FiEdit as FiLock, FiEdit2 as FiUnlock } from 'react-icons/fi';
 import MyWishListItem from './MyWishListItem';
-import ExportListButton, { type ExportRow } from './ExportListButton';
+import ExportListButton, {
+  type ExportJsonMetadata,
+  type ExportRow,
+} from './ExportListButton';
 
 interface MyWishesListProps {
   user: { uid: string } | null;
@@ -97,6 +100,34 @@ function MyWishesList({
   const exportVisibleRows = useMemo(() => wishes.map(toExportRow), [wishes]);
   const exportAllRows = useMemo(() => allWishes.map(toExportRow), [allWishes]);
 
+  const hasExportFilters =
+    selectedWishTags.length > 0 ||
+    Boolean(startWithNameFilter) ||
+    Boolean(nameContainsTokens) ||
+    Boolean(wishNameClientFilter);
+
+  const exportAppliedFilters: Record<string, unknown> = {
+    ...(selectedWishTags.length > 0 ? { tags: selectedWishTags } : {}),
+    ...(startWithNameFilter ? { startsWith: startWithNameFilter } : {}),
+    ...(nameContainsTokens ? { containsTokens: nameContainsTokens } : {}),
+    ...(wishNameClientFilter ? { clientNameContains: wishNameClientFilter } : {}),
+  };
+
+  const exportJsonMetadata: ExportJsonMetadata = {
+    listContext: {
+      type: wishlistId ? 'wishlist' : 'spare',
+      wishlist: wishlistId ? { id: wishlistId, name: wishlistName } : undefined,
+      isSparseList: !wishlistId,
+      visibility: isPublicWish ? 'public' : 'private',
+    },
+    isFiltered: hasExportFilters,
+    appliedFilters: exportAppliedFilters,
+    pagination: {
+      page: 1,
+      limit: 'all',
+    },
+  };
+
   return (
     <div className="card bg-base-100 shadow-xl">
       <div className="card-body">
@@ -119,6 +150,7 @@ function MyWishesList({
               visibleRows={exportVisibleRows}
               allRows={exportAllRows}
               defaultBaseName={wishlistName || 'wishes'}
+              jsonMetadata={exportJsonMetadata}
               fieldOrder={[
                 'title',
                 'description',

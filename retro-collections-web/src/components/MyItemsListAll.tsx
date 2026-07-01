@@ -18,7 +18,7 @@ import {
 import { useSettingsUIPageSize } from '../utils/hooks';
 import MyItemsListMarkup from './MyItemsListMarkup';
 import BulkDeleteFeedbackToast from './BulkDeleteFeedbackToast';
-import type { ExportRow } from './ExportListButton';
+import type { ExportJsonMetadata, ExportRow } from './ExportListButton';
 
 interface Cursor {
   createdAt: string;
@@ -175,6 +175,33 @@ function MyItemsListAll({
   const exportVisibleRows = items.map(toExportRow);
   const exportAllRows = allFilteredItems.map(toExportRow);
 
+  const hasExportFilters =
+    selectedTags.length > 0 ||
+    Boolean(startWithNameFilter) ||
+    Boolean(nameContainsTokens) ||
+    Boolean(itemNameClientFilter);
+
+  const exportAppliedFilters: Record<string, unknown> = {
+    ...(selectedTags.length > 0 ? { tags: selectedTags } : {}),
+    ...(startWithNameFilter ? { startsWith: startWithNameFilter } : {}),
+    ...(nameContainsTokens ? { containsTokens: nameContainsTokens } : {}),
+    ...(itemNameClientFilter ? { clientNameContains: itemNameClientFilter } : {}),
+  };
+
+  const exportJsonMetadata: ExportJsonMetadata = {
+    listContext: {
+      type: 'all',
+      isSparseList: false,
+      visibility: 'mixed',
+    },
+    isFiltered: hasExportFilters,
+    appliedFilters: exportAppliedFilters,
+    pagination: {
+      page: pageIndex + 1,
+      limit: isAll ? 'all' : pageSize || null,
+    },
+  };
+
   useEffect(() => {
     if (!pageInfo?.endCursor) return;
 
@@ -317,6 +344,7 @@ function MyItemsListAll({
           previewImageName: 'Preview Image Name',
           id: 'Item ID',
         }}
+        exportJsonMetadata={exportJsonMetadata}
       />
     </div>
   );

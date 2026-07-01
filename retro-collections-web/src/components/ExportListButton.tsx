@@ -10,6 +10,30 @@ type ExportDestination = 'download' | 'drive';
 
 export type ExportRow = Record<string, unknown>;
 
+export type ExportListContext = {
+  type?: 'collection' | 'wishlist' | 'spare' | 'all' | 'unknown';
+  collection?: {
+    id?: string;
+    name?: string;
+  };
+  wishlist?: {
+    id?: string;
+    name?: string;
+  };
+  isSparseList?: boolean;
+  visibility?: 'public' | 'private' | 'mixed';
+};
+
+export type ExportJsonMetadata = {
+  listContext?: ExportListContext;
+  isFiltered?: boolean;
+  appliedFilters?: Record<string, unknown>;
+  pagination?: {
+    page?: number;
+    limit?: number | 'all' | null;
+  };
+};
+
 type ExportListButtonProps = {
   entityLabel: string;
   visibleRows: ExportRow[];
@@ -17,6 +41,7 @@ type ExportListButtonProps = {
   defaultBaseName: string;
   fieldOrder?: string[];
   fieldLabels?: Record<string, string>;
+  jsonMetadata?: ExportJsonMetadata;
 };
 
 const getTodayDate = () => new Date().toISOString().slice(0, 10);
@@ -66,6 +91,7 @@ function ExportListButton({
   defaultBaseName,
   fieldOrder = [],
   fieldLabels = {},
+  jsonMetadata,
 }: ExportListButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showDrivePicker, setShowDrivePicker] = useState(false);
@@ -166,9 +192,46 @@ function ExportListButton({
     const safeFileName = sanitizeFilename(fileName);
     const nameWithExtension = `${safeFileName}.${extension}`;
 
+    const hasAppliedFilters = Boolean(jsonMetadata?.isFiltered);
+    const isFiltered = hasAppliedFilters || scope === 'visible';
+    const appliedFilters = jsonMetadata?.appliedFilters || {};
     const content =
       format === 'json'
-        ? JSON.stringify(filteredRows, null, 2)
+        ? JSON.stringify(
+            {
+              exportDate: new Date().toISOString(),
+              entity: entityLabel,
+              scope,
+              rowCount: filteredRows.length,
+              fullList: scope === 'all' && !hasAppliedFilters,
+              filtered: isFiltered,
+              listContext: {
+                type: jsonMetadata?.listContext?.type || 'unknown',
+                collection: jsonMetadata?.listContext?.collection,
+                wishlist: jsonMetadata?.listContext?.wishlist,
+                isSparseList: Boolean(jsonMetadata?.listContext?.isSparseList),
+                visibility: jsonMetadata?.listContext?.visibility,
+              },
+              filters: isFiltered
+                ? {
+                    applied: appliedFilters,
+                    pagination: {
+                      page: jsonMetadata?.pagination?.page || 1,
+                      limit:
+                        jsonMetadata?.pagination?.limit !== undefined
+                          ? jsonMetadata?.pagination?.limit
+                          : null,
+                    },
+                  }
+                : {
+                    applied: {},
+                  },
+              selectedFields: fieldsToUse,
+              rows: filteredRows,
+            },
+            null,
+            2
+          )
         : buildCsv(filteredRows, fieldsToUse);
 
     const mimeType =

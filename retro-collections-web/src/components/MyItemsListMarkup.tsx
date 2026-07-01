@@ -3,7 +3,10 @@ import MyListItem from './MyListItem';
 import { ExpandableMotion } from './ExpandableMotion';
 import MyExpandedItem from './MyExpandedItem';
 import SelectTags from './SelectTags';
-import ExportListButton, { type ExportRow } from './ExportListButton';
+import ExportListButton, {
+  type ExportJsonMetadata,
+  type ExportRow,
+} from './ExportListButton';
 import {
   FiEdit as FiLock,
   FiEdit2 as FiUnlock,
@@ -76,6 +79,7 @@ interface MyItemsListMarkupProps {
   exportBaseFileName?: string;
   exportFieldLabels?: Record<string, string>;
   exportFieldOrder?: string[];
+  exportJsonMetadata?: ExportJsonMetadata;
 }
 
 function MyItemsListMarkup({
@@ -117,6 +121,7 @@ function MyItemsListMarkup({
   exportBaseFileName = 'items',
   exportFieldLabels,
   exportFieldOrder,
+  exportJsonMetadata,
 }: MyItemsListMarkupProps) {
   const tagActionsDropdownRef = useRef<HTMLDetailsElement | null>(null);
   const [copyTargetCollectionId, setCopyTargetCollectionId] = useState('');
@@ -262,6 +267,7 @@ function MyItemsListMarkup({
               defaultBaseName={exportBaseFileName}
               fieldLabels={exportFieldLabels}
               fieldOrder={exportFieldOrder}
+              jsonMetadata={exportJsonMetadata}
             />
           </div>
         </div>

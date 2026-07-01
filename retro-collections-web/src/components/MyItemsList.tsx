@@ -22,7 +22,7 @@ import type { Item } from '../api/firestore/services/misc/userItems';
 import { useSettingsUIPageSize } from '../utils/hooks';
 import MyItemsListMarkup from './MyItemsListMarkup';
 import BulkDeleteFeedbackToast from './BulkDeleteFeedbackToast';
-import type { ExportRow } from './ExportListButton';
+import type { ExportJsonMetadata, ExportRow } from './ExportListButton';
 
 interface Cursor {
   createdAt: string;
@@ -235,6 +235,36 @@ function MyItemsList({
     [allFilteredItems]
   );
 
+  const hasExportFilters =
+    selectedTags.length > 0 ||
+    Boolean(startWithNameFilter) ||
+    Boolean(nameContainsTokens) ||
+    Boolean(itemNameClientFilter);
+
+  const exportAppliedFilters: Record<string, unknown> = {
+    ...(selectedTags.length > 0 ? { tags: selectedTags } : {}),
+    ...(startWithNameFilter ? { startsWith: startWithNameFilter } : {}),
+    ...(nameContainsTokens ? { containsTokens: nameContainsTokens } : {}),
+    ...(itemNameClientFilter ? { clientNameContains: itemNameClientFilter } : {}),
+  };
+
+  const exportJsonMetadata: ExportJsonMetadata = {
+    listContext: {
+      type: normalizedCollectionId ? 'collection' : 'spare',
+      collection: normalizedCollectionId
+        ? { id: normalizedCollectionId, name: collectionName }
+        : undefined,
+      isSparseList: !normalizedCollectionId,
+      visibility: isPublicItem ? 'public' : 'private',
+    },
+    isFiltered: hasExportFilters,
+    appliedFilters: exportAppliedFilters,
+    pagination: {
+      page: pageIndex + 1,
+      limit: isAll ? 'all' : pageSize || null,
+    },
+  };
+
   useEffect(() => {
     if (!pageInfo?.endCursor) return;
 
@@ -408,6 +438,7 @@ function MyItemsList({
           previewImageName: 'Preview Image Name',
           id: 'Item ID',
         }}
+        exportJsonMetadata={exportJsonMetadata}
       />
     </div>
   );
