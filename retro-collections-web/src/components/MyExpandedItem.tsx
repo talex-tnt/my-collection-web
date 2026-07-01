@@ -137,7 +137,7 @@ function MyExpandedItem({
     }
   };
   return (
-    <div className="flex flex-col gap-2 bg-base-200 p-4">
+    <div className="flex w-full flex-col gap-2 overflow-x-hidden bg-base-200 p-4">
       {/* Tags at the top, toggleable */}
       <div className="flex items-center gap-2">
         {showTags && (
