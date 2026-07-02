@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useListFilesQuery } from '../api/google-drive/googleDriveApi';
 import type { FileType, FolderType } from '../api/firestore/types/shared';
 import DriveImage from './DriveImage';
@@ -36,13 +37,33 @@ const ItemImages = ({ folder }: ItemImagesProps) => {
 
     if (activeImage) {
       document.addEventListener('keydown', onKeyDown);
-      document.body.style.overflow = 'hidden';
+
+      const htmlStyle = document.documentElement.style;
+      const bodyStyle = document.body.style;
+
+      const previousHtmlOverflow = htmlStyle.overflow;
+      const previousHtmlOverflowX = htmlStyle.overflowX;
+      const previousBodyOverflow = bodyStyle.overflow;
+      const previousBodyOverflowX = bodyStyle.overflowX;
+      const previousBodyWidth = bodyStyle.width;
+
+      htmlStyle.overflow = 'hidden';
+      htmlStyle.overflowX = 'hidden';
+      bodyStyle.overflow = 'hidden';
+      bodyStyle.overflowX = 'hidden';
+      bodyStyle.width = '100%';
+
+      return () => {
+        document.removeEventListener('keydown', onKeyDown);
+        htmlStyle.overflow = previousHtmlOverflow;
+        htmlStyle.overflowX = previousHtmlOverflowX;
+        bodyStyle.overflow = previousBodyOverflow;
+        bodyStyle.overflowX = previousBodyOverflowX;
+        bodyStyle.width = previousBodyWidth;
+      };
     }
 
-    return () => {
-      document.removeEventListener('keydown', onKeyDown);
-      document.body.style.overflow = '';
-    };
+    return () => document.removeEventListener('keydown', onKeyDown);
   }, [activeImage]);
 
   if (!folderId) {
@@ -95,34 +116,48 @@ const ItemImages = ({ folder }: ItemImagesProps) => {
       </div>
 
       {/* ---------------- FULLSCREEN LIGHTBOX ---------------- */}
-      {activeImage && (
-        <div
-          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
-          onClick={() => setActiveImage(null)}
-        >
+      {activeImage &&
+        createPortal(
           <div
-            className="max-w-5xl max-h-[90vh] w-full flex items-center justify-center"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-[120000] bg-black/80 flex items-center justify-center p-2 sm:p-4"
+            onClick={() => setActiveImage(null)}
+            onWheelCapture={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
           >
-            <DriveImage
-              fileId={activeImage.id ?? ''}
-              name={activeImage.name ?? ''}
-              style={{
-                height: '100%',
-                maxWidth: '100%',
-                maxHeight: '100%',
-                objectFit: 'contain',
-                borderRadius: '8px',
-              }}
-            />
-            {/* <img
-              src={`https://drive.google.com/uc?id=${activeImage.id}`}
-              alt={activeImage.name}
-              className="max-w-full max-h-full object-contain rounded"
-            /> */}
-          </div>
-        </div>
-      )}
+            <button
+              type="button"
+              className="btn btn-circle btn-sm btn-ghost fixed right-3 top-3 z-[120010]"
+              onClick={() => setActiveImage(null)}
+              aria-label="Close zoomed image"
+              title="Close"
+            >
+              ✕
+            </button>
+            <div
+              className="w-full max-w-5xl h-[calc(100dvh-1rem)] sm:h-[calc(100dvh-2rem)] flex items-center justify-center overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <DriveImage
+                fileId={activeImage.id ?? ''}
+                name={activeImage.name ?? ''}
+                style={{
+                  width: 'auto',
+                  height: 'auto',
+                  maxWidth: '100%',
+                  maxHeight: '100%',
+                  objectFit: 'contain',
+                  borderRadius: '8px',
+                }}
+              />
+              {/* <img
+                src={`https://drive.google.com/uc?id=${activeImage.id}`}
+                alt={activeImage.name}
+                className="max-w-full max-h-full object-contain rounded"
+              /> */}
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 };
